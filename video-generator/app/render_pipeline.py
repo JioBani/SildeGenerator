@@ -82,7 +82,7 @@ class ProgressiveRenderer:
             await self.pool.execute("""INSERT INTO render_segments(job_id,segment_index,first_scene_id,last_scene_id,input_hash,output_path,status,ready_at,settings)
               VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb) ON CONFLICT(job_id,segment_index) DO UPDATE SET input_hash=excluded.input_hash,output_path=excluded.output_path,status=excluded.status,ready_at=excluded.ready_at,settings=excluded.settings""",
               uuid.UUID(job_id), index, chunk[0].id, chunk[-1].id, input_hash, str(output), "succeeded" if reused else "ready", ready_at,
-              json.dumps({"fps": self.settings.fps, "crossfade_seconds": self.settings.crossfade_seconds, "scene_count": len(chunk), "harness": harness.snapshot.as_dict()}))
+              json.dumps({"fps": self.settings.fps, "crossfade_seconds": self.settings.crossfade_seconds, "scene_count": len(chunk), "harness": harness.snapshot.as_dict(), "harness_config": harness.config}))
             if not reused:
                 token = f"{job_id}:{index}:{uuid.uuid4()}"
                 await self._acquire(token)
