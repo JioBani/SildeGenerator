@@ -1,0 +1,146 @@
+[
+  {
+    "test": "missing key",
+    "actual": 401,
+    "expected": 401,
+    "ok": true
+  },
+  {
+    "test": "invalid key",
+    "actual": 401,
+    "expected": 401,
+    "ok": true
+  },
+  {
+    "test": "unknown field",
+    "actual": 400,
+    "expected": 400,
+    "ok": true
+  },
+  {
+    "test": "blank scenario",
+    "actual": 400,
+    "expected": 400,
+    "ok": true
+  },
+  {
+    "test": "body size limit",
+    "actual": 413,
+    "expected": 413,
+    "ok": true
+  },
+  {
+    "test": "CORS denied",
+    "actual": 403,
+    "expected": 403,
+    "ok": true
+  },
+  {
+    "test": "management route absent",
+    "actual": 404,
+    "expected": 404,
+    "ok": true
+  },
+  {
+    "test": "mock create",
+    "actual": 202,
+    "expected": 202,
+    "ok": true
+  },
+  {
+    "test": "other user status",
+    "actual": 404,
+    "expected": 404,
+    "ok": true
+  },
+  {
+    "test": "other user video",
+    "actual": 404,
+    "expected": 404,
+    "ok": true
+  },
+  {
+    "test": "mock download",
+    "actual": 200,
+    "expected": 200,
+    "ok": true
+  },
+  {
+    "test": "mp4 magic",
+    "actual": "ftyp",
+    "expected": "ftyp",
+    "ok": true
+  },
+  {
+    "test": "worker symlink cannot expose API keys",
+    "actual": 410,
+    "expected": 410,
+    "ok": true
+  },
+  {
+    "test": "daily limit",
+    "actual": 429,
+    "expected": 429,
+    "ok": true
+  },
+  {
+    "test": "user pending limit",
+    "actual": 429,
+    "expected": 429,
+    "ok": true
+  },
+  {
+    "test": "global queue limit",
+    "actual": 429,
+    "expected": 429,
+    "ok": true
+  },
+  {
+    "test": "request rate limit",
+    "actual": 429,
+    "expected": 429,
+    "ok": true
+  },
+  {
+    "test": "revoked key",
+    "actual": 401,
+    "expected": 401,
+    "ok": true
+  },
+  {
+    "test": "parallel create",
+    "actual": 202,
+    "expected": 202,
+    "ok": true
+  },
+  {
+    "test": "parallel create",
+    "actual": 202,
+    "expected": 202,
+    "ok": true
+  },
+  {
+    "test": "parallel create",
+    "actual": 202,
+    "expected": 202,
+    "ok": true
+  },
+  {
+    "test": "parallel create",
+    "actual": 202,
+    "expected": 202,
+    "ok": true
+  },
+  {
+    "test": "parallel create",
+    "actual": 202,
+    "expected": 202,
+    "ok": true
+  },
+  {
+    "test": "five jobs completed",
+    "actual": 5,
+    "expected": 5,
+    "ok": true
+  }
+]

@@ -1,0 +1,104 @@
+{
+  "api": {
+    "uid": "1000:1000",
+    "readOnly": true,
+    "capDrop": [
+      "ALL"
+    ],
+    "securityOpt": [
+      "no-new-privileges:true"
+    ],
+    "memory": 402653184,
+    "pids": 128,
+    "dockerSocketMounted": false
+  },
+  "worker": {
+    "uid": "1000:1000",
+    "readOnly": true,
+    "capDrop": [
+      "ALL"
+    ],
+    "securityOpt": [
+      "no-new-privileges:true"
+    ],
+    "memory": 402653184,
+    "pids": 128,
+    "dockerSocketMounted": false
+  },
+  "redis": {
+    "uid": "1000:1000",
+    "readOnly": true,
+    "capDrop": [
+      "ALL"
+    ],
+    "securityOpt": [
+      "no-new-privileges:true"
+    ],
+    "memory": 268435456,
+    "pids": 128,
+    "dockerSocketMounted": false
+  },
+  "egress-proxy": {
+    "uid": "1000:1000",
+    "readOnly": true,
+    "capDrop": [
+      "ALL"
+    ],
+    "securityOpt": [
+      "no-new-privileges:true"
+    ],
+    "memory": 134217728,
+    "pids": 128,
+    "dockerSocketMounted": false
+  },
+  "workerNetwork": {
+    "uid": 1000,
+    "targets": {
+      "192.168.0.1:80": "ENETUNREACH",
+      "10.0.0.1:80": "ENETUNREACH",
+      "100.100.100.100:80": "ENETUNREACH",
+      "169.254.169.254:80": "ENETUNREACH",
+      "172.30.70.1:22": "CONNECTED",
+      "1.1.1.1:443": "ENETUNREACH"
+    }
+  },
+  "childEnvironment": {
+    "childEnvKeys": [
+      "PATH",
+      "HOME",
+      "LANG",
+      "CODEX_HOME",
+      "HTTPS_PROXY",
+      "HTTP_PROXY",
+      "ALL_PROXY",
+      "https_proxy",
+      "http_proxy",
+      "JOB_DIR",
+      "OUTPUT_PATH",
+      "JOB_ID"
+    ],
+    "codexVersion": "codex-cli 0.154.0"
+  },
+  "runnerNetwork": {
+    "uid": 1000,
+    "targets": {
+      "192.168.0.1:80": "ENETUNREACH",
+      "10.0.0.1:80": "ENETUNREACH",
+      "100.100.100.100:80": "ENETUNREACH",
+      "169.254.169.254:80": "ENETUNREACH",
+      "172.30.70.1:22": "ENETUNREACH",
+      "1.1.1.1:443": "ENETUNREACH"
+    }
+  },
+  "proxyDestinations": {
+    "192.168.0.1": "HTTP/1.1 403 Forbidden",
+    "10.0.0.1": "HTTP/1.1 403 Forbidden",
+    "100.100.100.100": "HTTP/1.1 403 Forbidden",
+    "169.254.169.254": "HTTP/1.1 403 Forbidden",
+    "172.30.70.1": "HTTP/1.1 403 Forbidden",
+    "example.com": "HTTP/1.1 403 Forbidden",
+    "chatgpt.com": "HTTP/1.1 200 Connection Established",
+    "auth.openai.com": "HTTP/1.1 200 Connection Established"
+  },
+  "hostFirewallPending": true
+}

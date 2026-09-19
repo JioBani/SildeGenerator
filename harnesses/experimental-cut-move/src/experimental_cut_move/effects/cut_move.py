@@ -1,0 +1,1 @@
+TRANSITION_NAME = "slideleft"

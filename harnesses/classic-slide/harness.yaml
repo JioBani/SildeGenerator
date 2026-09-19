@@ -1,0 +1,14 @@
+{
+  "id": "classic-slide",
+  "version": "1.0.0",
+  "engine_api": ">=1.0,<2.0",
+  "entrypoint": "classic_slide.plugin:ClassicSlideHarness",
+  "display_name": "기본 슬라이드 연출",
+  "description": "정지 이미지, Ken Burns, crossfade, ASS 자막 기반 기본 Harness",
+  "public": true,
+  "prompts_dir": "prompts",
+  "config_dir": "config",
+  "fixtures_dir": "fixtures",
+  "python": { "package": "classic-slide-harness", "lockfile": "requirements.lock" },
+  "defaults": { "config": "config/default.yaml" }
+}

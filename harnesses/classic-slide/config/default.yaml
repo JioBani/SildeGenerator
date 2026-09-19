@@ -1,0 +1,8 @@
+{
+  "transition": "fade",
+  "crossfade_seconds": 0.35,
+  "zoom_strength": 0.045,
+  "subtitle_font": "Noto Sans CJK KR",
+  "subtitle_size": 54,
+  "subtitle_margin_vertical": 72
+}

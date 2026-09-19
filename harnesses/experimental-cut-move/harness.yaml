@@ -1,0 +1,14 @@
+{
+  "id": "experimental-cut-move",
+  "version": "0.1.0",
+  "engine_api": ">=1.0,<2.0",
+  "entrypoint": "experimental_cut_move.plugin:ExperimentalCutMoveHarness",
+  "display_name": "실험: 좌우 컷 이동",
+  "description": "classic-slide DAG를 재사용하고 crossfade 대신 slideleft 전환을 적용",
+  "public": true,
+  "prompts_dir": "prompts",
+  "config_dir": "config",
+  "fixtures_dir": "fixtures",
+  "python": { "package": "experimental-cut-move-harness", "lockfile": "requirements.lock" },
+  "defaults": { "config": "config/default.yaml" }
+}

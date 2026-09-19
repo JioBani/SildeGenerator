@@ -1,0 +1,23 @@
+# Reference material and local artifacts (not part of the product)
+story_video_studio_*/
+original/
+artifacts/
+scratchpad/
+astra-architecture-map/
+.tmp*
+.tmp_youtube/
+*.tar
+*.tar.gz
+*.zip
+.agent_party_app/
+.env
+.runtime/
+data/
+server/private/
+.codex-runtime/
+**/__pycache__/
+**/*.pyc
+**/node_modules/
+**/dist/
+.pytest_cache/
+web/.test-dist/

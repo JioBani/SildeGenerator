@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Slide Generator 설정</title>
+  <style>
+    body{font:15px system-ui;margin:0;background:#f5f7fb;color:#17233d}main{max-width:760px;margin:auto;padding:32px 18px}
+    section{background:#fff;border:1px solid #dfe5ee;border-radius:16px;padding:22px;margin:16px 0}label{display:block;font-weight:700;margin:14px 0 6px}
+    input,select{width:100%;box-sizing:border-box;padding:11px;border:1px solid #ccd5e3;border-radius:9px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    small{display:block;color:#69758a;margin-top:6px;line-height:1.5}button{padding:12px 20px;background:#2f61dc;color:#fff;border:0;border-radius:9px;font-weight:800}
+    .hidden{display:none}.error{color:#a52936;white-space:pre-line}.status{padding:10px 12px;background:#eef3fb;border-radius:9px}@media(max-width:560px){.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main>
+  <h1>Slide Generator 설정</h1>
+  <p>이 페이지는 127.0.0.1에서만 열립니다. 저장한 비밀 값은 화면이나 API에서 다시 보여주지 않습니다.</p>
+  <p id="codexStatus" class="status">Codex 로그인 상태 확인 중…</p>
+  <form id="form">
+    <section>
+      <label for="mode">실행 모드</label>
+      <select id="mode" name="mode"><option value="mock">Mock — 체험용, 외부 호출·과금 없음</option><option value="live">Live — 개인용, Codex 로그인 필요</option></select>
+      <small>Codex credential은 이 웹에서 받지 않습니다. Live 저장 후 bootstrap 안내에 따라 호스트 Codex CLI로 로그인합니다.</small>
+    </section>
+    <section>
+      <label for="voiceProvider">음성 공급자</label>
+      <select id="voiceProvider" name="voiceProvider"><option value="mock">무음 Mock</option><option value="microsoft_edge">Microsoft Edge 음성 — 무료 테스트용 온라인 서비스</option><option value="elevenlabs">ElevenLabs — 운영 음질, credit 사용</option></select>
+      <div id="edge">
+        <label for="edgeVoice">한국어 voice</label>
+        <select id="edgeVoice" name="edgeVoice"><option>ko-KR-InJoonNeural</option><option>ko-KR-SunHiNeural</option><option>ko-KR-HyunsuMultilingualNeural</option></select>
+        <div class="row"><div><label for="edgeRate">속도</label><input id="edgeRate" name="edgeRate" value="-30%"></div><div><label for="edgePitch">Pitch</label><input id="edgePitch" name="edgePitch" value="+0Hz"></div><div><label for="edgeVolume">Volume</label><input id="edgeVolume" name="edgeVolume" value="+0%"></div></div>
+        <small>API key와 직접 과금은 없지만 Microsoft 온라인 서비스와 커뮤니티 edge-tts client를 사용합니다. 로컬·오프라인 음성 또는 Microsoft의 공식 무료 API가 아닙니다.</small>
+      </div>
+      <div id="eleven" class="hidden">
+        <label for="elevenLabsApiKey">API key</label><input id="elevenLabsApiKey" name="elevenLabsApiKey" type="password" autocomplete="off">
+        <div class="row"><div><label for="elevenLabsVoiceId">Voice ID</label><input id="elevenLabsVoiceId" name="elevenLabsVoiceId" value="nPczCjzI2devNBz1zQrb"></div><div><label for="elevenLabsVoiceName">Voice 이름</label><input id="elevenLabsVoiceName" name="elevenLabsVoiceName" value="Brian"></div></div>
+        <label for="elevenLabsModel">Model</label><input id="elevenLabsModel" name="elevenLabsModel" value="eleven_flash_v2_5">
+        <div class="row"><div><label for="elevenLabsStability">Stability</label><input id="elevenLabsStability" name="elevenLabsStability" type="number" min="0" max="1" step="0.05" value="0.6"></div><div><label for="elevenLabsSimilarity">Similarity</label><input id="elevenLabsSimilarity" name="elevenLabsSimilarity" type="number" min="0" max="1" step="0.05" value="0.6"></div><div><label for="elevenLabsSpeed">Speed</label><input id="elevenLabsSpeed" name="elevenLabsSpeed" type="number" min="0.7" max="1.2" step="0.05" value="0.7"></div></div>
+        <small>실제 ElevenLabs credit을 소비합니다. 저장한 key는 다시 조회할 수 없습니다.</small>
+      </div>
+    </section>
+    <section><details><summary>고급 실행 옵션</summary><div class="row">
+      <div><label for="webPort">웹 포트</label><input id="webPort" name="webPort" type="number" value="8080"></div><div><label for="imageConcurrency">이미지 동시성</label><input id="imageConcurrency" name="imageConcurrency" type="number" value="4"></div>
+      <div><label for="voiceConcurrency">음성 동시성</label><input id="voiceConcurrency" name="voiceConcurrency" type="number" value="2"></div><div><label for="fps">영상 FPS</label><input id="fps" name="fps" type="number" value="24"></div>
+      <div><label for="retentionHours">작업 보존시간</label><input id="retentionHours" name="retentionHours" type="number" value="720"></div>
+    </div></details></section>
+    <p id="message"></p><button type="submit">검증하고 저장</button>
+  </form>
+  <script>
+    const f=document.querySelector('#form'),p=f.elements.voiceProvider,e=document.querySelector('#edge'),l=document.querySelector('#eleven'),m=document.querySelector('#message'),c=document.querySelector('#codexStatus');
+    function fields(){e.classList.toggle('hidden',p.value!=='microsoft_edge');l.classList.toggle('hidden',p.value!=='elevenlabs')} p.onchange=fields;fields();
+    fetch('/api/setup/status').then(r=>r.json()).then(s=>{c.textContent=s.codexLogin==='confirmed'?'Codex 로그인 확인됨':s.codexLogin==='required'?'Codex 로그인 필요 — bootstrap의 호스트 CLI 안내를 따르세요.':'Mock 모드에서는 Codex 로그인이 필요하지 않습니다.'}).catch(()=>{c.textContent='Codex 로그인 상태를 확인할 수 없습니다.'});
+    f.onsubmit=async event=>{event.preventDefault();m.textContent='검증 중…';m.className='';const data=Object.fromEntries(new FormData(f));const r=await fetch('/api/setup/save',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(data)});const j=await r.json();m.textContent=r.ok?'저장했습니다. 터미널의 bootstrap이 다음 단계를 진행합니다.':(j.errors||[j.error]).join('\n');m.className=r.ok?'':'error'};
+  </script>
+</main></body></html>

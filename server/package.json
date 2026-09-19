@@ -1,0 +1,33 @@
+{
+  "name": "slidegen-server",
+  "private": true,
+  "scripts": {
+    "build": "nest build",
+    "test": "npm run build && node --test test/*.test.js",
+    "start:dev": "nest start --watch",
+    "start:worker:dev": "nest start --watch --entryFile worker",
+    "start": "node dist/main.js",
+    "start:worker": "node dist/worker.js"
+  },
+  "dependencies": {
+    "@nestjs/bullmq": "^12.0.0",
+    "@nestjs/common": "^12.0.3",
+    "@nestjs/core": "^12.0.3",
+    "@nestjs/platform-express": "^12.0.3",
+    "bullmq": "^6.3.6",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "ioredis": "^6.0.0",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^12.0.1",
+    "@nestjs/schematics": "^12.0.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.5.1",
+    "@types/pg": "^8.15.5",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,105 @@
+name: slidegen-server
+x-hardening: &hardening
+  user: "1000:1000"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  pids_limit: 128
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "2"}
+services:
+  redis:
+    <<: *hardening
+    image: redis:7-alpine
+    command: [redis-server, /run/secrets/redis.conf]
+    volumes:
+      - redis-data:/data
+      - ./private/redis.conf:/run/secrets/redis.conf:ro
+    networks: [backend]
+    mem_limit: 256m
+    cpus: 0.4
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=16m,uid=1000,gid=1000"]
+  api:
+    <<: *hardening
+    build: {context: ., target: api}
+    environment:
+      REDIS_URL: redis://redis:6379
+      REDIS_PASSWORD_FILE: /run/secrets/redis-password
+      DATA_DIR: /data
+      KEY_FILE: /keys/keys.json
+      REQUESTS_PER_MINUTE: ${REQUESTS_PER_MINUTE:-120}
+      DAILY_JOBS: ${DAILY_JOBS:-0}
+      USER_PENDING: ${USER_PENDING:-2}
+      GLOBAL_PENDING: ${GLOBAL_PENDING:-20}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      JOB_RETENTION_HOURS: ${JOB_RETENTION_HOURS:-72}
+    ports: ["127.0.0.1:${API_PORT:-3000}:3000"]
+    volumes:
+      - job-data:/data
+      - api-keys:/keys:ro
+      - ./private/redis-password:/run/secrets/redis-password:ro
+    networks: [backend, ingress]
+    depends_on: [redis]
+    mem_limit: 384m
+    cpus: 0.5
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=16m,uid=1000,gid=1000"]
+  worker:
+    <<: *hardening
+    build: {context: ., target: worker}
+    environment:
+      REDIS_URL: redis://redis:6379
+      REDIS_PASSWORD_FILE: /run/secrets/redis-password
+      DATA_DIR: /data
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+      JOB_TIMEOUT_MINUTES: ${JOB_TIMEOUT_MINUTES:-15}
+      JOB_RETENTION_HOURS: ${JOB_RETENTION_HOURS:-72}
+    volumes:
+      - job-data:/data
+      - ./private/broker:/broker:ro
+      - ./private/redis-password:/run/secrets/redis-password:ro
+    networks: [backend]
+    depends_on: [redis, egress-proxy]
+    mem_limit: 384m
+    cpus: 0.5
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=16m,uid=1000,gid=1000"]
+  egress-proxy:
+    <<: *hardening
+    build: {context: ., target: proxy}
+    environment:
+      EGRESS_ALLOW_HOSTS: ${EGRESS_ALLOW_HOSTS:-chatgpt.com,*.chatgpt.com,openai.com,*.openai.com}
+    volumes: [proxy-socket:/proxy]
+    networks: [egress]
+    mem_limit: 128m
+    cpus: 0.3
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=16m,uid=1000,gid=1000"]
+  keyctl:
+    <<: *hardening
+    build: {context: ., target: api}
+    entrypoint: [node, dist/auth/key-cli.js]
+    network_mode: none
+    volumes: [api-keys:/keys]
+    restart: "no"
+    profiles: [ops]
+    mem_limit: 128m
+    cpus: 0.3
+volumes:
+  redis-data:
+  job-data:
+  api-keys:
+  proxy-socket:
+networks:
+  backend:
+    internal: true
+    driver_opts: {com.docker.network.bridge.name: sg-backend}
+    ipam:
+      config: [{subnet: 172.30.70.0/24}]
+  egress:
+    driver_opts: {com.docker.network.bridge.name: sg-egress}
+    ipam:
+      config: [{subnet: 172.30.71.0/24}]
+  ingress:
+    driver_opts: {com.docker.network.bridge.name: sg-ingress}
+    ipam:
+      config: [{subnet: 172.30.72.0/24}]

@@ -1,0 +1,28 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: npm ci && npm test
+        working-directory: server
+      - run: npm ci && npm run build
+        working-directory: web
+      - run: npm test
+        working-directory: setup
+      - run: pip install -r requirements.txt && pytest -q
+        working-directory: video-generator
+      - run: docker compose config --quiet
+      - run: chmod +x scripts/*.sh && ./scripts/bootstrap.sh --mock
+      - name: Repository hygiene
+        run: |
+          test -z "$(git ls-files | grep -E '(^|/)(\.runtime|\.codex-runtime|original|artifacts|scratchpad|node_modules|dist)(/|$)|(^|/)\.env$|auth\.json$|access-token\.txt$' || true)"
+          secret_pattern='(s''k-[A-Za-z0-9_-]{20,}|s''g_[A-Za-z0-9_-]{20,}|ELEVENLABS_''API_KEY=[^[:space:]]+)'
+          ! git grep -I -E "$secret_pattern" -- ':!docs/decisions/**'

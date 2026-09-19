@@ -1,0 +1,12 @@
+[Unit]
+Description=SlideGenerator container host and private-network isolation
+Requires=docker.service
+After=docker.service
+PartOf=docker.service
+Before=slidegen-public.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/slidegen-firewall
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target

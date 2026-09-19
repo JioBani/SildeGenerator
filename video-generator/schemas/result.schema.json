@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["success", "video_path", "message"],
+  "properties": {
+    "success": { "type": "boolean" },
+    "video_path": { "type": "string" },
+    "message": { "type": "string" }
+  }
+}

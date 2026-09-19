@@ -1,0 +1,7 @@
+{
+  "realCodex": "blocked_usage_limit",
+  "network": "none",
+  "proxy": "unix socket -> allowlisted HTTPS",
+  "upstreamReturnedUsageLimit": true,
+  "fullExecutionCompleted": false
+}

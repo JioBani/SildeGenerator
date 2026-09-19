@@ -1,0 +1,256 @@
+name: ${COMPOSE_PROJECT_NAME:-slidegenerator}
+
+x-service: &service
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "3"
+
+services:
+  setup:
+    build: ./setup
+    profiles: [setup]
+    environment:
+      RUNTIME_DIR: /runtime
+    volumes:
+      - ./.runtime:/runtime
+    networks: [setup-only]
+    restart: "no"
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    mem_limit: 128m
+
+  setup-proxy:
+    image: nginx:1.27-alpine
+    profiles: [setup]
+    ports:
+      - "127.0.0.1:${SETUP_PORT:-8090}:8090"
+    volumes:
+      - ./setup/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks: [setup-only, setup-ingress]
+    depends_on: [setup]
+    restart: "no"
+    read_only: true
+    tmpfs: [/var/cache/nginx, /var/run]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETGID, SETUID, NET_BIND_SERVICE]
+    mem_limit: 32m
+
+  postgres:
+    <<: *service
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-slidegen}
+      POSTGRES_USER: ${POSTGRES_USER:-slidegen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-slidegen}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [backend]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+
+  redis:
+    <<: *service
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes", --maxmemory-policy, noeviction]
+    volumes:
+      - redis-data:/data
+    networks: [backend]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 256m
+
+  api:
+    <<: *service
+    build:
+      context: ./server
+      target: api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-slidegen}:${POSTGRES_PASSWORD:-slidegen}@postgres:5432/${POSTGRES_DB:-slidegen}
+      REDIS_URL: redis://redis:6379
+      RUNNER_URL: http://runner:8081
+      DATA_DIR: /data
+      PROMPTS_DIR: /prompts
+      KEY_FILE: /keys/keys.json
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      DAILY_JOBS: ${DAILY_JOBS:-0}
+      USER_PENDING: ${USER_PENDING:-20}
+      GLOBAL_PENDING: ${GLOBAL_PENDING:-20}
+      VIDEO_JOB_GLOBAL_CONCURRENCY: ${VIDEO_JOB_GLOBAL_CONCURRENCY:-1}
+      USD_KRW_RATE: ${USD_KRW_RATE:-1388.1}
+      CODEX_MODEL: ${CODEX_MODEL:-gpt-5.6-luna}
+      CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-max}
+      CODEX_FAST_MODE: ${CODEX_FAST_MODE:-false}
+      CODEX_MODEL_OPTIONS: ${CODEX_MODEL_OPTIONS:-gpt-5.6-luna,gpt-5.6-terra,gpt-5.6-sol}
+      VIDEO_FPS: ${VIDEO_FPS:-24}
+      VOICE_TASK_CONCURRENCY: ${VOICE_TASK_CONCURRENCY:-2}
+      VOICE_PROVIDER: ${VOICE_PROVIDER:-mock}
+      MICROSOFT_EDGE_VOICE: ${MICROSOFT_EDGE_VOICE:-ko-KR-InJoonNeural}
+      MICROSOFT_EDGE_RATE: ${MICROSOFT_EDGE_RATE:--30%}
+      MICROSOFT_EDGE_PITCH: ${MICROSOFT_EDGE_PITCH:-+0Hz}
+      MICROSOFT_EDGE_VOLUME: ${MICROSOFT_EDGE_VOLUME:-+0%}
+      ELEVENLABS_CONFIGURED: ${ELEVENLABS_CONFIGURED:-false}
+      ELEVENLABS_VOICE_ID: ${ELEVENLABS_VOICE_ID:-nPczCjzI2devNBz1zQrb}
+      ELEVENLABS_VOICE_NAME: ${ELEVENLABS_VOICE_NAME:-Brian - Deep, Resonant and Comforting}
+      ELEVENLABS_MODEL_ID: ${ELEVENLABS_MODEL_ID:-eleven_flash_v2_5}
+    volumes:
+      - job-data:/data
+      - api-keys:/keys:ro
+      - ./harnesses/classic-slide/prompts:/prompts
+    ports:
+      - "127.0.0.1:${API_PORT:-3000}:3000"
+    networks: [backend, ingress]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 4s
+      retries: 10
+    mem_limit: 512m
+
+  worker:
+    <<: *service
+    stop_grace_period: 95m
+    build:
+      context: ./server
+      target: worker
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-slidegen}:${POSTGRES_PASSWORD:-slidegen}@postgres:5432/${POSTGRES_DB:-slidegen}
+      REDIS_URL: redis://redis:6379
+      RUNNER_URL: http://runner:8081
+      DATA_DIR: /data
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
+      VIDEO_JOB_GLOBAL_CONCURRENCY: ${VIDEO_JOB_GLOBAL_CONCURRENCY:-1}
+      JOB_TIMEOUT_MINUTES: ${JOB_TIMEOUT_MINUTES:-90}
+      JOB_RETENTION_HOURS: ${JOB_RETENTION_HOURS:-720}
+      USD_KRW_RATE: ${USD_KRW_RATE:-1388.1}
+    volumes:
+      - job-data:/data
+    networks: [backend]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      runner: { condition: service_healthy }
+    mem_limit: 512m
+
+  runner:
+    <<: *service
+    # Uvicorn waits for an active /render request after SIGTERM. Keep Docker
+    # from escalating a routine deployment to SIGKILL while a long render is
+    # still producing paid image/audio assets.
+    stop_grace_period: 95m
+    build:
+      context: .
+      dockerfile: video-generator/Dockerfile
+      args:
+        SOURCE_REVISION: ${SOURCE_REVISION:-working-tree}
+    environment:
+      DATA_DIR: /data
+      DATABASE_URL: postgresql://${POSTGRES_USER:-slidegen}:${POSTGRES_PASSWORD:-slidegen}@postgres:5432/${POSTGRES_DB:-slidegen}
+      REDIS_URL: redis://redis:6379
+      HARNESSES_DIR: /app/harnesses
+      PROMPTS_DIR: /app/harnesses/classic-slide/prompts
+      RUNNER_SOURCE_REVISION: ${SOURCE_REVISION:-working-tree}
+      RUNNER_IMAGE_DIGEST: ${RUNNER_IMAGE_DIGEST:-unavailable}
+      RUNNER_ENV_FILE: /run/secrets/slidegen.env
+      RUNNER_MODE: ${RUNNER_MODE:-mock}
+      IMAGE_PROVIDER: ${IMAGE_PROVIDER:-mock}
+      CHATGPT_OAUTH_BASE_URL: ${CHATGPT_OAUTH_BASE_URL:-http://image-oauth:10531}
+      CODEX_MODEL: ${CODEX_MODEL:-gpt-5.6-luna}
+      CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-max}
+      CODEX_FAST_MODE: ${CODEX_FAST_MODE:-false}
+      CODEX_READ_TIMEOUT_SECONDS: ${CODEX_READ_TIMEOUT_SECONDS:-300}
+      CODEX_CONNECT_TIMEOUT_SECONDS: ${CODEX_CONNECT_TIMEOUT_SECONDS:-10}
+      # Runner-specific key avoids an older shared .env value silently pinning
+      # the provider after the controlled GPT Image 2.5 compatibility rollout.
+      IMAGE_GENERATION_MODEL: ${RUNNER_IMAGE_GENERATION_MODEL:-gpt-image-2.5-sunburst}
+      IMAGE_TASK_CONCURRENCY: ${IMAGE_TASK_CONCURRENCY:-4}
+      VOICE_TASK_CONCURRENCY: ${VOICE_TASK_CONCURRENCY:-2}
+      VOICE_PROVIDER: ${VOICE_PROVIDER:-mock}
+      MICROSOFT_EDGE_VOICE: ${MICROSOFT_EDGE_VOICE:-ko-KR-InJoonNeural}
+      MICROSOFT_EDGE_RATE: ${MICROSOFT_EDGE_RATE:--30%}
+      MICROSOFT_EDGE_PITCH: ${MICROSOFT_EDGE_PITCH:-+0Hz}
+      MICROSOFT_EDGE_VOLUME: ${MICROSOFT_EDGE_VOLUME:-+0%}
+      FFMPEG_TASK_CONCURRENCY: ${FFMPEG_TASK_CONCURRENCY:-1}
+      VIDEO_WIDTH: "1920"
+      VIDEO_HEIGHT: "1080"
+      VIDEO_FPS: ${VIDEO_FPS:-24}
+      FFMPEG_PRESET: veryfast
+      RENDER_SEGMENT_SCENES: "8"
+    volumes:
+      - job-data:/data
+      - ./.runtime/runner.env:/run/secrets/slidegen.env:ro
+      - ./harnesses:/app/harnesses:ro
+    networks: [backend, egress]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health',timeout=3)"]
+      interval: 10s
+      timeout: 4s
+      retries: 20
+    mem_limit: 2g
+
+  image-oauth:
+    <<: *service
+    build:
+      context: ./infra/image-oauth
+    environment:
+      CODEX_HOME: /codex-home
+    volumes:
+      - ${CODEX_HOME_DIR:-./.runtime/codex}:/codex-home:ro
+    networks: [backend, egress]
+    profiles: [live]
+    mem_limit: 256m
+
+  web:
+    <<: *service
+    build:
+      context: ./web
+      args:
+        VITE_API_BASE_URL: ""
+    environment:
+      API_UPSTREAM: http://api:3000
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    networks: [ingress]
+    depends_on:
+      api: { condition: service_healthy }
+    mem_limit: 128m
+
+  keyctl:
+    build:
+      context: ./server
+      target: api
+    entrypoint: [node, dist/auth/key-cli.js]
+    network_mode: none
+    volumes:
+      - api-keys:/keys
+    profiles: [ops]
+
+volumes:
+  postgres-data:
+  redis-data:
+  job-data:
+  api-keys:
+
+networks:
+  setup-only:
+    internal: true
+  setup-ingress:
+  backend:
+    internal: true
+  ingress:
+  egress:
