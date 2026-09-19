@@ -1,5 +1,4 @@
 FROM python:3.11-slim-bookworm
-ARG SOURCE_REVISION=working-tree
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg fonts-noto-cjk ca-certificates \
@@ -21,6 +20,7 @@ COPY harnesses ./harnesses
 
 RUN mkdir -p /data/jobs /codex-home && chown -R 1000:1000 /app /data /codex-home
 
+ARG SOURCE_REVISION=working-tree
 LABEL slidegen.component=video-generator slidegen.source-revision=$SOURCE_REVISION
 USER 1000:1000
 EXPOSE 8081
