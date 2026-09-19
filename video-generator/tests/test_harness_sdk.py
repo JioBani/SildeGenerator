@@ -13,6 +13,7 @@ from app.harness_sdk.context import HarnessContext
 from app.harness_sdk.errors import GraphValidationError
 from app.harness_sdk.graph import PipelineGraph
 from app.harness_sdk.task import ResourceRequest, TaskNode, TaskResult
+from app.models import RenderRequest
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -27,6 +28,14 @@ def test_discovers_versioned_harnesses_and_hashes_entire_packages():
     assert all(entry["compatible"] for entry in entries)
     assert all(len(entry["manifest_sha256"]) == 64 and len(entry["source_sha256"]) == 64 for entry in entries)
     assert entries[0]["source_sha256"] != entries[1]["source_sha256"]
+
+
+def test_render_request_accepts_registry_snapshot_metadata():
+    entry = registry().list()[0]
+    request = RenderRequest(job_id="00000000-0000-0000-0000-000000000001", scenario="A complete scene.", harness_snapshot=entry)
+    assert request.harness_snapshot is not None
+    assert request.harness_snapshot["public"] is True
+    assert request.harness_snapshot["compatible"] is True
 
 
 def test_experimental_effect_is_loaded_without_core_effect_allowlist():

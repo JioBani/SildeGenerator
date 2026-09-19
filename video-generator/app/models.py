@@ -36,7 +36,7 @@ class RenderRequest(BaseModel):
     image_style: Literal["editorial_illustration", "cinematic_realism", "graphic_explainer"] = "editorial_illustration"
     voice_settings: VoiceSettings | None = None
     harness_id: str = Field(default="classic-slide", pattern=r"^[a-z][a-z0-9-]{1,63}$")
-    harness_snapshot: dict[str, str] | None = None
+    harness_snapshot: dict[str, Any] | None = None
 
     @field_validator("scenario")
     @classmethod
@@ -175,4 +175,4 @@ class RunnerResult(BaseModel):
     assets: list[dict[str, Any]] = Field(default_factory=list)
     prompts: list[dict[str, Any]] = Field(default_factory=list)
     narrative_blueprint: dict[str, Any] | None = None
-    harness_snapshot: dict[str, str] | None = None
+    harness_snapshot: dict[str, Any] | None = None
