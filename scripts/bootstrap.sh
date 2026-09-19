@@ -23,6 +23,23 @@ if [ "$MOCK" -eq 1 ] && [ ! -f "$RUNTIME/setup-complete" ]; then compose --profi
 if [ ! -f "$RUNTIME/setup-complete" ]; then compose --profile setup up -d --build setup setup-proxy; echo "Setup: http://127.0.0.1:$SETUP_PORT_VALUE"; while [ ! -f "$RUNTIME/setup-complete" ]; do echo "Waiting for setup..."; sleep 5; done; fi
 compose --profile setup stop setup-proxy setup; grep -Ev '^(RUNNER_MODE|IMAGE_PROVIDER|VOICE_PROVIDER|WEB_PORT|IMAGE_TASK_CONCURRENCY|VOICE_TASK_CONCURRENCY|VIDEO_FPS|JOB_RETENTION_HOURS|ELEVENLABS_CONFIGURED|MICROSOFT_EDGE_|ELEVENLABS_VOICE_|ELEVENLABS_MODEL_ID)=' "$ENV_FILE" > "$ENV_FILE.tmp"; cat "$RUNTIME/compose.user.env" >> "$ENV_FILE.tmp"; mv "$ENV_FILE.tmp" "$ENV_FILE"; chmod 600 "$ENV_FILE" "$RUNTIME/runner.env"
 mode=$(sed -n 's/^RUNNER_MODE=//p' "$ENV_FILE" | tail -1)
-if [ "$mode" = live ]; then command -v codex >/dev/null || { echo "Codex CLI required: https://developers.openai.com/codex/cli" >&2; exit 1; }; CODEX_HOME="$RUNTIME/codex" codex login status >/dev/null 2>&1 || CODEX_HOME="$RUNTIME/codex" codex login -c 'cli_auth_credentials_store="file"'; chmod 600 "$RUNTIME/codex/auth.json"; voice_provider=$(sed -n 's/^VOICE_PROVIDER=//p' "$ENV_FILE" | tail -1); umask 077; printf '{"schemaVersion":1,"configured":true,"mode":"live","voiceProvider":"%s","codexLogin":"confirmed"}\n' "$voice_provider" > "$RUNTIME/bootstrap-state.json"; compose --profile live up -d --build; else compose up -d --build; fi
+SOURCE_REVISION=${SOURCE_REVISION:-$(git rev-parse HEAD 2>/dev/null || printf working-tree)}
+export SOURCE_REVISION
+if [ "$mode" = live ]; then
+  command -v codex >/dev/null || { echo "Codex CLI required: https://developers.openai.com/codex/cli" >&2; exit 1; }
+  CODEX_HOME="$RUNTIME/codex" codex login status >/dev/null 2>&1 || CODEX_HOME="$RUNTIME/codex" codex login -c 'cli_auth_credentials_store="file"'
+  chmod 600 "$RUNTIME/codex/auth.json"
+  voice_provider=$(sed -n 's/^VOICE_PROVIDER=//p' "$ENV_FILE" | tail -1)
+  umask 077; printf '{"schemaVersion":1,"configured":true,"mode":"live","voiceProvider":"%s","codexLogin":"confirmed"}\n' "$voice_provider" > "$RUNTIME/bootstrap-state.json"
+  compose --profile live build
+  RUNNER_IMAGE_DIGEST=$(docker image inspect --format '{{.Id}}' "$(compose --profile live images -q runner)")
+  export RUNNER_IMAGE_DIGEST
+  compose --profile live up -d
+else
+  compose build
+  RUNNER_IMAGE_DIGEST=$(docker image inspect --format '{{.Id}}' "$(compose images -q runner)")
+  export RUNNER_IMAGE_DIGEST
+  compose up -d
+fi
 if [ ! -f "$RUNTIME/access-token.txt" ]; then umask 077; compose --profile ops run --rm keyctl issue local-admin 2>/dev/null | grep '^sg_' | tail -1 > "$RUNTIME/access-token.txt"; fi
 sh "$ROOT/scripts/doctor.sh"; echo "Web: http://localhost:$WEB_PORT_VALUE"; echo "Token: .runtime/access-token.txt (scripts/show-token.sh)"

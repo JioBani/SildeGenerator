@@ -64,6 +64,12 @@ if (-not (Test-Path $marker)) {
 Compose @("--profile","setup","stop","setup-proxy","setup")
 Merge-User-Config
 $state = Get-Content -Raw $stateFile | ConvertFrom-Json
+$sourceRevision = $env:SOURCE_REVISION
+if (-not $sourceRevision) {
+  $sourceRevision = (& git rev-parse HEAD 2>$null).Trim()
+  if ($LASTEXITCODE -ne 0 -or -not $sourceRevision) { $sourceRevision = "working-tree" }
+}
+$env:SOURCE_REVISION = $sourceRevision
 if ($state.mode -eq "live") {
   if (-not (Get-Command codex -ErrorAction SilentlyContinue)) { throw "Live 모드에는 Codex CLI가 필요합니다. https://developers.openai.com/codex/cli 를 확인하세요." }
   $slidegenCodexHome = (Resolve-Path (Join-Path $runtimeDir "codex")).Path
@@ -73,8 +79,20 @@ if ($state.mode -eq "live") {
     if ($LASTEXITCODE -ne 0) { codex login -c 'cli_auth_credentials_store="file"'; if ($LASTEXITCODE -ne 0) { throw "Codex 로그인이 완료되지 않았습니다." } }
   } finally { if ($null -eq $previousCodexHome) { Remove-Item Env:CODEX_HOME -ErrorAction SilentlyContinue } else { $env:CODEX_HOME=$previousCodexHome } }
   $state.codexLogin = "confirmed"; $state | ConvertTo-Json | Set-Content -Encoding UTF8 $stateFile
-  Compose @("--profile","live","up","-d","--build")
-} else { Compose @("up","-d","--build") }
+  Compose @("--profile","live","build")
+  $runnerImage = (& docker compose --env-file $composeEnv --profile live images -q runner).Trim()
+  if (-not $runnerImage) { throw "runner image ID lookup failed" }
+  $env:RUNNER_IMAGE_DIGEST = (& docker image inspect --format '{{.Id}}' $runnerImage).Trim()
+  if ($LASTEXITCODE -ne 0 -or -not $env:RUNNER_IMAGE_DIGEST) { throw "runner image digest lookup failed" }
+  Compose @("--profile","live","up","-d")
+} else {
+  Compose @("build")
+  $runnerImage = (& docker compose --env-file $composeEnv images -q runner).Trim()
+  if (-not $runnerImage) { throw "runner image ID lookup failed" }
+  $env:RUNNER_IMAGE_DIGEST = (& docker image inspect --format '{{.Id}}' $runnerImage).Trim()
+  if ($LASTEXITCODE -ne 0 -or -not $env:RUNNER_IMAGE_DIGEST) { throw "runner image digest lookup failed" }
+  Compose @("up","-d")
+}
 $tokenFile = Join-Path $runtimeDir "access-token.txt"
 if (-not (Test-Path $tokenFile)) {
   $tokenOutput = & docker compose --env-file $composeEnv --profile ops run --rm keyctl issue local-admin 2>$null
