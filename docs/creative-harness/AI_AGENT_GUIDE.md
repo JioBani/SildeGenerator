@@ -32,7 +32,8 @@ Creative Harness
 
 - released Harness version을 직접 덮어쓰지 않는다.
 - 실험은 기존 Harness를 새 ID 또는 새 version으로 clone해서 시작한다.
-- `video-generator/app/engine/**`를 먼저 수정하지 않는다.
+- 연출 변경은 우선 Harness 안에서 해결할 수 있는지 검토한다. Core를 수정하지 않는 것은 기본 권고이지 절대 규칙이 아니다.
+- 사용자 기능을 올바르게 제공하기 위해 Core 또는 Harness SDK 변경이 필요하면 영향 범위를 확인하고 공개 인터페이스·테스트·문서를 함께 갱신하여 적절하게 수정한다.
 - Harness에서 engine private module을 import하지 않는다.
 - secret, auth.json, API key, access token을 읽거나 출력하거나 fixture에 넣지 않는다.
 - runtime에 `pip install`, `npm install`, curl pipe install을 추가하지 않는다.
@@ -111,7 +112,7 @@ engine private API를 우회하지 않는다. 다음을 문서화한다.
 테스트 방법
 ```
 
-SDK 확장은 개발 담당자의 검토 대상이다. 승인 후 SDK와 Harness 변경을 분리된 commit으로 만든다.
+SDK 또는 Core 확장은 영향 범위가 더 크므로 변경 이유와 호환성 영향을 먼저 명시한다. 필요한 사용자 기능을 위해 수정하는 것은 허용하며, 공개 계약·회귀 테스트·문서를 함께 갱신한다. 가능하면 SDK/Core와 Harness 변경을 분리된 commit으로 만든다.
 
 ## 5. 새 Harness 만들기
 
@@ -309,7 +310,7 @@ Mock/Live provider 구분
 재현 명령
 ```
 
-Core를 수정하지 않았다면 명확히 적는다. SDK 부족으로 Core를 수정했다면 어떤 최소 capability를 추가했는지 설명한다.
+Core를 수정하지 않았다면 명확히 적는다. 사용자 기능 또는 SDK capability를 위해 Core를 수정했다면 변경 이유, 공개 계약, 호환성 영향, 회귀 테스트를 설명한다. Core 무수정은 목표가 아니라 결합도를 관리하기 위한 기본 선택이다.
 
 ## 15. 최종 판단 기준
 
