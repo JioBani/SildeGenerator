@@ -149,6 +149,7 @@ services:
 
   runner:
     <<: *service
+    image: ${COMPOSE_PROJECT_NAME:-slidegenerator}-runner:${SOURCE_REVISION:-working-tree}
     # Uvicorn waits for an active /render request after SIGTERM. Keep Docker
     # from escalating a routine deployment to SIGKILL while a long render is
     # still producing paid image/audio assets.

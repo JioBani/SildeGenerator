@@ -80,15 +80,17 @@ if ($state.mode -eq "live") {
   } finally { if ($null -eq $previousCodexHome) { Remove-Item Env:CODEX_HOME -ErrorAction SilentlyContinue } else { $env:CODEX_HOME=$previousCodexHome } }
   $state.codexLogin = "confirmed"; $state | ConvertTo-Json | Set-Content -Encoding UTF8 $stateFile
   Compose @("--profile","live","build")
-  $runnerImage = (& docker compose --env-file $composeEnv --profile live images -q runner).Trim()
-  if (-not $runnerImage) { throw "runner image ID lookup failed" }
+  $projectName = ((Get-Content $composeEnv | Select-String '^COMPOSE_PROJECT_NAME=' | Select-Object -Last 1).Line -replace '^COMPOSE_PROJECT_NAME=','')
+  if (-not $projectName) { $projectName = "slidegenerator" }
+  $runnerImage = "${projectName}-runner:$sourceRevision"
   $env:RUNNER_IMAGE_DIGEST = (& docker image inspect --format '{{.Id}}' $runnerImage).Trim()
   if ($LASTEXITCODE -ne 0 -or -not $env:RUNNER_IMAGE_DIGEST) { throw "runner image digest lookup failed" }
   Compose @("--profile","live","up","-d")
 } else {
   Compose @("build")
-  $runnerImage = (& docker compose --env-file $composeEnv images -q runner).Trim()
-  if (-not $runnerImage) { throw "runner image ID lookup failed" }
+  $projectName = ((Get-Content $composeEnv | Select-String '^COMPOSE_PROJECT_NAME=' | Select-Object -Last 1).Line -replace '^COMPOSE_PROJECT_NAME=','')
+  if (-not $projectName) { $projectName = "slidegenerator" }
+  $runnerImage = "${projectName}-runner:$sourceRevision"
   $env:RUNNER_IMAGE_DIGEST = (& docker image inspect --format '{{.Id}}' $runnerImage).Trim()
   if ($LASTEXITCODE -ne 0 -or -not $env:RUNNER_IMAGE_DIGEST) { throw "runner image digest lookup failed" }
   Compose @("up","-d")

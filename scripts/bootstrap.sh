@@ -32,12 +32,14 @@ if [ "$mode" = live ]; then
   voice_provider=$(sed -n 's/^VOICE_PROVIDER=//p' "$ENV_FILE" | tail -1)
   umask 077; printf '{"schemaVersion":1,"configured":true,"mode":"live","voiceProvider":"%s","codexLogin":"confirmed"}\n' "$voice_provider" > "$RUNTIME/bootstrap-state.json"
   compose --profile live build
-  RUNNER_IMAGE_DIGEST=$(docker image inspect --format '{{.Id}}' "$(compose --profile live images -q runner)")
+  project_name=$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$ENV_FILE" | tail -1); project_name=${project_name:-slidegenerator}
+  RUNNER_IMAGE_DIGEST=$(docker image inspect --format '{{.Id}}' "$project_name-runner:$SOURCE_REVISION")
   export RUNNER_IMAGE_DIGEST
   compose --profile live up -d
 else
   compose build
-  RUNNER_IMAGE_DIGEST=$(docker image inspect --format '{{.Id}}' "$(compose images -q runner)")
+  project_name=$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$ENV_FILE" | tail -1); project_name=${project_name:-slidegenerator}
+  RUNNER_IMAGE_DIGEST=$(docker image inspect --format '{{.Id}}' "$project_name-runner:$SOURCE_REVISION")
   export RUNNER_IMAGE_DIGEST
   compose up -d
 fi
