@@ -114,10 +114,10 @@ async def harness_detail(harness_id: str) -> dict[str, object]:
     return {**loaded.snapshot.as_dict(), "manifest": loaded.manifest.__dict__, "config": loaded.config, "readme": (loaded.root / "README.md").read_text(encoding="utf-8")}
 
 
-async def _harness_operation(harness: LoadedHarness, job_id: str, work: Path, operation: str, **metadata):
+async def _harness_operation(harness: LoadedHarness, job_id: str, workspace: Path, operation: str, **metadata):
     context = HarnessContext(
-        job_id=job_id, workspace=work, settings=settings, process=harness_process,
-        artifacts=ArtifactStore(work), leases=LocalLeaseProvider({"ffmpeg": settings.ffmpeg_task_concurrency, "cpu": 2, "io": 4}),
+        job_id=job_id, workspace=workspace, settings=settings, process=harness_process,
+        artifacts=ArtifactStore(workspace), leases=LocalLeaseProvider({"ffmpeg": settings.ffmpeg_task_concurrency, "cpu": 2, "io": 4}),
         metadata={"operation": operation, "config": harness.config, **metadata},
     )
     graph = await harness.instance.build_pipeline(context)
