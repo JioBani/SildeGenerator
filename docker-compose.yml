@@ -212,9 +212,9 @@ services:
     build:
       context: ./infra/image-oauth
     environment:
-      CODEX_HOME: /codex-home
+      CODEX_HOME: /tmp/codex-home
     volumes:
-      - ${CODEX_HOME_DIR:-./.runtime/codex}:/codex-home:ro
+      - ${CODEX_HOME_DIR:-./.runtime/codex}:/codex-source:ro
     networks: [backend, egress]
     profiles: [live]
     mem_limit: 256m

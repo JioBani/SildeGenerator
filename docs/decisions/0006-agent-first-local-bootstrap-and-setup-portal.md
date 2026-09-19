@@ -211,7 +211,7 @@ Compose는 명시적으로 다음을 사용한다.
 docker compose --env-file .runtime/compose.env ...
 ```
 
-runner에는 `.runtime/runner.env:/run/secrets/slidegen.env:ro`, image OAuth에는 `.runtime/codex:/codex-home:ro`를 mount한다.
+runner에는 `.runtime/runner.env:/run/secrets/slidegen.env:ro`, image OAuth에는 `.runtime/codex:/codex-source:ro`를 mount한다. OAuth broker가 access metadata를 갱신할 수 있도록 컨테이너 시작 시 이 읽기 전용 원본을 컨테이너 내부의 임시 쓰기 가능 `CODEX_HOME=/tmp/codex-home`으로 복사한다. 호스트 credential에는 쓰기 권한을 주지 않는다.
 
 PostgreSQL password와 내부용 랜덤값은 bootstrap 단계에서 cryptographically secure random으로 자동 생성한다. 사용자가 직접 입력할 필요가 없다. 비밀값을 Docker image layer나 build arg로 전달하지 않는다.
 
