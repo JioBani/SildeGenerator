@@ -177,7 +177,8 @@ const duration = (value: unknown) => {
 const integer = (value: unknown) => (Number(value) || 0).toLocaleString("ko-KR");
 
 export function App() {
-  const [tab, setTab] = useState<"create" | "admin">("create");
+  const [detailJobId] = useState(() => new URLSearchParams(window.location.search).get("adminJob"));
+  const [tab, setTab] = useState<"create" | "admin">(() => detailJobId ? "admin" : "create");
   const [adminView, setAdminView] = useState<"overview" | "analytics" | "prompts" | "settings">("overview");
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) ?? "");
   const [scenario, setScenario] = useState("");
@@ -243,8 +244,17 @@ export function App() {
   }, [api]);
 
   useEffect(() => {
-    if (tab === "admin" && adminView === "overview") void refreshAdmin();
-  }, [adminView, refreshAdmin, tab]);
+    if (tab === "admin" && adminView === "overview" && !detailJobId) void refreshAdmin();
+  }, [adminView, detailJobId, refreshAdmin, tab]);
+
+  useEffect(() => {
+    if (!detailJobId) return;
+    setError("");
+    void api(`/api/admin/jobs/${detailJobId}`, undefined, false).then(async (response) => {
+      if (!response.ok) throw new Error("작업 상세를 불러오지 못했습니다.");
+      setDetail(await response.json());
+    }).catch((reason) => setError(reason instanceof Error ? reason.message : String(reason)));
+  }, [api, detailJobId]);
 
   async function submit() {
     setError("");
@@ -288,9 +298,12 @@ export function App() {
     if (job) await downloadJob(job.id);
   }
 
-  async function openDetail(id: string) {
-    const response = await api(`/api/admin/jobs/${id}`, undefined, false);
-    if (response.ok) setDetail(await response.json());
+  function openDetailInNewTab(id: string) {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.hash = "";
+    url.searchParams.set("adminJob", id);
+    window.open(url.toString(), "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -371,21 +384,21 @@ export function App() {
       ) : (
         <main className="page admin-page">
           <div className="page-title">
-            <div><p className="eyebrow">OPERATIONS</p><h1>{adminView === "overview" ? "생성 현황과 비용" : adminView === "analytics" ? "개선 분석" : adminView === "prompts" ? "프롬프트 관리" : "모델 설정"}</h1></div>
+            <div><p className="eyebrow">OPERATIONS</p><h1>{detailJobId ? "작업 상세" : adminView === "overview" ? "생성 현황과 비용" : adminView === "analytics" ? "개선 분석" : adminView === "prompts" ? "프롬프트 관리" : "모델 설정"}</h1></div>
             <div className="page-actions">
-              <div className="admin-view-tabs" role="tablist" aria-label="관리자 화면">
+              {!detailJobId && <div className="admin-view-tabs" role="tablist" aria-label="관리자 화면">
                 <button role="tab" aria-selected={adminView === "overview"} className={adminView === "overview" ? "active" : ""} onClick={() => setAdminView("overview")}>운영 현황</button>
                 <button role="tab" aria-selected={adminView === "analytics"} className={adminView === "analytics" ? "active" : ""} onClick={() => setAdminView("analytics")}>개선 분석</button>
                 <button role="tab" aria-selected={adminView === "prompts"} className={adminView === "prompts" ? "active" : ""} onClick={() => setAdminView("prompts")}>프롬프트</button>
                 <button role="tab" aria-selected={adminView === "settings"} className={adminView === "settings" ? "active" : ""} onClick={() => setAdminView("settings")}>모델 설정</button>
-              </div>
-              {adminView === "overview" && <button className="secondary" onClick={refreshAdmin} disabled={adminLoading}>{adminLoading ? "불러오는 중" : "새로고침"}</button>}
+              </div>}
+              {!detailJobId && adminView === "overview" && <button className="secondary" onClick={refreshAdmin} disabled={adminLoading}>{adminLoading ? "불러오는 중" : "새로고침"}</button>}
             </div>
           </div>
 
           {adminView === "overview" ? <>
             {error && <p className="error" role="alert">{error}</p>}
-            {dashboard && <>
+            {!detailJobId && dashboard && <>
               <section className="metrics-grid">
                 <Metric label="전체 영상" value={integer(dashboard.jobs.total)} suffix="개" />
                 <Metric label="현재 작업" value={integer(dashboard.jobs.active)} suffix="개" />
@@ -404,7 +417,7 @@ export function App() {
                 <div className="panel table-panel">
                   <div className="section-title"><h2>최근 영상</h2><span>{jobs.length}건</span></div>
                   <div className="table-scroll"><table><thead><tr><th>작업</th><th>상태</th><th>대기</th><th>Harness</th><th>이미지 모델</th><th>스타일</th><th>음성</th><th>구간</th><th>전체 생성시간</th><th>영상 1분당 생성시간</th><th>영상 1분당 비용</th><th>프롬프트</th><th>품질</th><th>다운로드</th></tr></thead><tbody>
-                    {jobs.map((item) => <tr key={item.id} onClick={() => openDetail(item.id)}><td><code>{item.id.slice(0, 8)}</code></td><td><span className={`status ${item.status}`}>{statusLabel(item.status)}</span></td><td>{item.queuePosition ? `${item.queuePosition}번째` : item.queueWaitMs !== null && item.queueWaitMs !== undefined ? duration(item.queueWaitMs) : "-"}</td><td>{item.harnessId ? `${item.harnessId}@${item.harnessVersion ?? "-"}` : "legacy"}</td><td>{item.imageModel ?? "-"}</td><td>{item.imageStyle ?? "legacy"}</td><td>{item.voiceProvider ?? "legacy"}</td><td>{stageLabel(item.currentStage)}</td><td>{duration(item.totalDurationMs)}</td><td>{item.generationTimePerVideoMinuteMs === null || item.generationTimePerVideoMinuteMs === undefined ? "-" : duration(item.generationTimePerVideoMinuteMs)}</td><td>{item.costPerVideoMinuteKrw === null || item.costPerVideoMinuteKrw === undefined ? "-" : won(item.costPerVideoMinuteKrw)}</td><td>{item.promptSetVersion ? `v${item.promptSetVersion}` : "-"}</td><td>{item.qualityScore === null || item.qualityScore === undefined ? "미평가" : `${Number(item.qualityScore).toFixed(0)}점`}</td><td>{item.status === "completed" ? <button className="secondary" onClick={(event) => { event.stopPropagation(); void downloadAdminJob(item.id); }}>MP4</button> : "-"}</td></tr>)}
+                    {jobs.map((item) => <tr key={item.id} role="link" tabIndex={0} title="새 탭에서 작업 상세 열기" onClick={() => openDetailInNewTab(item.id)} onKeyDown={(event) => { if (event.key === "Enter") openDetailInNewTab(item.id); }}><td><code>{item.id.slice(0, 8)}</code></td><td><span className={`status ${item.status}`}>{statusLabel(item.status)}</span></td><td>{item.queuePosition ? `${item.queuePosition}번째` : item.queueWaitMs !== null && item.queueWaitMs !== undefined ? duration(item.queueWaitMs) : "-"}</td><td>{item.harnessId ? `${item.harnessId}@${item.harnessVersion ?? "-"}` : "legacy"}</td><td>{item.imageModel ?? "-"}</td><td>{item.imageStyle ?? "legacy"}</td><td>{item.voiceProvider ?? "legacy"}</td><td>{stageLabel(item.currentStage)}</td><td>{duration(item.totalDurationMs)}</td><td>{item.generationTimePerVideoMinuteMs === null || item.generationTimePerVideoMinuteMs === undefined ? "-" : duration(item.generationTimePerVideoMinuteMs)}</td><td>{item.costPerVideoMinuteKrw === null || item.costPerVideoMinuteKrw === undefined ? "-" : won(item.costPerVideoMinuteKrw)}</td><td>{item.promptSetVersion ? `v${item.promptSetVersion}` : "-"}</td><td>{item.qualityScore === null || item.qualityScore === undefined ? "미평가" : `${Number(item.qualityScore).toFixed(0)}점`}</td><td>{item.status === "completed" ? <button className="secondary" onClick={(event) => { event.stopPropagation(); void downloadAdminJob(item.id); }}>MP4</button> : "-"}</td></tr>)}
                   </tbody></table></div>
                 </div>
                 <div className="panel stage-panel">
@@ -415,7 +428,7 @@ export function App() {
             </>}
 
             {detail && <section className="panel detail-panel">
-              <div className="section-title"><h2>작업 상세</h2><button className="icon-button" onClick={() => setDetail(null)} aria-label="닫기">×</button></div>
+              <div className="section-title"><h2>작업 상세</h2><button className="icon-button" onClick={() => detailJobId ? window.close() : setDetail(null)} aria-label={detailJobId ? "상세 탭 닫기" : "닫기"}>×</button></div>
               {detail.job && typeof detail.job.id === "string" && detail.job.status === "completed" && (
                 <button className="primary" onClick={() => void downloadAdminJob(String(detail.job?.id))}>MP4 내려받기</button>
               )}
