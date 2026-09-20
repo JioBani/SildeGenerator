@@ -1,5 +1,5 @@
 import { Transform } from "class-transformer";
-import { IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from "class-validator";
+import { IsBoolean, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min } from "class-validator";
 import { config } from "../../config/app-config";
 import { IMAGE_MODELS, type ImageModel } from "../../shared/image-model";
 import { IMAGE_STYLES, type ImageStyle } from "../../shared/image-style";
@@ -27,4 +27,10 @@ export class CreateJobDto {
   @IsString()
   @Matches(/^[a-z][a-z0-9-]{1,63}$/)
   harnessId?: string;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.75)
+  @Max(1.5)
+  narrationSpeed?: number;
 }

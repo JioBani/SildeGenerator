@@ -23,3 +23,10 @@ test("displayed center and range use five-second rounding except the one-second 
   assert.equal(estimate.minSeconds % 5, 0);
   assert.equal(estimate.maxSeconds % 5, 0);
 });
+
+test("narration speed changes the estimated playback duration", () => {
+  const script = "가".repeat(342);
+  assert.equal(estimateNarrationDuration(script, .75).centerSeconds, 80);
+  assert.equal(estimateNarrationDuration(script, 1).centerSeconds, 60);
+  assert.equal(estimateNarrationDuration(script, 1.5).centerSeconds, 40);
+});

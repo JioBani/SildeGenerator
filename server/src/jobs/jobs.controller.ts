@@ -11,7 +11,7 @@ export class JobsController {
   @Post()
   @HttpCode(202)
   create(@Body() dto: CreateJobDto, @Req() req: UserRequest) {
-    return this.jobs.create(dto.scenario, req.userId, dto.imageModel, dto.continuityEnabled ?? false, dto.imageStyle, dto.harnessId);
+    return this.jobs.create(dto.scenario, req.userId, dto.imageModel, dto.continuityEnabled ?? false, dto.imageStyle, dto.harnessId, dto.narrationSpeed);
   }
 
   @Public()

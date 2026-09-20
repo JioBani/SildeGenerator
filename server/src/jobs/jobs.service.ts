@@ -32,10 +32,10 @@ export class JobsService {
 
   harnesses() { return this.harnessRegistry.list(); }
 
-  async create(scenario: string, userId: string, imageModel: ImageModel = DEFAULT_IMAGE_MODEL, continuityEnabled = false, imageStyle: ImageStyle = DEFAULT_IMAGE_STYLE, harnessId = DEFAULT_HARNESS_ID) {
+  async create(scenario: string, userId: string, imageModel: ImageModel = DEFAULT_IMAGE_MODEL, continuityEnabled = false, imageStyle: ImageStyle = DEFAULT_IMAGE_STYLE, harnessId = DEFAULT_HARNESS_ID, narrationSpeed = 1) {
     const id = randomUUID();
     const runtime = await this.codexSettings.get();
-    const voice = await this.voiceSettings.snapshot();
+    const voice = { ...await this.voiceSettings.snapshot(), playbackSpeed: narrationSpeed };
     const harness = await this.harnessRegistry.resolve(harnessId);
     const client = this.redis;
     const dayKey = `limits:daily:${userId}:${new Date().toISOString().slice(0, 10)}`;
@@ -61,8 +61,8 @@ export class JobsService {
     await mkdir(paths.input, { recursive: true });
     await writeFile(paths.scenario, scenario, "utf8");
 
-    await this.db.query(`INSERT INTO generation_jobs(id,user_id,scenario,status,current_stage,progress,codex_model,codex_effort,codex_fast_mode,image_model,continuity_enabled,video_fps,voice_concurrency,image_style,voice_provider,voice_model,voice_id,voice_settings,voice_settings_version,harness_id,harness_version,harness_manifest_sha256,harness_source_sha256,harness_config_sha256,harness_source_revision,harness_image_digest,harness_snapshot)
-      VALUES($1,$2,$3,'queued','queue_wait',0,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24::jsonb)`, [id,userId,scenario,runtime.model,runtime.effort,runtime.fastMode,imageModel,continuityEnabled,config.videoFps,config.voiceConcurrency,imageStyle,voice.provider,voice.model,voice.voiceId,voice,voice.version,harness.id,harness.version,harness.manifest_sha256,harness.source_sha256,harness.config_sha256,harness.source_revision,harness.image_digest,harness]);
+    await this.db.query(`INSERT INTO generation_jobs(id,user_id,scenario,status,current_stage,progress,codex_model,codex_effort,codex_fast_mode,image_model,continuity_enabled,video_fps,voice_concurrency,image_style,voice_provider,voice_model,voice_id,voice_settings,voice_settings_version,narration_speed,harness_id,harness_version,harness_manifest_sha256,harness_source_sha256,harness_config_sha256,harness_source_revision,harness_image_digest,harness_snapshot)
+      VALUES($1,$2,$3,'queued','queue_wait',0,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25::jsonb)`, [id,userId,scenario,runtime.model,runtime.effort,runtime.fastMode,imageModel,continuityEnabled,config.videoFps,config.voiceConcurrency,imageStyle,voice.provider,voice.model,voice.voiceId,voice,voice.version,narrationSpeed,harness.id,harness.version,harness.manifest_sha256,harness.source_sha256,harness.config_sha256,harness.source_revision,harness.image_digest,harness]);
 
     const retentionSec = config.retentionMs / 1000;
     try {
@@ -76,6 +76,7 @@ export class JobsService {
         continuityEnabled,
         imageStyle,
         voiceSettings: voice,
+        narrationSpeed,
         harnessId: harness.id,
         harnessSnapshot: harness,
       }, {
@@ -108,6 +109,7 @@ export class JobsService {
       voiceProvider: voice.provider,
       voiceModel: voice.model,
       voiceId: voice.voiceId,
+      narrationSpeed,
       harnessId: harness.id,
       harnessVersion: harness.version,
       queuePosition: running ? null : queue?.queuePosition ?? null,
@@ -118,7 +120,7 @@ export class JobsService {
   }
 
   async get(id: string, userId: string) {
-    const result = await this.db.query(`SELECT id,status,current_stage AS "currentStage",progress,error_message AS error,queued_at AS "queuedAt",started_at AS "startedAt",finished_at AS "finishedAt",total_duration_ms AS "totalDurationMs",image_model AS "imageModel",image_style AS "imageStyle",continuity_enabled AS "continuityEnabled",video_fps AS "videoFps",voice_concurrency AS "voiceConcurrency",voice_provider AS "voiceProvider",voice_model AS "voiceModel",voice_id AS "voiceId",harness_id AS "harnessId",harness_version AS "harnessVersion" FROM generation_jobs WHERE id=$1 AND user_id=$2`, [id,userId]);
+    const result = await this.db.query(`SELECT id,status,current_stage AS "currentStage",progress,error_message AS error,queued_at AS "queuedAt",started_at AS "startedAt",finished_at AS "finishedAt",total_duration_ms AS "totalDurationMs",image_model AS "imageModel",image_style AS "imageStyle",continuity_enabled AS "continuityEnabled",video_fps AS "videoFps",voice_concurrency AS "voiceConcurrency",voice_provider AS "voiceProvider",voice_model AS "voiceModel",voice_id AS "voiceId",narration_speed::float8 AS "narrationSpeed",harness_id AS "harnessId",harness_version AS "harnessVersion" FROM generation_jobs WHERE id=$1 AND user_id=$2`, [id,userId]);
     if (!result.rowCount) throw new NotFoundException();
     const job = result.rows[0];
     const queue = await this.videoQueue.safeSnapshot(id);

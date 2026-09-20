@@ -17,6 +17,7 @@ export type RenderJobData = {
   continuityEnabled: boolean;
   imageStyle: ImageStyle;
   voiceSettings: VoiceSettingsSnapshot;
+  narrationSpeed: number;
   harnessId: string;
   harnessSnapshot: HarnessSnapshot;
 };

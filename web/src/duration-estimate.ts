@@ -9,10 +9,11 @@ export type DurationEstimate = {
 
 const roundRange = (seconds: number) => Math.max(1, Math.round(seconds / 5) * 5);
 
-export function estimateNarrationDuration(scenario: string): DurationEstimate | null {
+export function estimateNarrationDuration(scenario: string, narrationSpeed = 1): DurationEstimate | null {
   const normalized = scenario.trim().replace(/\s+/g, " ");
   if (!normalized) return null;
-  const center = normalized.length / KOREAN_NARRATION_CHARS_PER_SECOND;
+  const speed = Math.min(1.5, Math.max(0.75, narrationSpeed));
+  const center = normalized.length / KOREAN_NARRATION_CHARS_PER_SECOND / speed;
   return {
     normalizedCharacters: normalized.length,
     centerSeconds: roundRange(center),

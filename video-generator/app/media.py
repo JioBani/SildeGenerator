@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,29 @@ from typing import Any
 from PIL import Image, ImageFilter, ImageStat
 
 from .config import Settings
+
+
+def audio_speed_filter(speed: float) -> str:
+    if not .75 <= speed <= 1.5:
+        raise ValueError("narration speed must be between 0.75 and 1.5")
+    return f"atempo={speed:.2f}"
+
+
+async def apply_audio_speed(path: Path, speed: float) -> None:
+    if abs(speed - 1) < .001:
+        return
+    output = path.with_name(f"{path.stem}.retimed{path.suffix}")
+    process = await asyncio.create_subprocess_exec(
+        "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(path),
+        "-filter:a", audio_speed_filter(speed), "-ar", "44100", "-ac", "1",
+        "-c:a", "libmp3lame", "-b:a", "128k", str(output),
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+    )
+    _, stderr = await process.communicate()
+    if process.returncode:
+        output.unlink(missing_ok=True)
+        raise RuntimeError(stderr.decode("utf-8", errors="replace")[-1500:])
+    os.replace(output, path)
 
 
 async def probe(path: Path) -> dict[str, Any]:

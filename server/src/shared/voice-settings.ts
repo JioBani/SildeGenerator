@@ -12,5 +12,6 @@ export type VoiceSettingsSnapshot = {
   stability?: number;
   similarityBoost?: number;
   speed?: number;
+  playbackSpeed?: number;
   version: number;
 };

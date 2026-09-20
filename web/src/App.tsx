@@ -31,6 +31,7 @@ type JobStatus = {
   voiceProvider?: string | null;
   voiceModel?: string | null;
   voiceId?: string | null;
+  narrationSpeed?: number;
   harnessId?: string | null;
   harnessVersion?: string | null;
   queuePosition?: number | null;
@@ -191,6 +192,7 @@ export function App() {
   const [imageStyle, setImageStyle] = useState<ImageStyle>("editorial_illustration");
   const [continuityEnabled, setContinuityEnabled] = useState(false);
   const [harnessId, setHarnessId] = useState("classic-slide");
+  const [narrationSpeed, setNarrationSpeed] = useState(1);
   const [harnesses, setHarnesses] = useState<HarnessOption[]>([]);
   const [job, setJob] = useState<JobStatus | null>(null);
   const [error, setError] = useState("");
@@ -199,7 +201,7 @@ export function App() {
   const [detail, setDetail] = useState<JobDetail | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const [restorePending, setRestorePending] = useState(true);
-  const durationEstimate = useMemo(() => estimateNarrationDuration(scenario), [scenario]);
+  const durationEstimate = useMemo(() => estimateNarrationDuration(scenario, narrationSpeed), [narrationSpeed, scenario]);
 
   useEffect(() => localStorage.setItem(TOKEN_KEY, token), [token]);
 
@@ -266,7 +268,7 @@ export function App() {
     const response = await api("/api/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scenario, imageModel, imageStyle, continuityEnabled, harnessId }),
+      body: JSON.stringify({ scenario, imageModel, imageStyle, continuityEnabled, harnessId, narrationSpeed }),
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -337,9 +339,15 @@ export function App() {
             {durationEstimate && <div className="duration-estimate">
               <strong aria-live="polite">예상 영상 길이 약 {formatPlaybackDuration(durationEstimate.centerSeconds)}</strong>
               <span>말하기 속도와 문장부호에 따라 약 {formatPlaybackDuration(durationEstimate.minSeconds)}~{formatPlaybackDuration(durationEstimate.maxSeconds)}</span>
-              <small>현재 한국어 음성 설정 기준의 완성 영상 재생시간이며, 생성 소요시간이 아닙니다.</small>
+              <small>현재 한국어 음성과 선택한 {narrationSpeed.toFixed(2)}배 속도 기준의 완성 영상 재생시간이며, 생성 소요시간이 아닙니다.</small>
             </div>}
             <div className="model-picker">
+              <div className="narration-speed-control">
+                <div className="label-row"><label htmlFor="narration-speed">나레이션 속도</label><strong>{narrationSpeed.toFixed(2)}배</strong></div>
+                <input id="narration-speed" type="range" min="0.75" max="1.5" step="0.05" value={narrationSpeed} aria-valuetext={`${narrationSpeed.toFixed(2)}배`} onChange={(event) => setNarrationSpeed(Number(event.target.value))} />
+                <div className="speed-scale" aria-hidden="true"><span>0.75배</span><span>1.00배</span><span>1.25배</span><span>1.50배</span></div>
+                <small>0.75배는 더 천천히, 1.50배는 더 빠르게 읽습니다. 예상 영상 길이에 즉시 반영됩니다.</small>
+              </div>
               <label htmlFor="image-model">이미지 모델</label>
               <select id="image-model" value={imageModel} onChange={(event) => setImageModel(event.target.value as ImageModel)}>
                 {IMAGE_MODEL_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label} — {option.note}</option>)}
@@ -380,6 +388,7 @@ export function App() {
               {job.imageModel && <p className="job-model">이미지 모델: <strong>{job.imageModel}</strong></p>}
               {job.imageStyle && <p className="job-model">이미지 스타일: <strong>{IMAGE_STYLE_OPTIONS.find((option) => option.value === job.imageStyle)?.label ?? job.imageStyle}</strong></p>}
               {job.harnessId && <p className="job-model">영상 연출: <strong>{job.harnessId}@{job.harnessVersion ?? "-"}</strong></p>}
+              {job.narrationSpeed && <p className="job-model">나레이션 속도: <strong>{Number(job.narrationSpeed).toFixed(2)}배</strong></p>}
               <p className="job-model">이미지 연속성: <strong>{job.continuityEnabled ? "ON" : "OFF"}</strong>{job.videoFps ? ` · ${job.videoFps}fps` : ""}</p>
               {job.error && <p className="error">{job.error}</p>}
               {job.status === "completed" && <button className="primary" onClick={download}>MP4 내려받기</button>}
@@ -426,7 +435,7 @@ export function App() {
                 <div className="panel table-panel">
                   <div className="section-title"><h2>최근 영상</h2><span>{jobs.length}건</span></div>
                   <div className="table-scroll"><table><thead><tr><th>작업</th><th>상태</th><th>대기</th><th>Harness</th><th>이미지 모델</th><th>스타일</th><th>음성</th><th>구간</th><th>전체 생성시간</th><th>영상 1분당 생성시간</th><th>영상 1분당 비용</th><th>프롬프트</th><th>품질</th><th>다운로드</th></tr></thead><tbody>
-                    {jobs.map((item) => <tr key={item.id} role="link" tabIndex={0} title="새 탭에서 작업 상세 열기" onClick={() => openDetailInNewTab(item.id)} onKeyDown={(event) => { if (event.key === "Enter") openDetailInNewTab(item.id); }}><td><code>{item.id.slice(0, 8)}</code></td><td><span className={`status ${item.status}`}>{statusLabel(item.status)}</span></td><td>{item.queuePosition ? `${item.queuePosition}번째` : item.queueWaitMs !== null && item.queueWaitMs !== undefined ? duration(item.queueWaitMs) : "-"}</td><td>{item.harnessId ? `${item.harnessId}@${item.harnessVersion ?? "-"}` : "legacy"}</td><td>{item.imageModel ?? "-"}</td><td>{item.imageStyle ?? "legacy"}</td><td>{item.voiceProvider ?? "legacy"}</td><td>{stageLabel(item.currentStage)}</td><td>{duration(item.totalDurationMs)}</td><td>{item.generationTimePerVideoMinuteMs === null || item.generationTimePerVideoMinuteMs === undefined ? "-" : duration(item.generationTimePerVideoMinuteMs)}</td><td>{item.costPerVideoMinuteKrw === null || item.costPerVideoMinuteKrw === undefined ? "-" : won(item.costPerVideoMinuteKrw)}</td><td>{item.promptSetVersion ? `v${item.promptSetVersion}` : "-"}</td><td>{item.qualityScore === null || item.qualityScore === undefined ? "미평가" : `${Number(item.qualityScore).toFixed(0)}점`}</td><td>{item.status === "completed" ? <button className="secondary" onClick={(event) => { event.stopPropagation(); void downloadAdminJob(item.id); }}>MP4</button> : "-"}</td></tr>)}
+                    {jobs.map((item) => <tr key={item.id} role="link" tabIndex={0} title="새 탭에서 작업 상세 열기" onClick={() => openDetailInNewTab(item.id)} onKeyDown={(event) => { if (event.key === "Enter") openDetailInNewTab(item.id); }}><td><code>{item.id.slice(0, 8)}</code></td><td><span className={`status ${item.status}`}>{statusLabel(item.status)}</span></td><td>{item.queuePosition ? `${item.queuePosition}번째` : item.queueWaitMs !== null && item.queueWaitMs !== undefined ? duration(item.queueWaitMs) : "-"}</td><td>{item.harnessId ? `${item.harnessId}@${item.harnessVersion ?? "-"}` : "legacy"}</td><td>{item.imageModel ?? "-"}</td><td>{item.imageStyle ?? "legacy"}</td><td>{item.voiceProvider ?? "legacy"} · {Number(item.narrationSpeed ?? 1).toFixed(2)}배</td><td>{stageLabel(item.currentStage)}</td><td>{duration(item.totalDurationMs)}</td><td>{item.generationTimePerVideoMinuteMs === null || item.generationTimePerVideoMinuteMs === undefined ? "-" : duration(item.generationTimePerVideoMinuteMs)}</td><td>{item.costPerVideoMinuteKrw === null || item.costPerVideoMinuteKrw === undefined ? "-" : won(item.costPerVideoMinuteKrw)}</td><td>{item.promptSetVersion ? `v${item.promptSetVersion}` : "-"}</td><td>{item.qualityScore === null || item.qualityScore === undefined ? "미평가" : `${Number(item.qualityScore).toFixed(0)}점`}</td><td>{item.status === "completed" ? <button className="secondary" onClick={(event) => { event.stopPropagation(); void downloadAdminJob(item.id); }}>MP4</button> : "-"}</td></tr>)}
                   </tbody></table></div>
                 </div>
                 <div className="panel stage-panel">
@@ -448,6 +457,7 @@ export function App() {
               </div>
               {detailSection === "summary" && detail.job && <div className="job-metric-grid">
                 <DetailMetric label="Creative Harness" value={`${String(detail.job.harness_id ?? "classic-slide")}@${String(detail.job.harness_version ?? "legacy")}`} note={`revision ${String(detail.job.harness_source_revision ?? "-")}`} />
+                <DetailMetric label="나레이션 속도" value={`${Number(detail.job.narration_speed ?? 1).toFixed(2)}배`} note={`${String(detail.job.voice_provider ?? "legacy")} · ${String(detail.job.voice_model ?? "-")}`} />
                 <DetailMetric label="Harness manifest" value={String(detail.job.harness_manifest_sha256 ?? "-").slice(0, 16)} note={`source ${String(detail.job.harness_source_sha256 ?? "-").slice(0, 16)}`} />
                 <DetailMetric label="Harness config" value={String(detail.job.harness_config_sha256 ?? "-").slice(0, 16)} note={`image ${String(detail.job.harness_image_digest ?? "-")}`} />
               </div>}

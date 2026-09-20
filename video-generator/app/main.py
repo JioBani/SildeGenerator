@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 from .config import settings
 from .image_broker import ImageTaskBroker, ImageTaskHandle, ImageTaskSpec
 from .image_prompts import AssetImageSubject, canonical_asset_prompt, scene_image_prompt
-from .media import validate_audio, validate_image, validate_video
+from .media import apply_audio_speed, validate_audio, validate_image, validate_video
 from .engine.artifact_store import ArtifactStore
 from .engine.graph_executor import GraphExecutor, LocalLeaseProvider
 from .engine.harness_loader import HarnessRegistry, LoadedHarness
@@ -268,7 +268,18 @@ async def _render(request: RenderRequest) -> RunnerResult:
             async def generate_voice(temp: Path, attempt: int, *, current=scene) -> dict[str, object]:
                 with tracker.stage("voice_generation", current.id, provider=voice_snapshot.provider, broker_attempt=attempt):
                     voice = await voice_provider.synthesize(current, temp, tracker, record_usage=False) if voice_provider else await mock_speech(current, temp, tracker, record_usage=False)
+                    source_duration = float(voice.get("duration") or 0)
+                    await apply_audio_speed(temp, voice_snapshot.playback_speed)
                     voice["qc"] = await validate_audio(temp)
+                    voice["duration"] = float(voice["qc"]["duration_seconds"])
+                    voice["playback_speed"] = voice_snapshot.playback_speed
+                    voice["source_duration"] = source_duration
+                    provider_usage = voice.get("provider_usage")
+                    if isinstance(provider_usage, dict):
+                        provider_usage["audio_duration_ms"] = round(float(voice["duration"]) * 1000)
+                        raw_usage = provider_usage.setdefault("raw_usage", {})
+                        if isinstance(raw_usage, dict):
+                            raw_usage.update({"playback_speed": voice_snapshot.playback_speed, "source_audio_duration_ms": round(source_duration * 1000)})
                     return voice
 
             voice_handles[scene.id] = await voice_broker.submit(spec, generate_voice)
