@@ -4,6 +4,7 @@ const { config } = require("../dist/config/app-config");
 
 test("safe first-phase pipeline defaults are 24fps and two voice slots", () => {
   assert.equal(config.videoFps, 24);
+  assert.equal(config.imageConcurrency, 12);
   assert.equal(config.voiceConcurrency, 2);
   assert.equal(config.videoJobGlobalConcurrency, 1);
   assert.equal(config.concurrency, 1);

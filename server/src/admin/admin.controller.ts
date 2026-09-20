@@ -165,7 +165,7 @@ export class AdminController {
         count(*) FILTER (WHERE status='failed')::int AS "failedAttempts",
         count(*) FILTER (WHERE http_status=429)::int AS "rateLimited",
         max(configured_concurrency)::int AS "configuredConcurrency",
-        max(effective_concurrency)::int AS "effectiveConcurrency",
+        (array_agg(effective_concurrency ORDER BY provider_started_at DESC))[1]::int AS "effectiveConcurrency",
         min(provider_started_at) AS "firstStartedAt",max(finished_at) AS "lastFinishedAt",
         percentile_cont(0.5) WITHIN GROUP (ORDER BY provider_duration_ms) AS "providerP50Ms",
         percentile_cont(0.95) WITHIN GROUP (ORDER BY provider_duration_ms) AS "providerP95Ms",
@@ -197,7 +197,10 @@ export class AdminController {
     const minutes = Math.max(0, (last - first) / 60_000);
     return {
       ...summary.rows[0], ...attemptSummary,
-      configuredConcurrency: attemptSummary.configuredConcurrency ?? 8,
+      configuredConcurrency: config.imageConcurrency,
+      effectiveConcurrency: Number(summary.rows[0].active) > 0
+        ? attemptSummary.effectiveConcurrency ?? config.imageConcurrency
+        : config.imageConcurrency,
       imagesPerMinute: minutes > 0 ? Number(summary.rows[0].succeeded) / minutes : null,
       slots: slots.rows,
       breakdown: breakdown.rows,

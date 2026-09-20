@@ -39,6 +39,7 @@ export const config = {
   codexReasoningEffort: (process.env.CODEX_REASONING_EFFORT ?? "max").toLowerCase(),
   codexFastMode: bool(process.env.CODEX_FAST_MODE),
   videoFps: Math.floor(num(process.env.VIDEO_FPS, 24)),
+  imageConcurrency: Math.min(16, Math.floor(num(process.env.IMAGE_TASK_CONCURRENCY, 12))),
   voiceConcurrency: Math.floor(num(process.env.VOICE_TASK_CONCURRENCY, 2)),
   voiceProvider: (process.env.VOICE_PROVIDER ?? "mock").toLowerCase(),
   microsoftEdgeVoice: process.env.MICROSOFT_EDGE_VOICE ?? "ko-KR-InJoonNeural",
