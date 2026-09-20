@@ -13,7 +13,7 @@ class ParallelPipelineContractTests(unittest.TestCase):
         self.assertEqual(configured.fps, 24)
         self.assertEqual(configured.voice_task_concurrency, 2)
         self.assertEqual(configured.ffmpeg_task_concurrency, 1)
-        self.assertEqual(configured.image_task_concurrency, 4)
+        self.assertEqual(configured.image_task_concurrency, 8)
 
     def test_voice_reuse_hash_covers_narration_and_all_settings(self) -> None:
         snapshot = {

@@ -197,7 +197,7 @@ export class AdminController {
     const minutes = Math.max(0, (last - first) / 60_000);
     return {
       ...summary.rows[0], ...attemptSummary,
-      configuredConcurrency: attemptSummary.configuredConcurrency ?? 4,
+      configuredConcurrency: attemptSummary.configuredConcurrency ?? 8,
       imagesPerMinute: minutes > 0 ? Number(summary.rows[0].succeeded) / minutes : null,
       slots: slots.rows,
       breakdown: breakdown.rows,

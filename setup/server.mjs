@@ -31,7 +31,7 @@ function validate(input) {
     if (voiceProvider === "microsoft_edge" && !pattern.test(String(input[key] || ""))) errors.push(`${key} 형식을 확인해 주세요.`);
   }
   const webPort = numeric(input, "webPort", 8080, 1024, 65535, errors, "웹 포트");
-  const imageConcurrency = numeric(input, "imageConcurrency", 4, 1, 16, errors, "이미지 동시성");
+  const imageConcurrency = numeric(input, "imageConcurrency", 8, 1, 16, errors, "이미지 동시성");
   const voiceConcurrency = numeric(input, "voiceConcurrency", 2, 1, 8, errors, "음성 동시성");
   const fps = numeric(input, "fps", 24, 24, 30, errors, "영상 FPS");
   const retentionHours = numeric(input, "retentionHours", 720, 1, 8760, errors, "작업 보존시간");

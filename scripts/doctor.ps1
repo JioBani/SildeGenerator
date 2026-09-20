@@ -10,7 +10,11 @@ try { (Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8080/api/health).Stat
 $state=Get-Content -Raw (Join-Path $runtimeDir "bootstrap-state.json") | ConvertFrom-Json
 if (-not $SkipSmoke -and $state.mode -eq "mock") {
   try {
-    $token=(Get-Content -Raw (Join-Path $runtimeDir "access-token.txt")).Trim(); $headers=@{Authorization="Bearer $token"}
+    $tokenFile = Join-Path $runtimeDir "access-token.txt"
+    if (Test-Path $tokenFile) { $token=(Get-Content -Raw $tokenFile).Trim() }
+    else { $token=((& docker compose --env-file $envFile --profile ops run --rm keyctl issue doctor-smoke 2>$null | Select-Object -Last 1).Trim()) }
+    if (-not $token) { throw "access token issue failed" }
+    $headers=@{Authorization="Bearer $token"}
     $job=Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8080/api/jobs -Headers $headers -ContentType application/json -Body (@{scenario="작은 질문이 내일을 만듭니다."}|ConvertTo-Json)
     $deadline=(Get-Date).AddMinutes(5); do { Start-Sleep 2; $status=Invoke-RestMethod -Uri "http://127.0.0.1:8080/api/jobs/$($job.id)" -Headers $headers } while($status.status -notin @("completed","failed") -and (Get-Date) -lt $deadline)
     if($status.status -ne "completed"){throw "mock job $($status.status)"}; $video=Join-Path $runtimeDir "doctor-smoke.mp4"; Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:8080/api/jobs/$($job.id)/video" -Headers $headers -OutFile $video

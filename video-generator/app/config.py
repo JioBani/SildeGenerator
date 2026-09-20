@@ -67,7 +67,7 @@ class Settings:
     codex_read_timeout_seconds: float = _float("CODEX_READ_TIMEOUT_SECONDS", 300.0)
     codex_connect_timeout_seconds: float = _float("CODEX_CONNECT_TIMEOUT_SECONDS", 10.0)
     image_generation_model: str = _value("IMAGE_GENERATION_MODEL", "gpt-image-2.5-sunburst")
-    image_task_concurrency: int = min(16, max(1, _integer("IMAGE_TASK_CONCURRENCY", 4)))
+    image_task_concurrency: int = min(16, max(1, _integer("IMAGE_TASK_CONCURRENCY", 8)))
     voice_task_concurrency: int = min(8, max(1, _integer("VOICE_TASK_CONCURRENCY", 2)))
     voice_provider: str = _value("VOICE_PROVIDER", "mock").lower()
     microsoft_edge_voice: str = _value("MICROSOFT_EDGE_VOICE", "ko-KR-InJoonNeural")

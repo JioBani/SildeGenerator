@@ -21,7 +21,10 @@ function Compose([string[]]$arguments) { & docker compose --env-file $composeEnv
 function Initialize-Runtime {
   New-Item -ItemType Directory -Force $runtimeDir, (Join-Path $runtimeDir "codex") | Out-Null
   if (-not (Test-Path $composeEnv)) {
-    $password = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).TrimEnd('=').Replace('+','_').Replace('/','-')
+    $passwordBytes = New-Object byte[] 32
+    $passwordGenerator = [Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $passwordGenerator.GetBytes($passwordBytes) } finally { $passwordGenerator.Dispose() }
+    $password = [Convert]::ToBase64String($passwordBytes).TrimEnd('=').Replace('+','_').Replace('/','-')
     [IO.File]::WriteAllText($composeEnv, "POSTGRES_PASSWORD=$password`nSETUP_PORT=8090`n", [Text.UTF8Encoding]::new($false))
   }
   $runnerFile = Join-Path $runtimeDir "runner.env"
@@ -50,7 +53,7 @@ if ($Reconfigure) {
   Remove-Item -Force -ErrorAction SilentlyContinue $marker
 }
 if ($Mock -and -not (Test-Path $marker)) {
-  $payload = @{ mode="mock"; voiceProvider="mock"; webPort=8080; imageConcurrency=4; voiceConcurrency=2; fps=24; retentionHours=720; edgeVoice="ko-KR-InJoonNeural"; edgeRate="-30%"; edgePitch="+0Hz"; edgeVolume="+0%" } | ConvertTo-Json
+  $payload = @{ mode="mock"; voiceProvider="mock"; webPort=8080; imageConcurrency=8; voiceConcurrency=2; fps=24; retentionHours=720; edgeVoice="ko-KR-InJoonNeural"; edgeRate="-30%"; edgePitch="+0Hz"; edgeVolume="+0%" } | ConvertTo-Json
   Compose @("--profile","setup","up","-d","--build","setup","setup-proxy")
   $ready = $false; 1..10 | ForEach-Object { if (-not $ready) { try { Invoke-RestMethod -Uri "http://127.0.0.1:8090/api/setup/status" | Out-Null; $ready=$true } catch { Start-Sleep -Seconds 1 } } }
   if (-not $ready) { throw "설정 웹이 준비되지 않았습니다." }
