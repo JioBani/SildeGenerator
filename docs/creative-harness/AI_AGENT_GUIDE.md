@@ -34,6 +34,7 @@ Creative Harness
 - 실험은 기존 Harness를 새 ID 또는 새 version으로 clone해서 시작한다.
 - 연출 변경은 우선 Harness 안에서 해결할 수 있는지 검토한다. Core를 수정하지 않는 것은 기본 권고이지 절대 규칙이 아니다.
 - 사용자 기능을 올바르게 제공하기 위해 Core 또는 Harness SDK 변경이 필요하면 영향 범위를 확인하고 공개 인터페이스·테스트·문서를 함께 갱신하여 적절하게 수정한다.
+- `harnesses/**` 기본 범위는 연출 구현의 소유 위치를 뜻하며 프론트엔드 변경을 제한하지 않는다. 사용자 기능에 선택·설정·상태·결과 표시가 필요하면 `web/`과 대응 API를 함께 수정한다.
 - Harness에서 engine private module을 import하지 않는다.
 - secret, auth.json, API key, access token을 읽거나 출력하거나 fixture에 넣지 않는다.
 - runtime에 `pip install`, `npm install`, curl pipe install을 추가하지 않는다.
