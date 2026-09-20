@@ -38,7 +38,15 @@ def main() -> int:
     if args.command == "inspect": print(json.dumps({"manifest": loaded.manifest.__dict__, "snapshot": loaded.snapshot.as_dict(), "config": loaded.config}, ensure_ascii=False, indent=2))
     elif args.command == "hash": print(json.dumps(loaded.snapshot.as_dict(), ensure_ascii=False, indent=2))
     elif args.command == "validate": print(f"PASS {loaded.manifest.id}@{loaded.manifest.version} {loaded.snapshot.source_sha256}")
-    elif args.command == "test": return subprocess.call([sys.executable, "-m", "pytest", "-q", str(ROOT / "video-generator" / "tests" / "test_harness_sdk.py")], cwd=ROOT)
+    elif args.command == "test":
+        child_env = os.environ.copy()
+        python_path = str(ROOT / "video-generator")
+        child_env["PYTHONPATH"] = os.pathsep.join(filter(None, (python_path, child_env.get("PYTHONPATH"))))
+        return subprocess.call(
+            [sys.executable, "-m", "pytest", "-q", str(ROOT / "video-generator" / "tests" / "test_harness_sdk.py")],
+            cwd=ROOT,
+            env=child_env,
+        )
     elif args.command == "dev": print(f"Validated {loaded.manifest.id}@{loaded.manifest.version}. Restart runner before the next job to load code changes.")
     return 0
 

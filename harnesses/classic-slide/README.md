@@ -1,4 +1,4 @@
-# classic-slide 1.0.0
+# classic-slide 1.1.0
 
 기존 Slide Generator의 ASS 자막, center crop, Ken Burns, crossfade, segment/최종 조립 동작을 보존하는 기본 Creative Harness입니다.
 

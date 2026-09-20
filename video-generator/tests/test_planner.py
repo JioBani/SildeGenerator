@@ -12,6 +12,79 @@ from app.planner import (
     _extract_output_text, _iter_sse, compile_narration,
     compile_source_units, deterministic_plan, validate_plan,
 )
+from app.plan_compiler import compile_scene_plan
+
+
+def semantic_proposal(*, source_counts: list[int] | None = None) -> dict:
+    counts = source_counts or [1, 1]
+    scenes = [{
+        "source_unit_count": count,
+        "role_in_group": "story beat",
+        "purpose": "advance the story",
+        "viewer_takeaway": f"beat {index}",
+        "cut_role": "derived",
+        "visual_summary": f"visual {index}",
+        "image_prompt": f"prompt {index}",
+    } for index, count in enumerate(counts, 1)]
+    return {
+        "title": "compiled plan",
+        "core_question": "what changes?",
+        "thesis": "structure is compiled",
+        "audience_start_state": "before",
+        "audience_end_state": "after",
+        "master_keycut_sequence_number": 1,
+        "style_bible": {
+            "preset_id": "editorial_illustration",
+            "medium_and_rendering": "editorial",
+            "palette": ["navy"],
+            "lighting": "soft",
+            "camera_and_depth": "wide",
+            "texture_and_detail": "paper",
+            "character_rendering": "consistent",
+            "environment_rendering": "consistent",
+            "composition_rules": ["safe area"],
+            "forbidden_variations": ["text"],
+        },
+        "sequences": [{
+            "role_in_story": "development",
+            "purpose": "develop",
+            "viewer_state_before": "before",
+            "viewer_state_after": "after",
+            "keycut_scene_number": 2,
+            "keycut_dna": {
+                "story_meaning": "turn",
+                "composition_anchor": "center",
+                "palette_anchor": ["navy"],
+                "lighting_anchor": "soft",
+                "symbol_anchor": [],
+                "must_inherit": ["palette"],
+                "must_not_copy": ["pose"],
+            },
+            "scene_groups": [{
+                "role_in_sequence": "explain",
+                "purpose": "explain",
+                "setup": "setup",
+                "payoff": "payoff",
+                "scenes": scenes,
+            }],
+        }],
+        "continuity_assets": [{
+            "category": "character",
+            "name": "owner",
+            "canonical_identity": "same adult owner",
+            "must_remain_consistent": ["face"],
+            "allowed_variations": ["pose"],
+            "states": [{"state_id": "owner-calm", "description": "calm"}],
+            "appearing_scene_numbers": [1, 2],
+            "reference_scene_numbers": [1, 2],
+            "selection_reason_code": "RECURRING_CHARACTER",
+            "selection_reason": "recurs",
+            "failure_if_inconsistent": "identity breaks",
+            "confidence": 1,
+            "anchor_prompt": "adult owner",
+        }],
+        "rejected_borderline_candidates": [],
+    }
 
 
 class SourceUnitCompilerTests(unittest.TestCase):
@@ -39,6 +112,46 @@ class SourceUnitCompilerTests(unittest.TestCase):
 
 
 class NarrativeHierarchyTests(unittest.TestCase):
+    def test_model_schema_cannot_emit_runtime_ids_or_foreign_keys(self) -> None:
+        schema = json.loads((Path(__file__).parents[1] / "schemas" / "scene-plan.schema.json").read_text(encoding="utf-8"))
+        root_properties = schema["properties"]
+        scene_properties = schema["$defs"]["scene"]["properties"]
+        asset_properties = schema["$defs"]["continuityAsset"]["properties"]
+
+        self.assertNotIn("master_keycut_scene_id", root_properties)
+        self.assertTrue({"id", "sequence_id", "scene_group_id", "parent_keycut_scene_id", "present_asset_ids", "reference_asset_ids"}.isdisjoint(scene_properties))
+        self.assertNotIn("asset_id", asset_properties)
+
+    def test_compiler_owns_all_runtime_ids_and_asset_relations(self) -> None:
+        scenario = "first. second."
+        units = compile_source_units(scenario)
+        plan, repairs = compile_scene_plan(
+            semantic_proposal(), scenario, units, continuity_enabled=True,
+        )
+
+        validate_plan(plan, scenario)
+        self.assertEqual(repairs["compiler"], "deterministic-v1")
+        self.assertEqual([scene.id for scene in plan.scenes], ["scene-001", "scene-002"])
+        self.assertEqual(plan.sequences[0].id, "sequence-001")
+        self.assertEqual(plan.scene_groups[0].id, "group-001")
+        self.assertEqual(plan.sequences[0].keycut_scene_id, "scene-002")
+        self.assertEqual(plan.scenes[0].parent_keycut_scene_id, "scene-002")
+        self.assertEqual(plan.continuity_assets[0].asset_id, "asset-character-001")
+        self.assertEqual(plan.scenes[0].present_asset_ids, ["asset-character-001"])
+        self.assertEqual(plan.scenes[0].reference_asset_ids, ["asset-character-001"])
+
+    def test_compiler_consumes_every_source_unit_without_model_ids(self) -> None:
+        scenario = "one. two. three."
+        units = compile_source_units(scenario)
+        plan, repairs = compile_scene_plan(
+            semantic_proposal(source_counts=[99, 99]), scenario, units, continuity_enabled=False,
+        )
+
+        validate_plan(plan, scenario)
+        self.assertEqual("".join(scene.narration for scene in plan.scenes), scenario)
+        self.assertGreater(repairs["source_unit_counts_adjusted"], 0)
+        self.assertEqual(plan.continuity_assets, [])
+
     def test_each_sequence_has_one_real_scene_keycut_and_valid_parents(self) -> None:
         scenario = "하나입니다. 둘입니다. 셋입니다. 넷입니다. 다섯입니다."
         plan = deterministic_plan(scenario, "스타일", "cinematic_realism")

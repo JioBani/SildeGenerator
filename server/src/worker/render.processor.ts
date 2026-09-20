@@ -34,7 +34,7 @@ export class RenderProcessor extends WorkerHost {
     const attempt = job.attemptsMade + 1;
     const waitStartedAt = attempt === 1 ? job.timestamp : new Date(previous.rows[0]?.updated_at ?? startedAt).getTime();
     const waitStage = attempt === 1 ? 'queue_wait' : 'retry_wait';
-    await this.db.query(`UPDATE generation_jobs SET status='running',current_stage='job_initialization',progress=1,started_at=coalesce(started_at,now()),updated_at=now() WHERE id=$1`, [job.id!]);
+    await this.db.query(`UPDATE generation_jobs SET status='running',current_stage='job_initialization',progress=1,error_code=null,error_message=null,started_at=coalesce(started_at,now()),updated_at=now() WHERE id=$1`, [job.id!]);
     await this.db.query(`INSERT INTO job_stage_runs(job_id,stage,attempt,status,started_at,finished_at,duration_ms,metadata)
       VALUES($1,$2,$3,'completed',to_timestamp($4/1000.0),now(),$5,$6)`, [job.id!, waitStage, attempt, waitStartedAt, Math.max(0, startedAt - waitStartedAt), { bullJobId: job.id }]);
     await this.db.query(`INSERT INTO job_events(job_id,event_type,payload) VALUES($1,'started',$2)`, [job.id!, {

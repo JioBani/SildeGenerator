@@ -27,8 +27,11 @@ export function userFacingRunnerError(error: unknown, stage?: string) {
   if (raw === "runner reported failure") {
     return `${label} 단계에서 렌더러가 작업을 완료하지 못했습니다.`;
   }
-  if (/invalid scene plan|scene narration must preserve/i.test(raw)) {
+  if (/scene narration must preserve|source units must preserve|source units must be used exactly once/i.test(raw)) {
     return `${label} 단계에서 대본 일부가 누락되어 안전 검증에 실패했습니다.`;
+  }
+  if (/invalid scene plan/i.test(raw)) {
+    return `${label} 단계에서 장면 의미 구조를 처리하지 못했습니다.`;
   }
   return `${label} 단계 실패: ${raw}`;
 }

@@ -53,4 +53,8 @@ test("runner errors identify the failed stage and hide transport jargon", () => 
     userFacingRunnerError(new Error("codex returned an invalid scene plan: scene narration must preserve the entire original script"), "scene_planning"),
     /대본 일부가 누락/,
   );
+  assert.doesNotMatch(
+    userFacingRunnerError(new Error("codex returned an invalid scene plan: scene scene-001 references an unknown present asset"), "scene_planning"),
+    /대본 일부가 누락/,
+  );
 });

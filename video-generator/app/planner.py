@@ -15,6 +15,7 @@ from .models import (
     ContinuityAsset, KeycutDNA, NarrativeSequence, Scene, SceneGroup,
     ScenePlan, SourceUnit, StyleBible,
 )
+from .plan_compiler import compile_scene_plan
 from .tracking import Tracker
 
 
@@ -598,12 +599,16 @@ async def plan_with_codex(
             },
         )
         usage_recorded = True
-        plan = ScenePlan.model_validate_json(text)
-        plan = compile_narration(plan, scenario, source_units)
+        proposal = json.loads(text)
+        plan, repairs = compile_scene_plan(
+            proposal,
+            scenario,
+            source_units,
+            continuity_enabled=continuity_enabled,
+        )
         if plan.style_bible.preset_id != image_style:
             raise ValueError("style bible preset does not match the requested image style")
         validate_plan(plan, scenario)
-        repairs = {"source_unit_compiler": "exact", "source_units": len(source_units)}
         if not continuity_enabled:
             removed_assets = len(plan.continuity_assets)
             plan = plan.model_copy(update={
