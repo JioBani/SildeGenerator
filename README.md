@@ -27,6 +27,21 @@ sh scripts/bootstrap.sh
 - 사용자의 명시적 승인 없이 ElevenLabs sample 또는 Live 영상을 만들지 않습니다.
 - 완료 보고에는 URL, health, container 상태, Mock E2E 결과만 포함합니다.
 
+## 외부 작업자의 GitHub 작업 방식
+
+외부 작업자는 원본 저장소의 collaborator 권한을 받지 않고 자신의 Fork에서만 작업합니다. GitHub 계정이 없으면 에이전트가 계정 생성과 로그인을 안내하되, 가입·로그인·인증 승인은 사용자가 직접 완료합니다. 에이전트는 비밀번호, 인증 코드 또는 token을 전달받지 않습니다.
+
+Git과 GitHub 사용 경험이 없어도 되도록 아래 과정은 에이전트가 수행합니다.
+
+1. `JioBani/SildeGenerator`를 작업자 계정으로 Fork하고 clone합니다.
+2. 원본 저장소를 `upstream`, 작업자의 Fork를 `origin`으로 설정합니다.
+3. 작업자 전용 브랜치 `worker/<github-username>`을 `upstream/main`에서 만들고 원격에 push합니다. 이후 모든 작업은 이 브랜치에서만 수행하며 `main`에 commit 또는 push하지 않습니다.
+4. 새 작업을 시작할 때 `upstream/main`을 fetch하고 전용 브랜치에 반영합니다. 브랜치가 삭제되었다면 같은 이름으로 다시 만듭니다.
+5. 작업 완료 후 필요한 검증을 실행하고 전용 브랜치에 commit·push한 다음, 원본 저장소 `main`을 대상으로 Pull Request를 생성합니다. 이미 열린 Pull Request가 있으면 같은 브랜치를 push해 갱신합니다.
+6. 에이전트는 Pull Request URL, 변경 내용, 테스트 결과와 남은 문제를 보고합니다. 병합과 배포는 원본 저장소 소유자가 수행합니다.
+
+GitHub CLI 등 추가 도구나 인증이 필요하면 에이전트가 설치·로그인 절차를 안내하고 사용자의 완료를 기다립니다. 원본 저장소에 대한 push 권한을 요청하거나 우회하지 않습니다.
+
 ## Human quick start
 
 Docker Desktop의 Linux container 모드 또는 Docker Engine + Compose v2가 필요합니다.
