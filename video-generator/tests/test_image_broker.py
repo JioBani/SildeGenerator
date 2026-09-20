@@ -70,7 +70,7 @@ class ImageBrokerSchedulingTests(unittest.IsolatedAsyncioTestCase):
             dependency_task_ids=dependencies or [],
         )
 
-    async def test_global_active_calls_never_exceed_eight_across_jobs(self) -> None:
+    async def test_global_active_calls_never_exceed_twelve_across_jobs(self) -> None:
         async def operation(path: Path, references: list[Path], attempt: int):
             path.parent.mkdir(parents=True, exist_ok=True)
             await asyncio.sleep(0.03)
@@ -84,7 +84,7 @@ class ImageBrokerSchedulingTests(unittest.IsolatedAsyncioTestCase):
 
         await asyncio.gather(*(handle.future for handle in handles))
 
-        self.assertLessEqual(self.maximum_active, 8)
+        self.assertLessEqual(self.maximum_active, 12)
         self.assertGreater(self.maximum_active, 1)
 
     async def test_dependent_scene_waits_while_independent_scene_runs(self) -> None:

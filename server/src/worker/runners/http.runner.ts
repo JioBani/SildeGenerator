@@ -21,7 +21,7 @@ export class HttpRunner implements VideoRunner {
           voice_id: voiceSettings.voiceId, voice_name: voiceSettings.voiceName,
           rate: voiceSettings.rate, pitch: voiceSettings.pitch, volume: voiceSettings.volume,
           stability: voiceSettings.stability, similarity_boost: voiceSettings.similarityBoost,
-          speed: voiceSettings.speed, playback_speed: voiceSettings.playbackSpeed, version: voiceSettings.version,
+          speed: voiceSettings.speed, version: voiceSettings.version,
         },
         harness_id: harnessId,
         harness_snapshot: harnessSnapshot,

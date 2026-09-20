@@ -16,7 +16,6 @@ class VoiceSettings(BaseModel):
     stability: float | None = Field(default=None, ge=0, le=1)
     similarity_boost: float | None = Field(default=None, ge=0, le=1)
     speed: float | None = Field(default=None, ge=.7, le=1.2)
-    playback_speed: float = Field(default=1, ge=.75, le=1.5)
     version: int = Field(default=1, ge=1)
 
 

@@ -192,7 +192,7 @@ export function App() {
   const [imageStyle, setImageStyle] = useState<ImageStyle>("editorial_illustration");
   const [continuityEnabled, setContinuityEnabled] = useState(false);
   const [harnessId, setHarnessId] = useState("classic-slide");
-  const [narrationSpeed, setNarrationSpeed] = useState(1);
+  const [narrationSpeed, setNarrationSpeed] = useState(0.7);
   const [harnesses, setHarnesses] = useState<HarnessOption[]>([]);
   const [job, setJob] = useState<JobStatus | null>(null);
   const [error, setError] = useState("");
@@ -344,9 +344,8 @@ export function App() {
             <div className="model-picker">
               <div className="narration-speed-control">
                 <div className="label-row"><label htmlFor="narration-speed">나레이션 속도</label><strong>{narrationSpeed.toFixed(2)}배</strong></div>
-                <input id="narration-speed" type="range" min="0.75" max="1.5" step="0.05" value={narrationSpeed} aria-valuetext={`${narrationSpeed.toFixed(2)}배`} onChange={(event) => setNarrationSpeed(Number(event.target.value))} />
-                <div className="speed-scale" aria-hidden="true"><span>0.75배</span><span>1.00배</span><span>1.25배</span><span>1.50배</span></div>
-                <small>0.75배는 더 천천히, 1.50배는 더 빠르게 읽습니다. 예상 영상 길이에 즉시 반영됩니다.</small>
+                <input id="narration-speed" type="range" min="0.7" max="1.2" step="0.05" value={narrationSpeed} aria-valuetext={`${narrationSpeed.toFixed(2)}배`} onChange={(event) => setNarrationSpeed(Number(event.target.value))} />
+                <div className="speed-scale" aria-hidden="true"><span>0.70배</span><span>0.85배</span><span>1.00배</span><span>1.20배</span></div>
               </div>
               <label htmlFor="image-model">이미지 모델</label>
               <select id="image-model" value={imageModel} onChange={(event) => setImageModel(event.target.value as ImageModel)}>
@@ -362,9 +361,8 @@ export function App() {
               </select>
               <label className="continuity-toggle">
                 <input type="checkbox" checked={continuityEnabled} onChange={(event) => setContinuityEnabled(event.target.checked)} />
-                <span><strong>이미지 연속성 유지</strong><small>반복되는 인물·사물에 기준 이미지를 사용합니다. 기본값은 OFF입니다.</small></span>
+                <span><strong>이미지 연속성 유지</strong><small>영상에 등장하는 주요 등장인물과 요소의 이미지를 일관되게 유지되도록 합니다. 추가 비용이 소모되고, 영상 생성시간이 늘어납니다.</small></span>
               </label>
-              <small>영상 작업이 시작되면 선택한 모델이 해당 작업의 기준 에셋과 모든 장면에 고정됩니다.</small>
             </div>
             <div className="composer-footer">
               <div className="auto-features"><span>자동 장면 분할</span><span>자동 길이 조절</span><span>Ken Burns + 크로스페이드</span></div>

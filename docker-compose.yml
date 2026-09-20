@@ -179,7 +179,7 @@ services:
       # Runner-specific key avoids an older shared .env value silently pinning
       # the provider after the controlled GPT Image 2.5 compatibility rollout.
       IMAGE_GENERATION_MODEL: ${RUNNER_IMAGE_GENERATION_MODEL:-gpt-image-2.5-sunburst}
-      IMAGE_TASK_CONCURRENCY: ${IMAGE_TASK_CONCURRENCY:-8}
+      IMAGE_TASK_CONCURRENCY: ${IMAGE_TASK_CONCURRENCY:-12}
       VOICE_TASK_CONCURRENCY: ${VOICE_TASK_CONCURRENCY:-2}
       VOICE_PROVIDER: ${VOICE_PROVIDER:-mock}
       MICROSOFT_EDGE_VOICE: ${MICROSOFT_EDGE_VOICE:-ko-KR-InJoonNeural}

@@ -133,7 +133,19 @@ const migrations = [
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS voice_id text`,
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS voice_settings jsonb NOT NULL DEFAULT '{}'::jsonb`,
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS voice_settings_version bigint NOT NULL DEFAULT 1`,
-  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS narration_speed numeric(4,2) NOT NULL DEFAULT 1 CHECK (narration_speed BETWEEN 0.75 AND 1.5)`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS narration_speed numeric(4,2) NOT NULL DEFAULT 0.7`,
+  `ALTER TABLE generation_jobs ALTER COLUMN narration_speed SET DEFAULT 0.7`,
+  `DO $$ BEGIN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_constraint
+      WHERE conname='generation_jobs_narration_speed_check'
+        AND pg_get_constraintdef(oid) LIKE '%0.7%'
+    ) THEN
+      ALTER TABLE generation_jobs DROP CONSTRAINT IF EXISTS generation_jobs_narration_speed_check;
+      ALTER TABLE generation_jobs ADD CONSTRAINT generation_jobs_narration_speed_check
+        CHECK (narration_speed BETWEEN 0.7 AND 1.5) NOT VALID;
+    END IF;
+  END $$`,
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS harness_id text NOT NULL DEFAULT 'classic-slide'`,
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS harness_version text NOT NULL DEFAULT 'legacy'`,
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS harness_manifest_sha256 text`,

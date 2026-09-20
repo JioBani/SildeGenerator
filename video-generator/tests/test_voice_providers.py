@@ -25,4 +25,4 @@ def test_settings_hash_separates_provider_voice_and_rate():
     assert first != voice_settings_hash("같은 문장", {**base, "provider": "mock"})
     assert first != voice_settings_hash("같은 문장", {**base, "voice_id": "ko-KR-SunHiNeural"})
     assert first != voice_settings_hash("같은 문장", {**base, "rate": "-20%"})
-    assert first != voice_settings_hash("같은 문장", {**base, "playback_speed": 1.25})
+    assert first != voice_settings_hash("같은 문장", {**base, "speed": 1.2})

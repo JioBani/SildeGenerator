@@ -53,7 +53,7 @@ if ($Reconfigure) {
   Remove-Item -Force -ErrorAction SilentlyContinue $marker
 }
 if ($Mock -and -not (Test-Path $marker)) {
-  $payload = @{ mode="mock"; voiceProvider="mock"; webPort=8080; imageConcurrency=8; voiceConcurrency=2; fps=24; retentionHours=720; edgeVoice="ko-KR-InJoonNeural"; edgeRate="-30%"; edgePitch="+0Hz"; edgeVolume="+0%" } | ConvertTo-Json
+  $payload = @{ mode="mock"; voiceProvider="mock"; webPort=8080; imageConcurrency=12; voiceConcurrency=2; fps=24; retentionHours=720; edgeVoice="ko-KR-InJoonNeural"; edgeRate="-30%"; edgePitch="+0Hz"; edgeVolume="+0%" } | ConvertTo-Json
   Compose @("--profile","setup","up","-d","--build","setup","setup-proxy")
   $ready = $false; 1..10 | ForEach-Object { if (-not $ready) { try { Invoke-RestMethod -Uri "http://127.0.0.1:8090/api/setup/status" | Out-Null; $ready=$true } catch { Start-Sleep -Seconds 1 } } }
   if (-not $ready) { throw "설정 웹이 준비되지 않았습니다." }

@@ -30,7 +30,7 @@ export class CreateJobDto {
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0.75)
-  @Max(1.5)
+  @Min(0.7)
+  @Max(1.2)
   narrationSpeed?: number;
 }

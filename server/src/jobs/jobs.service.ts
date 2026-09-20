@@ -16,6 +16,7 @@ import { VideoJobQueueService } from "../queue/video-job-queue.service";
 import { VoiceSettingsService } from "../settings/voice-settings.service";
 import { DEFAULT_HARNESS_ID } from "../shared/harness";
 import { HarnessRegistryService } from "./harness-registry.service";
+import { applyNarrationSpeed, DEFAULT_NARRATION_SPEED } from "../shared/voice-settings";
 
 @Injectable()
 export class JobsService {
@@ -32,10 +33,10 @@ export class JobsService {
 
   harnesses() { return this.harnessRegistry.list(); }
 
-  async create(scenario: string, userId: string, imageModel: ImageModel = DEFAULT_IMAGE_MODEL, continuityEnabled = false, imageStyle: ImageStyle = DEFAULT_IMAGE_STYLE, harnessId = DEFAULT_HARNESS_ID, narrationSpeed = 1) {
+  async create(scenario: string, userId: string, imageModel: ImageModel = DEFAULT_IMAGE_MODEL, continuityEnabled = false, imageStyle: ImageStyle = DEFAULT_IMAGE_STYLE, harnessId = DEFAULT_HARNESS_ID, narrationSpeed = DEFAULT_NARRATION_SPEED) {
     const id = randomUUID();
     const runtime = await this.codexSettings.get();
-    const voice = { ...await this.voiceSettings.snapshot(), playbackSpeed: narrationSpeed };
+    const voice = applyNarrationSpeed(await this.voiceSettings.snapshot(), narrationSpeed);
     const harness = await this.harnessRegistry.resolve(harnessId);
     const client = this.redis;
     const dayKey = `limits:daily:${userId}:${new Date().toISOString().slice(0, 10)}`;

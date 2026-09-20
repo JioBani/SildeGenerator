@@ -127,8 +127,8 @@ class ElevenLabs:
         return {"duration": duration, "alignment": payload.get("normalized_alignment") or payload.get("alignment"), "request_id": response.headers.get("request-id"), "characters": len(scene.narration), "provider_usage": usage_event}
 
 
-async def mock_speech(scene: Scene, path: Path, tracker: Tracker, *, record_usage: bool = True) -> dict[str, Any]:
-    duration = max(1.2, len(scene.narration.replace(" ", "")) / 6.7)
+async def mock_speech(scene: Scene, path: Path, tracker: Tracker, *, speed: float = .7, record_usage: bool = True) -> dict[str, Any]:
+    duration = max(1.2, len(scene.narration.replace(" ", "")) / 6.7) * .7 / speed
     started_at = _now()
     started = time.perf_counter()
     await _run(
@@ -148,7 +148,7 @@ async def mock_speech(scene: Scene, path: Path, tracker: Tracker, *, record_usag
         started_at=started_at,
         finished_at=finished_at,
         duration_ms=round((time.perf_counter() - started) * 1000),
-        raw_usage={},
+        raw_usage={"speed": speed},
     )
     if record_usage:
         tracker.add_usage(**usage_event)
