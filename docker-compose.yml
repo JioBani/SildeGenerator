@@ -218,7 +218,7 @@ services:
       - ${CODEX_HOME_DIR:-./.runtime/codex}:/codex-source:ro
     networks: [backend, egress]
     profiles: [live]
-    mem_limit: 256m
+    mem_limit: 512m
 
   web:
     <<: *service
