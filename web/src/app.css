@@ -98,6 +98,34 @@ tbody tr:hover { background: #f8faff; }
 .quality-editor > small { grid-column: 2 / -1; color: #315cb9; font-size: 10px; }
 .detail-subsection { margin-bottom: 20px; padding: 16px; border: 1px solid #e7ebf1; border-radius: 12px; }
 .detail-subsection h3, .detail-panel .section-title h3 { margin: 0; font-size: 15px; }
+.stage-timeline { min-width: 0; }
+.stage-timeline-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.stage-timeline-summary > div { padding: 10px 12px; background: #f6f8fb; border: 1px solid #e7ebf1; border-radius: 9px; }
+.stage-timeline-summary span, .stage-timeline-summary strong { display: block; }
+.stage-timeline-summary span { color: #7a8699; font-size: 9px; font-weight: 700; }
+.stage-timeline-summary strong { margin-top: 5px; color: #21304d; font-size: 15px; }
+.stage-timeline-help, .stage-timeline-empty { margin: 8px 0 12px; color: #768197; font-size: 10px; line-height: 1.55; }
+.stage-timeline-scroll { max-width: 100%; overflow-x: auto; padding-bottom: 5px; }
+.stage-timeline-canvas { display: grid; grid-template-columns: 210px minmax(620px, 1fr); min-width: 850px; border: 1px solid #e3e8ef; border-radius: 10px; overflow: hidden; }
+.stage-timeline-axis-label, .stage-timeline-axis { height: 35px; background: #f4f6fa; border-bottom: 1px solid #dfe5ed; }
+.stage-timeline-axis-label { display: flex; align-items: center; padding: 0 12px; color: #6e7a8f; font-size: 10px; font-weight: 800; }
+.stage-timeline-axis { position: relative; }
+.stage-timeline-axis span { position: absolute; top: 11px; color: #7c8799; font-size: 9px; transform: translateX(-50%); white-space: nowrap; }
+.stage-timeline-axis span:first-child { transform: none; }
+.stage-timeline-axis span:last-child { transform: translateX(-100%); }
+.stage-timeline-row { display: contents; }
+.stage-timeline-label { display: flex; flex-direction: column; justify-content: center; min-height: 34px; padding: 6px 12px; background: #fbfcfd; border-bottom: 1px solid #edf0f4; }
+.stage-timeline-label strong { color: #344159; font-size: 10px; }
+.stage-timeline-label span { margin-top: 3px; color: #8993a4; font-size: 8px; white-space: nowrap; }
+.stage-timeline-track { position: relative; min-height: 34px; background: #fff; border-bottom: 1px solid #edf0f4; overflow: hidden; }
+.stage-timeline-gridline { position: absolute; top: 0; bottom: 0; width: 1px; background: #edf0f4; }
+.stage-timeline-bar { position: absolute; z-index: 1; height: 7px; min-width: 3px; border-radius: 2px; background: #697891; box-shadow: 0 1px 2px rgba(29,42,68,.18); }
+.stage-timeline-bar.planning { background: #7a68d8; }
+.stage-timeline-bar.image { background: #2f6fdb; }
+.stage-timeline-bar.voice { background: #18a078; }
+.stage-timeline-bar.render { background: #e1842f; }
+.stage-timeline-bar.wait { background: #a6afbd; }
+.stage-timeline-bar.failed { background: #d74755; }
 .job-prompt-set { margin: 0 0 18px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e4e9f0; border-radius: 10px; }
 .job-prompt-set summary { color: #3c4a64; cursor: pointer; font-size: 11px; font-weight: 750; }
 .job-prompt-set summary span { margin-left: 6px; color: #8490a3; font-weight: 500; }
@@ -226,6 +254,7 @@ tbody tr:hover { background: #f8faff; }
   .analytics-toolbar { grid-template-columns: 1fr auto; }
   .analytics-toolbar > div:first-child { grid-column: 1 / -1; }
   .model-settings-grid { grid-template-columns: 1fr; }
+  .stage-timeline-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 580px) {
   .topbar { height: 62px; padding: 0 14px; }
@@ -253,6 +282,7 @@ tbody tr:hover { background: #f8faff; }
   .comparison-tabs button { flex: 0 0 auto; }
   .prompt-history article { align-items: flex-start; flex-direction: column; }
   .settings-actions, .codex-transcript-panel .section-title { align-items: stretch; flex-direction: column; }
+  .stage-timeline-summary { grid-template-columns: 1fr; }
 }
 .continuity-toggle { display:flex; align-items:flex-start; gap:10px; margin-top:12px; cursor:pointer; }
 .continuity-toggle input { width:18px; height:18px; margin-top:2px; }

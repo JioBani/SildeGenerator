@@ -6,6 +6,7 @@ import { CodexTranscriptPanel } from "./CodexTranscriptPanel";
 import { ModelSettings } from "./ModelSettings";
 import { VoiceSettings } from "./VoiceSettings";
 import { HarnessSettings } from "./HarnessSettings";
+import { StageTimeline } from "./StageTimeline";
 import { estimateNarrationDuration, formatPlaybackDuration } from "./duration-estimate";
 
 type JobStatus = {
@@ -436,6 +437,9 @@ export function App() {
                   <DetailMetric label="총비용 / 영상 1분" value={nullableWon(detail.metrics.totalCostPerVideoMinuteKrw)} note={`프롬프트 ${detail.metrics.promptSetVersion ? `v${detail.metrics.promptSetVersion}` : "미기록"}`} />
                 </div>
                 <QualityEditor api={api} detail={detail} onSaved={(score, note) => setDetail((current) => current?.metrics ? { ...current, metrics: { ...current.metrics, qualityScore: score, qualityNote: note } } : current)} />
+                <div className="detail-subsection"><div className="section-title"><h3>실제 작업 타임라인</h3><span>벽시계 기준 실행 순서와 병렬 구간</span></div>
+                  <StageTimeline stages={detail.stages} summaries={detail.metrics.stages} stageLabel={stageLabel} />
+                </div>
                 <div className="detail-subsection"><div className="section-title"><h3>구간별 생성시간</h3><span>실제 경과와 병렬 작업 누적시간을 분리</span></div>
                   <div className="table-scroll"><table><thead><tr><th>구간</th><th>작업 수</th><th>실제 경과시간</th><th>병렬 작업 누적시간</th><th>장/회당 평균</th></tr></thead><tbody>{detail.metrics.stages.map((stage) => { const imageStage = ["image_generation", "keycut_generation", "continuity_asset_generation"].includes(stage.stage); return <tr key={stage.stage}><td>{stageLabel(stage.stage)}</td><td>{stage.runs}{imageStage ? "장" : "회"}</td><td><strong>{duration(stage.wallClockDurationMs)}</strong></td><td>{duration(stage.totalDurationMs)}</td><td>{duration(stage.averageDurationMs)}</td></tr>; })}</tbody></table></div>
                 </div>
