@@ -6,7 +6,8 @@ import { CodexTranscriptPanel } from "./CodexTranscriptPanel";
 import { ModelSettings } from "./ModelSettings";
 import { VoiceSettings } from "./VoiceSettings";
 import { HarnessSettings } from "./HarnessSettings";
-import { StageTimeline } from "./StageTimeline";
+import { ActiveStageTable, StageTimeline } from "./StageTimeline";
+import { CostDiagram } from "./CostDiagram";
 import { estimateNarrationDuration, formatPlaybackDuration } from "./duration-estimate";
 
 type JobStatus = {
@@ -159,6 +160,7 @@ const STAGE_LABELS: Record<string, string> = {
   video_render: "영상 렌더링",
   asset_generation: "이미지·음성 생성",
   progressive_video_render: "선행 구간 렌더링",
+  segment_render: "FFmpeg 구간 렌더",
   video_assembly: "영상 조립",
   deterministic_validation: "결과 검사",
   done: "완료",
@@ -180,6 +182,9 @@ export function App() {
   const [detailJobId] = useState(() => new URLSearchParams(window.location.search).get("adminJob"));
   const [tab, setTab] = useState<"create" | "admin">(() => detailJobId ? "admin" : "create");
   const [adminView, setAdminView] = useState<"overview" | "analytics" | "prompts" | "settings">("overview");
+  const [overviewSection, setOverviewSection] = useState<"jobs" | "metrics">("jobs");
+  const [detailSection, setDetailSection] = useState<"summary" | "pipeline" | "cost">("summary");
+  const [settingsSection, setSettingsSection] = useState<"codex" | "voice" | "harness">("codex");
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) ?? "");
   const [scenario, setScenario] = useState("");
   const [imageModel, setImageModel] = useState<ImageModel>("gpt-image-2.5-sunburst");
@@ -399,7 +404,11 @@ export function App() {
           {adminView === "overview" ? <>
             {error && <p className="error" role="alert">{error}</p>}
             {!detailJobId && dashboard && <>
-              <section className="metrics-grid">
+              <div className="section-tabs" role="tablist" aria-label="운영 현황 항목">
+                <button role="tab" aria-selected={overviewSection === "jobs"} className={overviewSection === "jobs" ? "active" : ""} onClick={() => setOverviewSection("jobs")}>최근 영상</button>
+                <button role="tab" aria-selected={overviewSection === "metrics"} className={overviewSection === "metrics" ? "active" : ""} onClick={() => setOverviewSection("metrics")}>운영 지표</button>
+              </div>
+              {overviewSection === "metrics" && <section className="metrics-grid">
                 <Metric label="전체 영상" value={integer(dashboard.jobs.total)} suffix="개" />
                 <Metric label="현재 작업" value={integer(dashboard.jobs.active)} suffix="개" />
                 <Metric label="실행 중 영상" value={dashboard.queue.activeJobs === null ? "-" : `${integer(dashboard.queue.activeJobs)} / ${integer(dashboard.queue.globalConcurrency)}`} />
@@ -411,9 +420,9 @@ export function App() {
                 <Metric label="이미지 API 예상 비용" value={won(dashboard.usage.imageApiEquivalentCostKrw)} note="현재 OAuth 청구와 별도" />
                 <Metric label="전체 API 환산 비용" value={won(dashboard.usage.apiEquivalentCostKrw)} note="Codex + 이미지 + 음성" />
                 <Metric label="생성 이미지" value={integer(dashboard.usage.images)} suffix="장" />
-              </section>
+              </section>}
 
-              <section className="admin-columns">
+              {overviewSection === "jobs" && <section className="admin-columns">
                 <div className="panel table-panel">
                   <div className="section-title"><h2>최근 영상</h2><span>{jobs.length}건</span></div>
                   <div className="table-scroll"><table><thead><tr><th>작업</th><th>상태</th><th>대기</th><th>Harness</th><th>이미지 모델</th><th>스타일</th><th>음성</th><th>구간</th><th>전체 생성시간</th><th>영상 1분당 생성시간</th><th>영상 1분당 비용</th><th>프롬프트</th><th>품질</th><th>다운로드</th></tr></thead><tbody>
@@ -424,7 +433,7 @@ export function App() {
                   <div className="section-title"><h2>구간별 평균</h2><span>결정론적 계측</span></div>
                   <ul>{dashboard.stages.map((stage) => <li key={stage.stage}><span>{stageLabel(stage.stage)}</span><strong>{duration(stage.averageDurationMs)}</strong></li>)}</ul>
                 </div>
-              </section>
+              </section>}
             </>}
 
             {detail && <section className="panel detail-panel">
@@ -432,12 +441,17 @@ export function App() {
               {detail.job && typeof detail.job.id === "string" && detail.job.status === "completed" && (
                 <button className="primary" onClick={() => void downloadAdminJob(String(detail.job?.id))}>MP4 내려받기</button>
               )}
-              {detail.job && <div className="job-metric-grid">
+              <div className="section-tabs detail-tabs" role="tablist" aria-label="작업 상세 항목">
+                <button role="tab" aria-selected={detailSection === "summary"} className={detailSection === "summary" ? "active" : ""} onClick={() => setDetailSection("summary")}>요약</button>
+                <button role="tab" aria-selected={detailSection === "pipeline"} className={detailSection === "pipeline" ? "active" : ""} onClick={() => setDetailSection("pipeline")}>파이프라인</button>
+                <button role="tab" aria-selected={detailSection === "cost"} className={detailSection === "cost" ? "active" : ""} onClick={() => setDetailSection("cost")}>비용·호출</button>
+              </div>
+              {detailSection === "summary" && detail.job && <div className="job-metric-grid">
                 <DetailMetric label="Creative Harness" value={`${String(detail.job.harness_id ?? "classic-slide")}@${String(detail.job.harness_version ?? "legacy")}`} note={`revision ${String(detail.job.harness_source_revision ?? "-")}`} />
                 <DetailMetric label="Harness manifest" value={String(detail.job.harness_manifest_sha256 ?? "-").slice(0, 16)} note={`source ${String(detail.job.harness_source_sha256 ?? "-").slice(0, 16)}`} />
                 <DetailMetric label="Harness config" value={String(detail.job.harness_config_sha256 ?? "-").slice(0, 16)} note={`image ${String(detail.job.harness_image_digest ?? "-")}`} />
               </div>}
-              {detail.metrics && <>
+              {detailSection === "summary" && detail.metrics && <>
                 <div className="job-metric-grid">
                   <DetailMetric label="전체 생성시간" value={duration(detail.metrics.totalGenerationTimeMs)} note={`완성 영상 ${duration(detail.metrics.videoDurationMs)}`} />
                   <DetailMetric label="Codex 추론 토큰" value={integer(detail.metrics.codexReasoningTokens)} note={`입력 ${integer(detail.metrics.codexInputTokens)} · 출력 ${integer(detail.metrics.codexOutputTokens)}`} />
@@ -449,14 +463,18 @@ export function App() {
                   <DetailMetric label="음성 비용 / 음성 1분" value={nullableWon(detail.metrics.voiceCostPerMinuteKrw)} note={detail.metrics.voiceModel} />
                   <DetailMetric label="총비용 / 영상 1분" value={nullableWon(detail.metrics.totalCostPerVideoMinuteKrw)} note={`프롬프트 ${detail.metrics.promptSetVersion ? `v${detail.metrics.promptSetVersion}` : "미기록"}`} />
                 </div>
+                <div className="detail-subsection"><div className="section-title"><h3>비용 구성</h3><span>금액과 전체 환산 비용 비중</span></div>
+                  <CostDiagram inferenceCostKrw={detail.metrics.inferenceCostKrw} imageCostKrw={detail.metrics.imageCostKrw} voiceCostKrw={detail.metrics.voiceCostKrw} actualExternalCostKrw={detail.metrics.actualExternalCostKrw} />
+                </div>
                 <QualityEditor api={api} detail={detail} onSaved={(score, note) => setDetail((current) => current?.metrics ? { ...current, metrics: { ...current.metrics, qualityScore: score, qualityNote: note } } : current)} />
                 <div className="detail-subsection"><div className="section-title"><h3>실제 작업 타임라인</h3><span>벽시계 기준 실행 순서와 병렬 구간</span></div>
-                  <StageTimeline stages={detail.stages} summaries={detail.metrics.stages} stageLabel={stageLabel} />
+                  <StageTimeline stages={detail.stages} renderSegments={detail.renderSegments} stageLabel={stageLabel} />
                 </div>
-                <div className="detail-subsection"><div className="section-title"><h3>구간별 생성시간</h3><span>실제 경과와 병렬 작업 누적시간을 분리</span></div>
-                  <div className="table-scroll"><table><thead><tr><th>구간</th><th>작업 수</th><th>실제 경과시간</th><th>병렬 작업 누적시간</th><th>장/회당 평균</th></tr></thead><tbody>{detail.metrics.stages.map((stage) => { const imageStage = ["image_generation", "keycut_generation", "continuity_asset_generation"].includes(stage.stage); return <tr key={stage.stage}><td>{stageLabel(stage.stage)}</td><td>{stage.runs}{imageStage ? "장" : "회"}</td><td><strong>{duration(stage.wallClockDurationMs)}</strong></td><td>{duration(stage.totalDurationMs)}</td><td>{duration(stage.averageDurationMs)}</td></tr>; })}</tbody></table></div>
+                <div className="detail-subsection"><div className="section-title"><h3>구간별 실제 작업시간</h3><span>대기와 상위 관리 구간을 제외한 실행시간</span></div>
+                  <ActiveStageTable stages={detail.stages} renderSegments={detail.renderSegments} stageLabel={stageLabel} />
                 </div>
               </>}
+              {detailSection === "pipeline" && <>
               <div className="detail-counts"><span>구간 {detail.stages.length}</span><span>외부 호출 {detail.usage.length}</span><span>파일 {detail.assets.length}</span><span>프롬프트 {detail.prompts.length}</span><span>이미지 태스크 {detail.imageTasks.length}</span><span>음성 태스크 {detail.voiceTasks.length}</span><span>렌더 구간 {detail.renderSegments.length}</span><span>이벤트 {detail.events.length}</span></div>
               {detail.job?.narrative_blueprint && typeof detail.job.narrative_blueprint === "object" ? <NarrativeHierarchy blueprint={detail.job.narrative_blueprint as Record<string, unknown>} /> : null}
               {detail.imageTasks.length > 0 && <div className="detail-subsection"><div className="section-title"><h3>이미지 태스크와 참조</h3><span>의존성·큐·재시도 영속 기록</span></div>
@@ -468,14 +486,26 @@ export function App() {
               {detail.renderSegments.length > 0 && <div className="detail-subsection"><div className="section-title"><h3>선행 렌더 구간</h3><span>준비·시작·완료 및 입력 해시</span></div>
                 <div className="table-scroll"><table><thead><tr><th>구간</th><th>장면</th><th>상태</th><th>입력 해시</th><th>렌더 시간</th></tr></thead><tbody>{detail.renderSegments.map((segment) => <tr key={String(segment.id)}><td>{String(segment.segment_index)}</td><td>{String(segment.first_scene_id)}–{String(segment.last_scene_id)}</td><td>{String(segment.status)}</td><td><code>{String(segment.input_hash).slice(0, 10)}</code></td><td>{duration(segment.duration_ms)}</td></tr>)}</tbody></table></div>
               </div>}
+              </>}
+              {detailSection === "cost" && <>
               {detail.promptSet && <details className="job-prompt-set"><summary>비교용 프롬프트 묶음 v{detail.promptSet.version} 구성 <span>활성 문서 {detail.promptSet.manifest.length}개</span></summary><div>{detail.promptSet.manifest.map((prompt) => <span key={prompt.relativePath}><code>{prompt.relativePath}</code><b>v{prompt.version}</b><small>{prompt.sha256.slice(0, 10)}</small></span>)}</div></details>}
               {detail.job && typeof detail.job.id === "string" && <CodexTranscriptPanel api={api} jobId={detail.job.id} jobStatus={String(detail.job.status ?? "")} />}
               <div className="section-title"><h3>장면·호출별 토큰과 비용</h3><span>API 환산은 실제 API 사용 시 예상액</span></div>
               <div className="table-scroll"><table><thead><tr><th>장면</th><th>제공자</th><th>모델</th><th>effort</th><th>용도</th><th>입력 토큰</th><th>출력 토큰</th><th>추론 토큰</th><th>문자</th><th>현재 실비</th><th>API 사용 예상</th></tr></thead><tbody>
                 {detail.usage.map((entry, index) => <tr key={index}><td>{String(entry.scene_id ?? "전체")}</td><td>{String(entry.provider ?? "-")}</td><td>{String(entry.model ?? "-")}</td><td>{usageEffort(entry)}</td><td>{stageLabel(typeof entry.stage === "string" ? entry.stage : undefined)}</td><td>{integer(entry.input_tokens)}</td><td>{integer(entry.output_tokens)}</td><td>{integer(entry.reasoning_tokens)}</td><td>{integer(entry.characters)}</td><td>{won(Number(entry.actual_cost_usd || 0) * Number(entry.exchange_rate_usd_krw || 0))}</td><td>{won(Number(entry.api_equivalent_cost_usd || 0) * Number(entry.exchange_rate_usd_krw || 0))}</td></tr>)}
               </tbody></table></div>
+              </>}
             </section>}
-          </> : adminView === "analytics" ? <AnalyticsDashboard api={api} /> : adminView === "prompts" ? <PromptManager api={api} /> : <div className="settings-workspace"><ModelSettings api={api} /><VoiceSettings api={api} /><HarnessSettings api={api} /></div>}
+          </> : adminView === "analytics" ? <AnalyticsDashboard api={api} /> : adminView === "prompts" ? <PromptManager api={api} /> : <div className="settings-workspace">
+            <div className="section-tabs" role="tablist" aria-label="모델 설정 항목">
+              <button role="tab" aria-selected={settingsSection === "codex"} className={settingsSection === "codex" ? "active" : ""} onClick={() => setSettingsSection("codex")}>Codex</button>
+              <button role="tab" aria-selected={settingsSection === "voice"} className={settingsSection === "voice" ? "active" : ""} onClick={() => setSettingsSection("voice")}>음성</button>
+              <button role="tab" aria-selected={settingsSection === "harness"} className={settingsSection === "harness" ? "active" : ""} onClick={() => setSettingsSection("harness")}>Creative Harness</button>
+            </div>
+            <div hidden={settingsSection !== "codex"}><ModelSettings api={api} /></div>
+            <div hidden={settingsSection !== "voice"}><VoiceSettings api={api} /></div>
+            <div hidden={settingsSection !== "harness"}><HarnessSettings api={api} /></div>
+          </div>}
         </main>
       )}
     </div>

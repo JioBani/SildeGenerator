@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "tsc --ignoreConfig src/duration-estimate.ts src/voice-settings-draft.ts src/stage-timeline.ts --target ES2022 --module ES2022 --outDir .test-dist && node --test test/*.test.mjs",
+    "test": "tsc --ignoreConfig src/duration-estimate.ts src/voice-settings-draft.ts src/stage-timeline.ts src/cost-breakdown.ts --target ES2022 --module ES2022 --outDir .test-dist && node --test test/*.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

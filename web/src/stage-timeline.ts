@@ -1,4 +1,5 @@
 export type StageRunInput = Record<string, unknown>;
+export type RenderSegmentInput = Record<string, unknown>;
 
 export type TimelineRun = {
   stage: string;
@@ -26,6 +27,8 @@ export type StageTimelineModel = {
   startMs: number;
   endMs: number;
   elapsedMs: number;
+  activeDurationMs: number;
+  idleDurationMs: number;
   cumulativeDurationMs: number;
   overlapSavingsMs: number;
   peakConcurrency: number;
@@ -52,8 +55,38 @@ const peakConcurrency = (runs: Array<{ startMs: number; endMs: number }>) => {
   return peak;
 };
 
-export function buildStageTimeline(inputs: StageRunInput[]): StageTimelineModel | null {
-  const parsed = inputs.flatMap((input) => {
+const unionDuration = (runs: Array<{ startMs: number; endMs: number }>) => {
+  const ordered = [...runs].sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
+  let total = 0;
+  let start = Number.NaN;
+  let end = Number.NaN;
+  for (const run of ordered) {
+    if (!Number.isFinite(start)) { start = run.startMs; end = run.endMs; continue; }
+    if (run.startMs > end) { total += end - start; start = run.startMs; end = run.endMs; }
+    else end = Math.max(end, run.endMs);
+  }
+  return Number.isFinite(start) ? total + end - start : 0;
+};
+
+const COORDINATOR_STAGES = new Set(["progressive_video_render", "asset_generation", "queue_wait", "retry_wait"]);
+
+export function buildStageTimeline(inputs: StageRunInput[], renderSegments: RenderSegmentInput[] = []): StageTimelineModel | null {
+  const actualInputs = [
+    ...inputs.filter((input) => !COORDINATOR_STAGES.has(String(input.stage ?? ""))),
+    ...renderSegments.flatMap((segment) => {
+      if (!segment.started_at || !segment.finished_at) return [];
+      return [{
+        stage: "segment_render",
+        scene_id: `${String(segment.first_scene_id ?? "-")}–${String(segment.last_scene_id ?? "-")}`,
+        status: segment.status ?? "unknown",
+        attempt: 1,
+        started_at: segment.started_at,
+        finished_at: segment.finished_at,
+        duration_ms: segment.duration_ms,
+      }];
+    }),
+  ];
+  const parsed = actualInputs.flatMap((input) => {
     const startMs = time(input.started_at);
     let endMs = time(input.finished_at);
     const recordedDuration = Number(input.duration_ms);
@@ -100,12 +133,15 @@ export function buildStageTimeline(inputs: StageRunInput[]): StageTimelineModel 
   }).sort((a, b) => Math.min(...a.runs.map((run) => run.startMs)) - Math.min(...b.runs.map((run) => run.startMs)));
 
   const cumulativeDurationMs = parsed.reduce((sum, run) => sum + run.durationMs, 0);
+  const activeDurationMs = unionDuration(parsed);
   return {
     startMs,
     endMs,
     elapsedMs,
+    activeDurationMs,
+    idleDurationMs: Math.max(0, elapsedMs - activeDurationMs),
     cumulativeDurationMs,
-    overlapSavingsMs: Math.max(0, cumulativeDurationMs - elapsedMs),
+    overlapSavingsMs: Math.max(0, cumulativeDurationMs - activeDurationMs),
     peakConcurrency: peakConcurrency(parsed),
     ticks: [0, 25, 50, 75, 100].map((percent) => ({ percent, offsetMs: elapsedMs * percent / 100 })),
     groups,

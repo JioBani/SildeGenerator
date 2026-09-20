@@ -80,6 +80,7 @@ const won = (value: number | null) => value === null ? "측정 불가" : `${valu
 const seconds = (value: number | null) => value === null ? "측정 불가" : `${(value / 1000).toFixed(1)}초`;
 
 export function AnalyticsDashboard({ api }: { api: AdminApi }) {
+  const [section, setSection] = useState<"comparison" | "imageQueue" | "voiceQueue">("comparison");
   const [groupBy, setGroupBy] = useState<GroupBy>("promptVersion");
   const [data, setData] = useState<AnalyticsResponse | null>(null);
   const [queue, setQueue] = useState<ImageQueueResponse | null>(null);
@@ -111,15 +112,20 @@ export function AnalyticsDashboard({ api }: { api: AdminApi }) {
   const rows = data?.rows ?? [];
 
   return <section className="analytics-workspace">
-    <div className="analytics-toolbar panel">
+    <div className="section-tabs" role="tablist" aria-label="개선 분석 항목">
+      <button role="tab" aria-selected={section === "comparison"} className={section === "comparison" ? "active" : ""} onClick={() => setSection("comparison")}>실험 비교</button>
+      <button role="tab" aria-selected={section === "imageQueue"} className={section === "imageQueue" ? "active" : ""} onClick={() => setSection("imageQueue")}>이미지 큐</button>
+      <button role="tab" aria-selected={section === "voiceQueue"} className={section === "voiceQueue" ? "active" : ""} onClick={() => setSection("voiceQueue")}>음성 큐</button>
+    </div>
+    {section === "comparison" && <div className="analytics-toolbar panel">
       <div><strong>개선 실험 비교</strong><span>같은 기준으로 정규화한 시간·토큰·비용과 관리자 품질 점수를 비교합니다.</span></div>
       <div className="comparison-tabs" role="tablist" aria-label="비교 기준">
         {(Object.keys(GROUP_LABELS) as GroupBy[]).map((key) => <button key={key} role="tab" aria-selected={groupBy === key} className={groupBy === key ? "active" : ""} onClick={() => setGroupBy(key)}>{GROUP_LABELS[key]}</button>)}
       </div>
       <button className="secondary" onClick={load} disabled={loading}>{loading ? "불러오는 중" : "새로고침"}</button>
-    </div>
-    <p className="measurement-note">실제 외부 서비스를 사용해 완료된 Live 영상만 비교하며 mock E2E 기록은 제외합니다. 현재 이미지는 ChatGPT OAuth를 사용하므로 이미지 실청구는 0원이며, 이미지 비용은 같은 토큰을 OpenAI Image API로 호출할 때의 예상액입니다. 총 환산 비용은 Codex API 예상·이미지 API 예상·ElevenLabs 비용의 합입니다.</p>
-    {queue && <section className="panel comparison-table">
+    </div>}
+    {section === "comparison" && <p className="measurement-note">실제 외부 서비스를 사용해 완료된 Live 영상만 비교하며 mock E2E 기록은 제외합니다. 현재 이미지는 ChatGPT OAuth를 사용하므로 이미지 실청구는 0원이며, 이미지 비용은 같은 토큰을 OpenAI Image API로 호출할 때의 예상액입니다. 총 환산 비용은 Codex API 예상·이미지 API 예상·ElevenLabs 비용의 합입니다.</p>}
+    {section === "imageQueue" && queue && <section className="panel comparison-table">
       <div className="section-title"><h2>전역 이미지 큐</h2><span>공유 슬롯 {queue.effectiveConcurrency} / {queue.configuredConcurrency}개</span></div>
       <div className="job-metric-grid">
         <article><span>대기 / 실행</span><strong>{queue.queueDepth} / {queue.active}</strong><small>모든 영상 합계</small></article>
@@ -135,7 +141,7 @@ export function AnalyticsDashboard({ api }: { api: AdminApi }) {
       <div className="table-scroll"><table><thead><tr><th>장면 참조 수</th><th>장면 수</th></tr></thead><tbody>{queue.referenceDistribution.map((item) => <tr key={item.referenceCount}><td>{item.referenceCount}</td><td>{item.scenes}</td></tr>)}</tbody></table></div>
       <div className="table-scroll"><table><thead><tr><th>최근 슬롯</th><th>작업</th><th>종류</th><th>참조</th><th>대기</th><th>공급자</th><th>결과</th></tr></thead><tbody>{queue.timeline.slice(0, 20).map((item, index) => <tr key={`${item.jobId}-${item.sceneId ?? item.assetId}-${item.attempt}-${index}`}><td>{item.slotId}</td><td>{item.jobId.slice(0, 8)}</td><td>{item.taskType}</td><td>{item.referenceCount}</td><td>{seconds(Number(item.queueWaitMs))}</td><td>{seconds(Number(item.providerMs))}</td><td>{item.status}</td></tr>)}</tbody></table></div>
     </section>}
-    {voiceQueue && <section className="panel comparison-table">
+    {section === "voiceQueue" && voiceQueue && <section className="panel comparison-table">
       <div className="section-title"><h2>전역 음성 큐</h2><span>공유 슬롯 {voiceQueue.active} / {voiceQueue.configuredConcurrency}개</span></div>
       <div className="job-metric-grid">
         <article><span>대기 / 실행</span><strong>{voiceQueue.queueDepth} / {voiceQueue.active}</strong><small>모든 영상 합계</small></article>
@@ -146,8 +152,8 @@ export function AnalyticsDashboard({ api }: { api: AdminApi }) {
       <div className="table-scroll"><table><thead><tr><th>슬롯</th><th>작업</th><th>장면</th><th>시도</th><th>대기</th><th>공급자</th><th>결과</th></tr></thead><tbody>{voiceQueue.timeline.slice(0, 20).map((item, index) => <tr key={`${item.jobId}-${item.sceneId}-${item.attempt}-${index}`}><td>{item.slotId}</td><td>{item.jobId.slice(0, 8)}</td><td>{item.sceneId}</td><td>{item.attempt}</td><td>{seconds(Number(item.queueWaitMs))}</td><td>{seconds(Number(item.providerMs))}</td><td>{item.status}</td></tr>)}</tbody></table></div>
     </section>}
     {error && <p className="error" role="alert">{error}</p>}
-    {!loading && !rows.length && <div className="panel empty-state">완료된 영상의 측정 기록이 없습니다.</div>}
-    {rows.length > 0 && <>
+    {section === "comparison" && !loading && !rows.length && <div className="panel empty-state">완료된 영상의 측정 기록이 없습니다.</div>}
+    {section === "comparison" && rows.length > 0 && <>
       <div className="chart-grid">
         <BarChart title="영상 1분당 총 환산 비용" subtitle="추론 + 이미지 + 음성" rows={rows} value={(row) => row.totalCostPerVideoMinuteKrw} format={won} />
         <BarChart title="영상 1분당 Codex 추론 비용" subtitle="구독 토큰의 API 가격 환산" rows={rows} value={(row) => row.inferenceCostPerVideoMinuteKrw} format={won} />

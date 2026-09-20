@@ -1,6 +1,4 @@
-import { buildStageTimeline, type StageRunInput } from "./stage-timeline";
-
-type StageSummary = { stage: string; runs: number; wallClockDurationMs: number | string; totalDurationMs: number | string; averageDurationMs: number | string };
+import { buildStageTimeline, type RenderSegmentInput, type StageRunInput } from "./stage-timeline";
 
 const duration = (value: number) => {
   const seconds = Math.round(value / 1000);
@@ -17,32 +15,28 @@ const kind = (stage: string) => {
   return "other";
 };
 
-export function StageTimeline({ stages, summaries, stageLabel }: { stages: StageRunInput[]; summaries: StageSummary[]; stageLabel: (stage?: string) => string }) {
-  const model = buildStageTimeline(stages);
+export function StageTimeline({ stages, renderSegments, stageLabel }: { stages: StageRunInput[]; renderSegments: RenderSegmentInput[]; stageLabel: (stage?: string) => string }) {
+  const model = buildStageTimeline(stages, renderSegments);
   if (!model) return <p className="stage-timeline-empty">시작·종료 시각이 기록된 구간이 없습니다.</p>;
-  const summaryByStage = new Map(summaries.map((summary) => [summary.stage, summary]));
   return <div className="stage-timeline">
     <div className="stage-timeline-summary">
-      <div><span>실제 전체 경과</span><strong>{duration(model.elapsedMs)}</strong></div>
-      <div><span>작업시간 단순 합계</span><strong>{duration(model.cumulativeDurationMs)}</strong></div>
-      <div><span>병렬 실행으로 겹친 시간</span><strong>{duration(model.overlapSavingsMs)}</strong></div>
+      <div><span>전체 경과시간</span><strong>{duration(model.elapsedMs)}</strong></div>
+      <div><span>실제 작업이 있었던 시간</span><strong>{duration(model.activeDurationMs)}</strong></div>
+      <div><span>모든 실제 작업시간 합계</span><strong>{duration(model.cumulativeDurationMs)}</strong></div>
+      <div><span>병렬로 겹친 실제 작업</span><strong>{duration(model.overlapSavingsMs)}</strong></div>
       <div><span>최대 동시 작업</span><strong>{model.peakConcurrency}개</strong></div>
     </div>
-    <p className="stage-timeline-help">가로축은 실제 시각입니다. 같은 세로선에 놓인 막대는 동시에 실행된 작업이며, 한 행의 여러 층은 해당 구간의 병렬 슬롯을 뜻합니다.</p>
+    <p className="stage-timeline-help">막대는 실제 실행된 최하위 작업만 표시합니다. 입력을 기다린 선행 렌더 관리시간과 큐 대기는 제외했으며, 빈 구간은 실제 작업이 없었던 시간입니다.</p>
     <div className="stage-timeline-scroll">
       <div className="stage-timeline-canvas">
         <div className="stage-timeline-axis-label">구간</div>
         <div className="stage-timeline-axis">
           {model.ticks.map((tick) => <span key={tick.percent} style={{ left: `${tick.percent}%` }}>{duration(tick.offsetMs)}</span>)}
         </div>
-        {model.groups.map((group) => {
-          const summary = summaryByStage.get(group.stage);
-          const wall = Number(summary?.wallClockDurationMs ?? group.wallClockDurationMs);
-          const cumulative = Number(summary?.totalDurationMs ?? group.cumulativeDurationMs);
-          return <div className="stage-timeline-row" key={group.stage}>
+        {model.groups.map((group) => <div className="stage-timeline-row" key={group.stage}>
             <div className="stage-timeline-label">
               <strong>{stageLabel(group.stage)}</strong>
-              <span>실제 {duration(wall)} · 합계 {duration(cumulative)}{group.peakConcurrency > 1 ? ` · 최대 ${group.peakConcurrency}개 병렬` : ""}</span>
+              <span>실행 합계 {duration(group.cumulativeDurationMs)} · {group.runs.length}회{group.peakConcurrency > 1 ? ` · 최대 ${group.peakConcurrency}개 병렬` : ""}</span>
             </div>
             <div className="stage-timeline-track" style={{ height: `${Math.max(22, group.laneCount * 11 + 7)}px` }}>
               {model.ticks.map((tick) => <i className="stage-timeline-gridline" key={tick.percent} style={{ left: `${tick.percent}%` }} />)}
@@ -53,9 +47,16 @@ export function StageTimeline({ stages, summaries, stageLabel }: { stages: Stage
                 title={`${stageLabel(group.stage)}${run.sceneId ? ` · ${run.sceneId}` : ""} · ${duration(run.durationMs)} · 시도 ${run.attempt}`}
               />)}
             </div>
-          </div>;
-        })}
+          </div>)}
       </div>
     </div>
   </div>;
+}
+
+export function ActiveStageTable({ stages, renderSegments, stageLabel }: { stages: StageRunInput[]; renderSegments: RenderSegmentInput[]; stageLabel: (stage?: string) => string }) {
+  const model = buildStageTimeline(stages, renderSegments);
+  if (!model) return <p className="stage-timeline-empty">실제 실행시간 기록이 없습니다.</p>;
+  return <div className="table-scroll"><table><thead><tr><th>구간</th><th>실행 수</th><th>실제 작업시간 합계</th><th>회당 평균</th><th>최대 동시 실행</th></tr></thead><tbody>
+    {model.groups.map((group) => <tr key={group.stage}><td>{stageLabel(group.stage)}</td><td>{group.runs.length}회</td><td><strong>{duration(group.cumulativeDurationMs)}</strong></td><td>{duration(group.cumulativeDurationMs / group.runs.length)}</td><td>{group.peakConcurrency}개</td></tr>)}
+  </tbody></table></div>;
 }
