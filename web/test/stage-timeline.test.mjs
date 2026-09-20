@@ -4,6 +4,13 @@ import { buildStageTimeline } from "../.test-dist/stage-timeline.js";
 
 const at = (seconds) => new Date(Date.UTC(2026, 0, 1, 0, 0, seconds)).toISOString();
 
+const runFor = (seconds) => [{
+  stage: "image_generation",
+  started_at: at(0),
+  finished_at: at(seconds),
+  duration_ms: seconds * 1000,
+}];
+
 test("timeline exposes wall-clock placement and parallel work separately", () => {
   const model = buildStageTimeline([
     { stage: "scene_planning", started_at: at(0), finished_at: at(10), duration_ms: 10_000, status: "succeeded" },
@@ -50,4 +57,20 @@ test("timeline reuses a lane for sequential work and falls back to recorded dura
   assert.equal(model.elapsedMs, 12_000);
   assert.equal(model.groups[0].laneCount, 1);
   assert.deepEqual(model.groups[0].runs.map((run) => run.lane), [0, 0]);
+});
+
+test("timeline rounds a nine minute run to two minute axis intervals", () => {
+  const model = buildStageTimeline(runFor(9 * 60));
+  assert.ok(model);
+  assert.equal(model.elapsedMs, 9 * 60_000);
+  assert.equal(model.scaleDurationMs, 10 * 60_000);
+  assert.deepEqual(model.ticks.map((tick) => tick.offsetMs), [0, 2, 4, 6, 8, 10].map((minute) => minute * 60_000));
+  assert.equal(model.groups[0].runs[0].widthPercent, 90);
+});
+
+test("timeline uses five minute axis intervals for a thirty minute run", () => {
+  const model = buildStageTimeline(runFor(30 * 60));
+  assert.ok(model);
+  assert.equal(model.scaleDurationMs, 30 * 60_000);
+  assert.deepEqual(model.ticks.map((tick) => tick.offsetMs), [0, 5, 10, 15, 20, 25, 30].map((minute) => minute * 60_000));
 });

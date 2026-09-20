@@ -29,6 +29,7 @@ export type StageTimelineModel = {
   elapsedMs: number;
   activeDurationMs: number;
   idleDurationMs: number;
+  scaleDurationMs: number;
   cumulativeDurationMs: number;
   overlapSavingsMs: number;
   peakConcurrency: number;
@@ -69,6 +70,21 @@ const unionDuration = (runs: Array<{ startMs: number; endMs: number }>) => {
 };
 
 const COORDINATOR_STAGES = new Set(["progressive_video_render", "asset_generation", "queue_wait", "retry_wait"]);
+const NICE_TICK_INTERVALS_MS = [5_000, 10_000, 15_000, 30_000, 60_000, 120_000, 300_000, 600_000, 900_000, 1_800_000, 3_600_000];
+
+const timelineScale = (elapsedMs: number) => {
+  const intervalMs = NICE_TICK_INTERVALS_MS.find((candidate) => Math.ceil(elapsedMs / candidate) <= 6)
+    ?? NICE_TICK_INTERVALS_MS[NICE_TICK_INTERVALS_MS.length - 1];
+  const scaleDurationMs = Math.max(intervalMs, Math.ceil(elapsedMs / intervalMs) * intervalMs);
+  const count = Math.round(scaleDurationMs / intervalMs);
+  return {
+    scaleDurationMs,
+    ticks: Array.from({ length: count + 1 }, (_, index) => ({
+      percent: index / count * 100,
+      offsetMs: index * intervalMs,
+    })),
+  };
+};
 
 export function buildStageTimeline(inputs: StageRunInput[], renderSegments: RenderSegmentInput[] = []): StageTimelineModel | null {
   const actualInputs = [
@@ -107,6 +123,7 @@ export function buildStageTimeline(inputs: StageRunInput[], renderSegments: Rend
   const startMs = Math.min(...parsed.map((run) => run.startMs));
   const endMs = Math.max(...parsed.map((run) => run.endMs));
   const elapsedMs = Math.max(1, endMs - startMs);
+  const scale = timelineScale(elapsedMs);
   const grouped = new Map<string, typeof parsed>();
   for (const run of parsed) grouped.set(run.stage, [...(grouped.get(run.stage) ?? []), run]);
 
@@ -117,8 +134,8 @@ export function buildStageTimeline(inputs: StageRunInput[], renderSegments: Rend
       if (lane < 0) { lane = lanes.length; lanes.push(run.endMs); } else lanes[lane] = run.endMs;
       return {
         ...run,
-        offsetPercent: ((run.startMs - startMs) / elapsedMs) * 100,
-        widthPercent: Math.max(((run.endMs - run.startMs) / elapsedMs) * 100, 0.35),
+        offsetPercent: ((run.startMs - startMs) / scale.scaleDurationMs) * 100,
+        widthPercent: Math.max(((run.endMs - run.startMs) / scale.scaleDurationMs) * 100, 0.35),
         lane,
       };
     });
@@ -140,10 +157,11 @@ export function buildStageTimeline(inputs: StageRunInput[], renderSegments: Rend
     elapsedMs,
     activeDurationMs,
     idleDurationMs: Math.max(0, elapsedMs - activeDurationMs),
+    scaleDurationMs: scale.scaleDurationMs,
     cumulativeDurationMs,
     overlapSavingsMs: Math.max(0, cumulativeDurationMs - activeDurationMs),
     peakConcurrency: peakConcurrency(parsed),
-    ticks: [0, 25, 50, 75, 100].map((percent) => ({ percent, offsetMs: elapsedMs * percent / 100 })),
+    ticks: scale.ticks,
     groups,
   };
 }

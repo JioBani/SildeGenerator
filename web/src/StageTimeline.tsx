@@ -6,6 +6,14 @@ const duration = (value: number) => {
   return minutes ? `${minutes}분 ${seconds % 60}초` : `${seconds}초`;
 };
 
+const axisDuration = (value: number) => {
+  const seconds = Math.round(value / 1000);
+  if (seconds === 0) return "0";
+  if (seconds < 60) return `${seconds}초`;
+  if (seconds % 60 === 0) return `${seconds / 60}분`;
+  return `${Math.floor(seconds / 60)}분 ${seconds % 60}초`;
+};
+
 const kind = (stage: string) => {
   if (stage.includes("image") || stage.includes("keycut") || stage.includes("asset")) return "image";
   if (stage.includes("voice") || stage.includes("audio")) return "voice";
@@ -31,7 +39,7 @@ export function StageTimeline({ stages, renderSegments, stageLabel }: { stages: 
       <div className="stage-timeline-canvas">
         <div className="stage-timeline-axis-label">구간</div>
         <div className="stage-timeline-axis">
-          {model.ticks.map((tick) => <span key={tick.percent} style={{ left: `${tick.percent}%` }}>{duration(tick.offsetMs)}</span>)}
+          {model.ticks.map((tick) => <span key={tick.percent} style={{ left: `${tick.percent}%` }}>{axisDuration(tick.offsetMs)}</span>)}
         </div>
         {model.groups.map((group) => <div className="stage-timeline-row" key={group.stage}>
             <div className="stage-timeline-label">
