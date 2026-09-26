@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><style>
+*{box-sizing:border-box}html,body{margin:0;background:#000}#master{width:1920px;height:1080px;position:relative;overflow:hidden}.scene{position:absolute;inset:0;overflow:hidden}.sprite{position:absolute;background-repeat:no-repeat}.heat{background:#f7f5ef}.ink{background-image:url('assets/heat.png');background-size:1536px 1024px;mix-blend-mode:multiply}.adult{width:320px;height:550px;left:815px;top:325px;background-position:-115px 0;clip-path:polygon(31% 1%,67% 1%,81% 17%,77% 33%,94% 62%,90% 84%,98% 100%,52% 100%,44% 91%,37% 100%,0 100%,5% 84%,0 64%,19% 37%,18% 18%)}.sofa{width:590px;height:450px;left:665px;top:440px;background-position:0 -565px}.child{width:330px;height:395px;background-position:-650px -565px;clip-path:polygon(26% 2%,66% 2%,83% 26%,98% 43%,89% 69%,100% 92%,71% 100%,45% 75%,19% 100%,0 90%,12% 55%,2% 42%,25% 29%)}
+.tech,.cosmic{background:#000;visibility:hidden}.tech-sprite{background-image:url('assets/tech.png');background-size:1536px 1024px}.chip{left:576px;top:70px;width:768px;height:512px}.brain{left:366px;top:590px;width:768px;height:512px;background-position:-768px 0}.game{left:850px;top:590px;width:768px;height:512px;background-position:0 -512px}.sun{left:576px;top:284px;width:768px;height:512px;background-position:-768px -512px}.clock{position:absolute;left:760px;top:340px;width:400px;height:400px;border-radius:50%;background:#fff;opacity:0}.tick{position:absolute;left:195px;top:12px;width:10px;height:24px;background:#111;transform-origin:5px 188px}.hand{position:absolute;left:196px;bottom:200px;width:8px;height:155px;background:#151515;transform-origin:50% 100%;border-radius:4px}.hour{height:110px;width:12px;left:194px}.second{width:4px;left:198px;background:#d04f47;height:175px}.hub{position:absolute;left:190px;top:190px;width:20px;height:20px;border-radius:50%;background:#222}
+.ink{mix-blend-mode:normal}.adult,.child{clip-path:none}.sofa{z-index:1}.adult{z-index:2;top:375px}.tech-sprite{mix-blend-mode:screen}.world{position:absolute;inset:0;width:1920px;height:1080px;fill:#30460c}
+</style><script src="assets/land.js"></script></head><body><div id="master" data-composition-id="three-reference-study" data-width="1920" data-height="1080" data-duration="18" data-fps="30">
+<section class="scene heat"><div class="sprite ink sofa"></div><div class="sprite ink adult"></div><div class="sprite ink child" id="childA"></div><div class="sprite ink child" id="childB"></div></section>
+<section class="scene tech"><svg class="world" viewBox="0 0 1920 1080"></svg><div class="sprite tech-sprite chip"></div><div class="sprite tech-sprite brain"></div><div class="sprite tech-sprite game"></div></section>
+<section class="scene cosmic"><div class="sprite tech-sprite sun"></div><div class="clock"><div class="hand minute"></div><div class="hand hour"></div><div class="hand second"></div><div class="hub"></div></div></section>
+</div><script>
+for(const feature of window.land.features){const g=feature.geometry;const polygons=g.type==='Polygon'?[g.coordinates]:g.coordinates;for(const rings of polygons){let p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',rings.map(r=>r.map(([x,y],i)=>`${i?'L':'M'}${(x+180)/360*1920},${(90-y)/180*1080}`).join(' ')+'Z').join(' '));document.querySelector('.world').append(p)}}
+for(let i=0;i<12;i++){let t=document.createElement('div');t.className='tick';t.style.transform=`rotate(${i*30}deg)`;document.querySelector('.clock').prepend(t)}
+const tl=gsap.timeline({paused:true});
+gsap.set('.brain,.game',{scale:.05,opacity:0});gsap.set('.chip',{scale:1.25});
+// Original source timing: 15-19s, 17-21s, 18-22s. Two-second holds extend each study.
+const poses={'#childA':[],'#childB':[]};
+for(let frame=0;frame<=180;frame++){
+ const t=frame/30;const cyc=t*2.7;
+ for(const [id,phase] of [['#childA',0],['#childB',Math.PI]]){
+  const q=cyc+phase;const x=960+470*Math.cos(q),y=620+190*Math.sin(q)-Math.abs(Math.sin(q*2))*65;
+  poses[id].push({x:x-165,y:y-200,scaleY:.6,scaleX:Math.sin(q)>0?-.6:.6,zIndex:Math.sin(q)>0?3:0,rotation:Math.sin(q*2)*8,duration:1/30,ease:'none'});
+ }
+ const pose=t<.55?0:1+Math.floor(t*4)%2;
+ if(frame===0)gsap.set('.adult',{backgroundPosition:'-115px 0px'});
+ if(frame%8===0 && frame>0)tl.fromTo('.adult',{backgroundPosition:`${-115-(1+Math.floor((frame-8)/8)%2)*512}px 0px`},{backgroundPosition:`${-115-(1+Math.floor(frame/8)%2)*512}px 0px`,duration:1/30,ease:'steps(1)',immediateRender:false},t);
+}
+for(const [id,frames] of Object.entries(poses)){gsap.set(id,frames[0]);tl.to(id,{keyframes:frames.slice(1),ease:'none'},0)}
+tl.set('.heat',{visibility:'hidden'},6).set('.tech',{visibility:'visible'},6)
+ .to('.chip',{scale:.86,y:15,duration:1.4,ease:'power2.inOut'},6.2)
+ .to('.brain',{scale:.56,opacity:1,duration:.5,ease:'back.out(1.6)'},8.2)
+ .to('.game',{scale:.56,opacity:1,duration:.5,ease:'back.out(1.6)'},9.0)
+ .set('.tech',{visibility:'hidden'},12).set('.cosmic',{visibility:'visible'},12)
+ .to('.sun',{scale:1.04,duration:.6,ease:'sine.inOut'},12)
+ .to('.sun',{opacity:0,duration:.8,ease:'none'},12.7)
+ .to('.clock',{opacity:1,duration:.8,ease:'none'},12.7)
+ .to('.minute',{rotation:1080,duration:4.7,ease:'none'},13.3)
+ .to('.hour',{rotation:270,duration:4.7,ease:'none'},13.3)
+ .to('.second',{rotation:2160,duration:4.7,ease:'none'},13.3);
+window.__timelines={'three-reference-study':tl};
+</script></body></html>

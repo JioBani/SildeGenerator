@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "reference": "OyK0oE5rwFY",
+  "source_window": [162, 192],
+  "source_evidence": ["posture-seating-detail.png", "posture-seating-162/motion.json"],
+  "timing_status": "Manually estimated from two-second source overview; not frame-exact annotation",
+  "scene_function": "Explain seated support, viewing direction and reachable work surface with a continuous actor",
+  "design_rules": ["Flat yellow field", "Pink actor, purple clothing and dark teal limbs", "Sparse face and striped hat retain identity", "Green work surface distinguishes prop role"],
+  "layout": ["Side-view chair with extended legs", "Chair and desk", "Eye and monitor close-up", "Armrest and keyboard close-up"],
+  "object_states": ["Phone in hand", "Phone removed and hand rests", "Legs bend", "Desk arrives", "Actor leans toward desk", "Actor straightens", "Eye line appears", "Camera reframes toward hand", "Desk moves within reach"],
+  "motion": {"phone_release": [4.8, 5], "hand_lower": [5, 6.2], "knees_bend": [7, 8.2], "desk_entry": [10, 11.3], "lean": [10.5, 11.5], "straighten": [16.5, 17.5], "gaze_closeup": [17.5, 18.5], "hand_closeup": [22, 22.6], "reach_adjustment": [23, 23.8]},
+  "transition": "Same world geometry, camera changes focus",
+  "rhythm": "Pose change, hold to explain, focus on evidence, hold again",
+  "invariants": ["Arm endpoint equals hand origin", "Leg endpoints equal foot origins", "Settled feet do not drift in world space", "Gaze begins at pupil and ends on monitor", "Selected hand remains visible after desk approach"],
+  "renderer_requirements": ["SVG path interpolation", "Explicit transform hierarchy", "Paused GSAP timeline", "Stable prop anchors"],
+  "human_approved": false,
+  "production_promotion": false,
+  "limitations": ["Not anatomical IK", "No validated acting capability", "Face and silhouette approximate source", "Narration absent", "Contact checks cover endpoints, not every surface"]
+}

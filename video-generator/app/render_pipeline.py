@@ -18,6 +18,7 @@ from .engine.artifact_store import ArtifactStore
 from .engine.graph_executor import GraphExecutor, LocalLeaseProvider
 from .engine.harness_loader import LoadedHarness
 from .engine.process_runner import ProcessRunner
+from .engine.harness_segments import segment_ranges
 from .harness_sdk.context import HarnessContext
 from .models import Scene
 
@@ -36,9 +37,10 @@ def _file_hash(path: Path) -> str:
 
 def _input_hash(scenes: list[Scene], settings: Settings, harness: LoadedHarness) -> str:
     value = {
-        "scenes": [{"id": scene.id, "image": _file_hash(Path(scene.image_path)), "audio": _file_hash(Path(scene.audio_path)), "duration": scene.duration_seconds} for scene in scenes],
+        "scenes": [{"contract": scene.model_dump(mode="json"), "image": _file_hash(Path(scene.image_path)), "audio": _file_hash(Path(scene.audio_path))} for scene in scenes],
         "fps": settings.fps, "width": settings.width, "height": settings.height,
         "crossfade": settings.crossfade_seconds, "preset": settings.ffmpeg_preset,
+        "subtitles_enabled": getattr(settings, "subtitles_enabled", True),
         "harness": harness.snapshot.as_dict(), "harness_config": harness.config,
     }
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
@@ -60,17 +62,19 @@ class ProgressiveRenderer:
         if self.pool:
             await self.pool.close()
 
-    async def render_ready_segments(self, job_id: str, scenes: list[Scene], prepared: list[Awaitable[None]], work: Path, harness: LoadedHarness) -> list[Path]:
+    async def render_ready_segments(self, job_id: str, scenes: list[Scene], prepared: list[Awaitable[None]], work: Path, harness: LoadedHarness, job_settings: Settings | None = None) -> list[Path]:
         assert self.pool
+        render_settings = job_settings or self.settings
         render_dir = work / "render-segments"
         render_dir.mkdir(parents=True, exist_ok=True)
         segments: list[Path] = []
-        for start in range(0, len(scenes), self.settings.render_segment_scenes):
-            chunk = scenes[start:start + self.settings.render_segment_scenes]
-            await asyncio.gather(*prepared[start:start + self.settings.render_segment_scenes])
+        ranges = segment_ranges(harness, scenes, render_settings.render_segment_scenes)
+        for start, end in ranges:
+            chunk = scenes[start:end]
+            await asyncio.gather(*prepared[start:end])
             index = len(segments) + 1
             ready_at = _now()
-            input_hash = _input_hash(chunk, self.settings, harness)
+            input_hash = _input_hash(chunk, render_settings, harness)
             output = render_dir / f"segment-{index:03d}.mp4"
             metadata = output.with_suffix(".json")
             reused = False
@@ -82,7 +86,7 @@ class ProgressiveRenderer:
             await self.pool.execute("""INSERT INTO render_segments(job_id,segment_index,first_scene_id,last_scene_id,input_hash,output_path,status,ready_at,settings)
               VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb) ON CONFLICT(job_id,segment_index) DO UPDATE SET input_hash=excluded.input_hash,output_path=excluded.output_path,status=excluded.status,ready_at=excluded.ready_at,settings=excluded.settings""",
               uuid.UUID(job_id), index, chunk[0].id, chunk[-1].id, input_hash, str(output), "succeeded" if reused else "ready", ready_at,
-              json.dumps({"fps": self.settings.fps, "crossfade_seconds": self.settings.crossfade_seconds, "scene_count": len(chunk), "harness": harness.snapshot.as_dict(), "harness_config": harness.config}))
+              json.dumps({"fps": render_settings.fps, "crossfade_seconds": render_settings.crossfade_seconds, "subtitles_enabled": getattr(render_settings, "subtitles_enabled", True), "scene_count": len(chunk), "harness": harness.snapshot.as_dict(), "harness_config": harness.config}))
             if not reused:
                 token = f"{job_id}:{index}:{uuid.uuid4()}"
                 await self._acquire(token)
@@ -91,7 +95,7 @@ class ProgressiveRenderer:
                     await self.pool.execute("UPDATE render_segments SET status='running',started_at=now() WHERE job_id=$1 AND segment_index=$2", uuid.UUID(job_id), index)
                     subtitles = render_dir / f"segment-{index:03d}.ass"
                     context = HarnessContext(
-                        job_id=job_id, workspace=work, settings=self.settings, process=self.process,
+                        job_id=job_id, workspace=work, settings=render_settings, process=self.process,
                         artifacts=ArtifactStore(work), leases=LocalLeaseProvider({"ffmpeg": 1, "cpu": 2, "io": 4}),
                         metadata={"operation": "render_segment", "task_prefix": f"segment-{index:03d}", "scenes": chunk, "subtitles": subtitles, "output": output, "config": harness.config},
                     )

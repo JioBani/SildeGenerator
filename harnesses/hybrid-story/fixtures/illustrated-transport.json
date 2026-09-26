@@ -1,0 +1,74 @@
+{
+  "version": "hybrid-scene-0.2",
+  "route": "diagram",
+  "reason": "Explain the same boat moving between two locations",
+  "source_id": null,
+  "composition": {
+    "version": "illustrated-transport-0.1",
+    "asset_pack_id": "fictional-coast-launch",
+    "points": [
+      {
+        "x": 0.22,
+        "y": 0.61
+      },
+      {
+        "x": 0.4,
+        "y": 0.61
+      },
+      {
+        "x": 0.58,
+        "y": 0.51
+      },
+      {
+        "x": 0.75,
+        "y": 0.51
+      }
+    ],
+    "subject_width": 0.105,
+    "start_at": 0.2,
+    "end_at": 0.75,
+    "route_color": "#fff0ae"
+  },
+  "diagram": {
+    "title": "배가 물길을 따라 이동한다",
+    "grammar": "transport_track",
+    "comparison_scale_max": null,
+    "nodes": [
+      {
+        "before": "대기",
+        "color": "#ed815e",
+        "reveal_at": 0,
+        "quantity": null,
+        "unit": null,
+        "id": "start",
+        "label": "출발",
+        "after": "출발함",
+        "x": 0.22,
+        "y": 0.61,
+        "change_at": 0.2
+      },
+      {
+        "before": "대기",
+        "color": "#ed815e",
+        "reveal_at": 0,
+        "quantity": null,
+        "unit": null,
+        "id": "end",
+        "label": "도착",
+        "after": "이동 완료",
+        "x": 0.75,
+        "y": 0.51,
+        "change_at": 0.76
+      }
+    ],
+    "edges": [
+      {
+        "source": "start",
+        "target": "end",
+        "label": "물길",
+        "start_at": 0.2,
+        "end_at": 0.75
+      }
+    ]
+  }
+}

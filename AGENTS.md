@@ -1,5 +1,7 @@
 # Agent bootstrap contract
 
+이 저장소가 Astra 감독 엔진과 제품의 정본입니다. `D:\ai영상자동화` 등 이전 작업 폴더는 읽기 전용 레퍼런스로만 사용하고 새 기능이나 수정은 이 저장소에 구현합니다. 레거시 코드를 복사할 때는 의존성·권리·검수 경계를 다시 확인하며, 레거시 파일을 직접 고쳐 우회하지 않습니다.
+
 먼저 [README의 Agent quick start](README.md#agent-quick-start)를 따르세요.
 
 - secret, `.runtime`, auth JSON, 접근 토큰을 읽어 출력하거나 Git에 추가하지 마세요.

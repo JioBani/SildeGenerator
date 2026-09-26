@@ -1,0 +1,116 @@
+name: astra-genre-test
+
+x-common: &common
+  restart: "no"
+  networks: [isolated]
+
+x-env: &env
+  DATABASE_URL: postgresql://genre_test:genre_test@postgres:5432/genre_test
+  REDIS_URL: redis://redis:6379
+  RUNNER_URL: http://runner:8081
+  DATA_DIR: /data
+  VOICE_PROVIDER: mock
+  CODEX_REASONING_EFFORT: low
+  VIDEO_FPS: "30"
+
+services:
+  postgres:
+    <<: *common
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: genre_test
+      POSTGRES_USER: genre_test
+      POSTGRES_PASSWORD: genre_test
+    volumes: [database:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U genre_test -d genre_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  redis:
+    <<: *common
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes"]
+    volumes: [queue:/data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  key-init:
+    build: {context: ./server, target: api}
+    network_mode: none
+    restart: "no"
+    environment: {KEY_FILE: /keys/keys.json}
+    command: [node, dist/auth/key-cli.js, set, genre-test, local-genre-test-only, isolated-test]
+    volumes: [keys:/keys]
+  api:
+    <<: *common
+    networks: [isolated, local_ui]
+    build: {context: ./server, target: api}
+    environment:
+      <<: *env
+      KEY_FILE: /keys/keys.json
+      USER_PENDING: "10"
+      GLOBAL_PENDING: "10"
+    volumes: [jobs:/data, "keys:/keys:ro"]
+    ports: ["127.0.0.1:18771:3000"]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 3s
+      timeout: 4s
+      retries: 40
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      key-init: {condition: service_completed_successfully}
+  runner:
+    <<: *common
+    build: {context: ., dockerfile: video-generator/Dockerfile}
+    environment:
+      <<: *env
+      RUNNER_MODE: mock
+      IMAGE_PROVIDER: mock
+      RUNNER_ENV_FILE: /nonexistent-test-settings
+      HARNESSES_DIR: /app/harnesses
+      PROMPTS_DIR: /app/harnesses/classic-slide/prompts
+      IMAGE_TASK_CONCURRENCY: "2"
+      VOICE_TASK_CONCURRENCY: "1"
+    volumes: [jobs:/data]
+    shm_size: 512mb
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health',timeout=3)"]
+      interval: 3s
+      timeout: 4s
+      retries: 40
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+  worker:
+    <<: *common
+    build: {context: ./server, target: worker}
+    environment:
+      <<: *env
+      WORKER_CONCURRENCY: "1"
+      JOB_TIMEOUT_MINUTES: "10"
+    volumes: [jobs:/data]
+    depends_on:
+      api: {condition: service_healthy}
+      runner: {condition: service_healthy}
+  web:
+    <<: *common
+    networks: [isolated, local_ui]
+    build: {context: ./web}
+    environment: {API_UPSTREAM: "http://api:3000"}
+    ports: ["127.0.0.1:18770:80"]
+    depends_on: [api]
+
+volumes:
+  database:
+  queue:
+  jobs:
+  keys:
+networks:
+  local_ui:
+  isolated:
+    internal: true

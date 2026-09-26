@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "REVISE",
+  "reference_id": "bHB5iiDDJ-s",
+  "source_window": [256,275],
+  "candidate_duration": 19,
+  "source_sampling": "native decoded frames retained separately; sheets inspected for phase interpretation",
+  "events": [
+    {"candidate_second":0,"event":"paired approach"},
+    {"candidate_second":1.1,"event":"eyes close"},
+    {"candidate_second":2.2,"event":"shared contact retained"},
+    {"candidate_second":5.5,"event":"bright transition and particles"},
+    {"candidate_second":8.65,"event":"pair disappears"},
+    {"candidate_second":9.35,"event":"new marked agent appears"},
+    {"candidate_second":10.25,"event":"gaze and expression"},
+    {"candidate_second":14.8,"event":"next boundary approaches"}
+  ],
+  "events_precision": "manually authored initial interpretation, not source-measured keyframe equivalence",
+  "asset_policy": "existing original generated sprites reused; no new provider calls",
+  "renderer": "local Chrome + paused GSAP + FFmpeg, not Docker service",
+  "review": {
+    "design":"REVISE: inherited markers overlay previous markers; organic tissue structure too simple",
+    "layout":"REVISE: resulting agent smaller than source",
+    "motion":"REVISE: source trajectories and facial timing not numerically matched",
+    "transition":"REVISE: light/particle envelope approximate",
+    "rhythm":"REVISE: phase timing needs frame-level alignment",
+    "audio":"NOT_IMPLEMENTED: silent study",
+    "meaning":"HUMAN_REVIEW_REQUIRED: visual metaphor, not biological simulation",
+    "seek_exact":"7/8 checkpoints pass; t=14 has 3173 pixels differing by at most 2 color levels. Failure retained, not waived."
+  },
+  "human_approved":false,
+  "automatic_promotion":false,
+  "v2_revision": {
+    "body_registration":"body paint clipped independently from old surface markers; ten new markers have separate stems",
+    "pivot":"explicit SVG origin at local (0,0)",
+    "measured_anchor":{"source_second_approx":268.2,"candidate_second":12.2,"source_center":[0.472925,0.439836],"candidate_center":[0.473843,0.440332],"source_width":0.240625,"candidate_width":0.241146},
+    "anchor_scope":"one manually selected visible-body keypoint; not whole-sequence fidelity",
+    "seek_exact":"6/8 checkpoints pass; t=9.5 and 14 still fail exact pixel matching. DOM comparison at an earlier t=17 failure found no differing attributes; this does not prove all failures are raster-only.",
+    "status":"REVISE"
+  },
+  "next_revision":["measure all source event onset frames", "match body silhouette height as well as width", "resolve exact seek raster mismatch", "compare full moving A/B for phase timing", "review original sound events separately"]
+}

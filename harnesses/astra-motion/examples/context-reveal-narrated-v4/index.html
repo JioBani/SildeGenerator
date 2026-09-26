@@ -1,0 +1,144 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><script src="assets/config.js"></script><style>html,body{margin:0;background:#400500}svg{display:block;width:1920px;height:1080px}text{font-family:Arial,'Malgun Gothic',sans-serif;letter-spacing:0}</style></head><body><svg viewBox="0 0 640 360"><defs><clipPath id="screen"><rect width="640" height="360"/></clipPath><clipPath id="leftClip"><rect width="320" height="360"/></clipPath></defs><g clip-path="url(#screen)"><rect id="bg" width="640" height="360"/><g id="system"></g><g id="comparison" transform="translate(-330 0)"><rect id="compareBg" width="320" height="360"/><g id="compareContent" clip-path="url(#leftClip)"></g><path d="M320 0V360" stroke="#f6ebcc" stroke-width="6"/></g><g id="outgoing"></g></g></svg><script>
+const ns='http://www.w3.org/2000/svg',cfg=window.studyConfig,gpu=cfg.mode==='gpu';
+const palette=gpu?{bg:'#102b30',red:'#f47b56',teal:'#4dc8b2',cream:'#f8f3dc'}:{bg:'#400500',red:'#ba2528',teal:'#176a61',cream:'#f8e8bd'};
+function el(tag,attrs,parent){const n=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))n.setAttribute(k,v);parent.append(n);return n}
+function text(value,x,y,size,parent,fill=palette.cream){const n=el('text',{x,y,'font-size':size,fill,'text-anchor':'middle'},parent);n.textContent=value;return n}
+function path(d,color,width,parent){return el('path',{d,fill:'none',stroke:color,'stroke-width':width,'stroke-linecap':'round','stroke-linejoin':'round'},parent)}
+const system=document.querySelector('#system'),out=document.querySelector('#outgoing'),compare=document.querySelector('#compareContent');
+document.querySelector('#bg').setAttribute('fill',palette.bg);
+document.querySelector('#compareBg').setAttribute('fill',gpu?'#204b51':'#1b665e');
+const pulses=[];
+const focus=cfg.focus,representations=[];
+if(gpu&&(!focus||!/^[-a-z0-9]+$/.test(focus.id)||!/^#[0-9a-f]{6}$/i.test(focus.color)||!Number.isInteger(focus.unitIndex)||focus.unitIndex<0||focus.unitIndex>=12||focus.input.length!==3||!focus.input.every(Number.isFinite)||focus.output!==focus.input[0]*focus.input[1]+focus.input[2]))throw new Error('Invalid illustrative calculation contract');
+function calculation(x,y,width,height,parent,view){
+ const group=el('g',{'data-focus-id':focus.id,'data-view':view,'data-state':'pending'},parent);
+ el('rect',{x,y,width,height,rx:4,fill:focus.color,'data-role':'identity-color'},group);
+ const label=text('× +',x+width/2,y+height*.65,Math.min(24,height*.5),group,palette.bg);label.setAttribute('data-role','operation');
+ const result=text(String(focus.output),x+width/2,y+height*.65,Math.min(24,height*.5),group,palette.bg);result.setAttribute('opacity',0);result.setAttribute('data-role','result');
+ el('circle',{cx:x+width-3,cy:y+3,r:10,fill:palette.cream,stroke:focus.color,'stroke-width':2},group);
+ const badge=text(focus.marker,x+width-3,y+7,11,group,palette.bg);badge.setAttribute('data-role','identity-marker');
+ representations.push({group,label,result});return group;
+}
+if(!gpu){
+ // Authored branch topology; not an anatomical reconstruction.
+ for(const side of [-1,1])for(let i=0;i<6;i++){
+  const x=320+side*(70+i*34),y=25+i*54,c=i%2?palette.teal:palette.red;
+  path(`M320 160V${y}H${x}V${y+33}H${x+side*42}`,c,12,system);
+  path(`M${x} ${y+33}V${y+66}H${x-side*24}V${y+82}`,c,8,system);
+ }
+ path('M320 360V75Q320 40 355 40H400V112',palette.red,28,system);
+ el('path',{d:'M260 135Q229 142 243 194Q262 250 320 278Q382 250 399 194Q413 145 375 137Q342 128 320 155Q290 129 260 135Z',fill:'#ef443d'},system);
+ el('path',{d:'M258 138H318V184L394 216Q372 258 320 278Q262 250 245 210V155Q245 138 258 138Z',fill:'#39b49d',opacity:.85},system);
+ for(let i=0;i<8;i++){const a=i*Math.PI/4;pulses.push(path(`M${354+15*Math.cos(a)} ${234+15*Math.sin(a)}L${354+25*Math.cos(a)} ${234+25*Math.sin(a)}`,palette.cream,3,system))}
+ for(let i=0;i<5;i++)path(`M-20 ${210+i*16}Q100 ${170+i*16} 205 ${201+i*16}T345 ${210+i*16}`,i%2?'#ba2528':'#ef443d',14,compare);
+}else{
+ text('GPU',320,42,26,system);
+ el('rect',{id:'system-board',x:145,y:72,width:350,height:244,rx:8,fill:'#204b51',stroke:palette.teal,'stroke-width':3},system);
+ for(let row=0;row<3;row++)for(let col=0;col<4;col++){
+  const x=181+col*77,y=110+row*74;
+  path(`M${x+20} ${y+38}V${y+51}H320`,palette.teal,2,system);
+  const index=row*4+col;
+  if(index===focus.unitIndex){const unit=calculation(x,y,42,36,system,'system');unit.setAttribute('data-unit',index)}
+  else{const unit=el('g',{'data-unit':index},system);el('rect',{x,y,width:42,height:36,rx:3,fill:palette.teal},unit);text('× +',x+21,y+24,17,unit,palette.bg);if(index<6)pulses.push(unit)}
+ }
+ text('일부 계산을 병렬로 처리',320,343,18,system).id='system-caption';
+ text('계산 한 묶음',150,50,24,compare);
+ for(let i=0;i<3;i++){
+  if(i===1)calculation(72,91+i*76,158,45,compare,'detail');
+  else{el('rect',{x:72,y:91+i*76,width:158,height:45,rx:4,fill:palette.teal},compare);text(i===0?focus.input.join(', '):String(focus.output),151,120+i*76,20,compare,palette.bg)}
+  if(i<2)path(`M151 ${138+i*76}V${163+i*76}`,palette.cream,3,compare);
+ }
+}
+el('rect',{width:640,height:360,fill:palette.bg},out);
+if(!gpu){
+ text('ATHEROSCLEROSIS',320,60,28,out);
+ el('rect',{x:0,y:105,width:640,height:185,fill:'#800e00'},out);
+ for(const y of [118,280]){
+  path(`M0 ${y}H640`,'#bb3423',22,out);
+  path(`M0 ${y}H640`,'#ef603b',6,out).setAttribute('stroke-dasharray','9 5');
+ }
+ for(let i=0;i<20;i++){const h=8+35*Math.sin((i+.5)/20*Math.PI);el('rect',{x:158+i*15,y:263-h/2,width:15,height:h,fill:'#b88d10',stroke:'#f9cd26','stroke-width':2},out)}
+ for(let i=0;i<9;i++)el('circle',{cx:226+i*18,cy:235-15*Math.sin(i),r:7,fill:i%3?'#fff1bd':'#bbae68'},out);
+ for(let i=0;i<40;i++){
+  const x=383+(i%5)*13,y=151+Math.floor(i/5)*13;
+  el('circle',{cx:x,cy:y,r:8,fill:'#560400'},out);
+  path(`M${x-2} ${y-2}l3 4`,palette.cream,3,out);
+ }
+ for(let i=0;i<32;i++)el(i%3?'circle':'rect',i%3?{cx:15+(i%8)*42,cy:157+Math.floor(i/8)*23,r:5,fill:i%2?'#ce3e13':'#f8d8a0'}:{x:15+(i%8)*42,y:151+Math.floor(i/8)*23,width:8,height:8,fill:'#f8d8a0'},out);
+}else{
+ text('하나의 계산',320,65,30,out);
+ for(const[x,label,c]of[[90,focus.input.join(', '),palette.teal],[275,'× +',focus.color],[460,String(focus.output),palette.teal]]){
+  if(x===275)calculation(x,143,90,76,out,'local');
+  else{el('rect',{x,y:143,width:90,height:76,rx:5,fill:c},out);const labelNode=text(label,x+45,189,24,out,palette.bg);if(x===460){labelNode.id='localResult';labelNode.setAttribute('opacity',0)}}
+ }
+ path('M190 181H261M376 181H448',palette.cream,4,out);
+ text('이 계산은 더 큰 작업의 일부입니다',320,284,22,out);
+}
+const tl=gsap.timeline({paused:true});
+if(gpu){for(const rep of representations.filter(r=>r.group.getAttribute('data-view')!=='system')){
+ tl.set(rep.group,{attr:{'data-state':'active'}},.7);
+ tl.set(rep.group,{attr:{'data-state':'completed'}},1.8);
+ tl.set(rep.label,{opacity:0},1.8).set(rep.result,{opacity:1},1.8);
+}tl.set('#localResult',{opacity:1},1.8)}
+tl.set(pulses,{opacity:.3},0);
+// Only accepted title translations drive the outgoing panel. Completion is a hypothesis.
+for(const row of cfg.title){tl.set(out,{y:Math.max(0,row.top-23)},row.source_second-183)}
+tl.to(out,{y:360,duration:.28,ease:'none'},4.104).set(out,{visibility:'hidden'},4.384);
+tl.to(pulses,{opacity:1,duration:.25,stagger:gpu?.03:0},4.7).to(pulses,{opacity:gpu?.7:0,duration:.3},5.4);
+for(const row of cfg.divider){const t=row.source_second-183,p=Math.min(1,row.x/320);
+ tl.set('#comparison',{x:row.x-320},t);
+ tl.set(system,{x:(gpu?125:155)*p,scale:gpu?1-.25*p:1,transformOrigin:'320px 180px'},t);
+}
+tl.to({},{duration:.1},11.9);
+const voice=cfg.narration;
+if(!gpu||!voice||voice.utterances.length!==3)throw new Error('Measured three-utterance narration required');
+const u=voice.utterances;
+if(u.some((r,i)=>!Number.isFinite(r.start)||r.end<=r.start||(i&&r.start<u[i-1].end)))throw new Error('Invalid voice timing');
+const narrated=gsap.timeline({paused:true});
+narrated.to(tl,{time:3.4,duration:u[0].end,ease:'none'},0);
+narrated.to(tl,{time:4.384,duration:u[1].end-u[0].end,ease:'none'},u[0].end);
+narrated.to(tl,{time:11.9,duration:u[2].end-u[2].start,ease:'none'},u[2].start);
+narrated.to({}, {duration:.3},u[2].end);
+const sequence=el('g',{id:'sequential-demo',opacity:0},document.querySelector('svg > g'));
+el('rect',{width:640,height:360,fill:palette.bg},sequence);
+text('하나씩 처리',320,72,28,sequence);
+text('앞의 A와 다섯 계산을 함께 비교합니다',320,108,18,sequence);
+text('개념도 · 실제 처리 시간 비율 아님',320,316,15,sequence);
+narrated.set(sequence,{opacity:1},u[1].start).set(sequence,{opacity:0},u[1].end);
+const jobs=[];
+for(let i=0;i<6;i++){
+ const id=String.fromCharCode(65+i),value=2*(i+3)+1,x=58+i*89;
+ const chip=el('g',{'data-sequential-job':id,'data-state':'pending'},sequence);
+ const box=el('rect',{x,y:155,width:70,height:62,rx:4,fill:palette.teal,opacity:.35},chip);
+ text(id,x+35,144,15,chip).setAttribute('data-job-marker',id);
+ const expr=text(`2×${i+3}+1`,x+35,191,16,chip,palette.cream);
+ const result=text(String(value),x+35,191,24,chip,palette.bg);result.setAttribute('opacity',0);
+ const start=u[1].start+i*.45,done=start+.38;
+ narrated.set(chip,{attr:{'data-state':'active'}},start).set(box,{opacity:1,fill:focus.color},start);
+ narrated.set(expr,{fill:palette.bg},start);
+ narrated.set(chip,{attr:{'data-state':'completed'}},done).set(box,{fill:palette.teal},done);
+ narrated.set(expr,{opacity:0},done).set(result,{opacity:1},done);
+ const unit=system.querySelector(`[data-unit="${i}"]`),oldLabel=unit.querySelector('text');
+ unit.setAttribute('data-parallel-job',id);unit.setAttribute('data-state','pending');
+ oldLabel.textContent='× +';
+ const r=unit.querySelector('rect'),cx=Number(r.getAttribute('x'))+21,cy=Number(r.getAttribute('y'));
+ if(i===0)unit.querySelector('[data-role="identity-marker"]').setAttribute('data-job-marker',id);
+ else{
+  el('circle',{cx:cx+20,cy:cy+1,r:8,fill:palette.cream},unit);
+  text(id,cx+20,cy+5,11,unit,palette.bg).setAttribute('data-job-marker',id);
+ }
+ const output=i===0?unit.querySelector('[data-role="result"]'):text(String(value),cx,cy+24,17,unit,palette.bg);output.setAttribute('opacity',0);
+ const ps=u[2].start+.65,pd=ps+.7;
+ narrated.set(unit,{attr:{'data-state':'active'}},ps).set(r,{fill:focus.color},ps);
+ narrated.set(unit,{attr:{'data-state':'completed'}},pd).set(r,{fill:i===0?focus.color:palette.teal},pd);
+ narrated.set(oldLabel,{opacity:0},pd).set(output,{opacity:1},pd);
+ jobs.push({id,value,sequentialStart:start,sequentialEnd:done,parallelStart:ps,parallelEnd:pd});
+}
+// These are available units, not extra copies of the six compared jobs.
+for(const unit of system.querySelectorAll('[data-unit]')){
+ if(!unit.hasAttribute('data-parallel-job'))gsap.set(unit,{opacity:.15});
+}
+document.querySelector('#system-caption').textContent='같은 A–F 계산을 동시에 처리';
+window.transferJobs=jobs;
+window.__timelines={'context-reveal-study':narrated};
+</script></body></html>

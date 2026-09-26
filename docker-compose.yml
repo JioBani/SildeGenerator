@@ -84,14 +84,18 @@ services:
       DAILY_JOBS: ${DAILY_JOBS:-0}
       USER_PENDING: ${USER_PENDING:-20}
       GLOBAL_PENDING: ${GLOBAL_PENDING:-20}
+      TIME_WALLET_ENABLED: ${TIME_WALLET_ENABLED:-false}
       VIDEO_JOB_GLOBAL_CONCURRENCY: ${VIDEO_JOB_GLOBAL_CONCURRENCY:-1}
       USD_KRW_RATE: ${USD_KRW_RATE:-1388.1}
-      CODEX_MODEL: ${CODEX_MODEL:-gpt-5.6-luna}
-      CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-max}
+      CODEX_MODEL: ${CODEX_MODEL:-gpt-5.6-terra}
+      CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-low}
       CODEX_FAST_MODE: ${CODEX_FAST_MODE:-false}
       CODEX_MODEL_OPTIONS: ${CODEX_MODEL_OPTIONS:-gpt-5.6-luna,gpt-5.6-terra,gpt-5.6-sol}
       VIDEO_FPS: ${VIDEO_FPS:-24}
       IMAGE_TASK_CONCURRENCY: ${IMAGE_TASK_CONCURRENCY:-12}
+      IMAGE_PROVIDER: ${IMAGE_PROVIDER:-mock}
+      MOTION_LOCAL_PRODUCTION: ${MOTION_LOCAL_PRODUCTION:-false}
+      RUNNER_MODE: ${RUNNER_MODE:-mock}
       VOICE_TASK_CONCURRENCY: ${VOICE_TASK_CONCURRENCY:-2}
       VOICE_PROVIDER: ${VOICE_PROVIDER:-mock}
       MICROSOFT_EDGE_VOICE: ${MICROSOFT_EDGE_VOICE:-ko-KR-InJoonNeural}
@@ -128,11 +132,16 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-slidegen}:${POSTGRES_PASSWORD:-slidegen}@postgres:5432/${POSTGRES_DB:-slidegen}
       REDIS_URL: redis://redis:6379
       RUNNER_URL: http://runner:8081
+      RUNNER_MODE: ${RUNNER_MODE:-mock}
+      IMAGE_PROVIDER: ${IMAGE_PROVIDER:-mock}
       DATA_DIR: /data
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
       VIDEO_JOB_GLOBAL_CONCURRENCY: ${VIDEO_JOB_GLOBAL_CONCURRENCY:-1}
       JOB_TIMEOUT_MINUTES: ${JOB_TIMEOUT_MINUTES:-90}
+      LONG_FORM_JOB_TIMEOUT_MINUTES: ${LONG_FORM_JOB_TIMEOUT_MINUTES:-360}
+      TIME_WALLET_ENABLED: ${TIME_WALLET_ENABLED:-false}
       JOB_RETENTION_HOURS: ${JOB_RETENTION_HOURS:-720}
+      AUTO_DELETE_JOB_FILES: ${AUTO_DELETE_JOB_FILES:-false}
       USD_KRW_RATE: ${USD_KRW_RATE:-1388.1}
     volumes:
       - job-data:/data
@@ -145,6 +154,7 @@ services:
   runner:
     <<: *service
     image: ${COMPOSE_PROJECT_NAME:-slidegenerator}-runner:${SOURCE_REVISION:-working-tree}
+    shm_size: 512mb
     # Uvicorn waits for an active /render request after SIGTERM. Keep Docker
     # from escalating a routine deployment to SIGKILL while a long render is
     # still producing paid image/audio assets.
@@ -165,12 +175,15 @@ services:
       RUNNER_ENV_FILE: /run/secrets/slidegen.env
       RUNNER_MODE: ${RUNNER_MODE:-mock}
       IMAGE_PROVIDER: ${IMAGE_PROVIDER:-mock}
+      MOTION_LOCAL_PRODUCTION: ${MOTION_LOCAL_PRODUCTION:-false}
       CHATGPT_OAUTH_BASE_URL: ${CHATGPT_OAUTH_BASE_URL:-http://image-oauth:10531}
-      CODEX_MODEL: ${CODEX_MODEL:-gpt-5.6-luna}
-      CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-max}
+      CODEX_MODEL: ${CODEX_MODEL:-gpt-5.6-terra}
+      CODEX_REASONING_EFFORT: ${CODEX_REASONING_EFFORT:-low}
       CODEX_FAST_MODE: ${CODEX_FAST_MODE:-false}
       CODEX_READ_TIMEOUT_SECONDS: ${CODEX_READ_TIMEOUT_SECONDS:-300}
       CODEX_CONNECT_TIMEOUT_SECONDS: ${CODEX_CONNECT_TIMEOUT_SECONDS:-10}
+      # Evidence-checked observations enter planning as risk questions, never approvals.
+      DIRECTOR_RESEARCH_MODE: ${DIRECTOR_RESEARCH_MODE:-pilot}
       # Runner-specific key avoids an older shared .env value silently pinning
       # the provider after the controlled GPT Image 2.5 compatibility rollout.
       IMAGE_GENERATION_MODEL: ${RUNNER_IMAGE_GENERATION_MODEL:-gpt-image-2.5-sunburst}
@@ -209,7 +222,7 @@ services:
       CODEX_HOME: /tmp/codex-home
     volumes:
       - ${CODEX_HOME_DIR:-./.runtime/codex}:/codex-source:ro
-    networks: [backend, egress]
+    networks: [backend, egress, ai-link]
     profiles: [live]
 
   web:
@@ -250,3 +263,5 @@ networks:
     internal: true
   ingress:
   egress:
+  ai-link:
+    internal: true

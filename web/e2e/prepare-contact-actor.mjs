@@ -1,0 +1,17 @@
+import {createHash} from 'node:crypto';
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync,mkdirSync} from 'node:fs';
+import {dirname,resolve,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
+const source=join(root,'experiments/actor-performance/output/standard-actor-v2');
+const out=join(root,'experiments/actor-contact/output');mkdirSync(out,{recursive:true});
+const sha=b=>createHash('sha256').update(b).digest('hex');
+const manifest=JSON.parse(readFileSync(join(source,'manifest.json'),'utf8'));
+for(const part of manifest.parts)assert.equal(sha(readFileSync(join(source,part.path))),part.sha256);
+const svg=readFileSync(join(source,'assembled.svg'),'utf8');assert.equal(sha(svg),manifest.assembly.rebuilt_sha256);
+const review=JSON.parse(readFileSync(join(source,'playback-audit.json'),'utf8'));
+assert.equal(review.asset_manifest_sha256,sha(readFileSync(join(source,'manifest.json'))));
+const pack={svg,manifest_sha256:review.asset_manifest_sha256,assembly_sha256:sha(svg),production_ready:false};
+writeFileSync(join(out,'actor-data.js'),'window.ContactActorData='+JSON.stringify(pack)+';');
+console.log(JSON.stringify({output:out,assembly_sha256:pack.assembly_sha256,production_ready:false}));

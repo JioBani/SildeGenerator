@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "reference": "Ab9OZsDECZw",
+  "source_window": [201, 231],
+  "scene_function": "Explain intervention through guided entry, expansion, withdrawal and retained support",
+  "design_rules": ["Deposit remains visible after expansion", "Inner cells share deposit geometry", "Keep outer wall separate from lumen clip"],
+  "layout": "Fixed central vessel cutaway",
+  "object_states": ["guide enters", "sleeve travels", "rapid expansion", "overshoot", "hold", "deflation", "withdrawal", "support placement", "support retention", "flow returns"],
+  "motion": {
+    "balloon_height": {
+      "evidence": "blood-balloon-measurement-v2.json",
+      "source_sha256": "31d041c98dfe3c0f3cb55fc8c530180d545ba15af7756f65d88a158a2e2db75b",
+      "method": "Connected vertical red run in manually selected central strip",
+      "source_time_origin": 201,
+      "analysis_to_canvas_scale": 3,
+      "baseline_height_analysis_pixels": 35,
+      "peak_height_analysis_pixels": 126,
+      "hold_height_analysis_pixels": 117,
+      "expansion_start_source_second": 215.506958,
+      "peak_source_second": 215.673792,
+      "hold_start_source_second": 215.757208,
+      "deflation_end_source_second": 216.758208,
+      "verification": "72 source PTS samples compared to SVG height; full silhouette not verified"
+    },
+    "other_events": "V2 manual timing hypotheses retained, not frame-measured"
+  },
+  "transition": "Continuous geometry change with no cut",
+  "rhythm": "rapid change, overshoot, hold, release",
+  "transfer_candidate": {
+    "name": "RAPID_EXPANSION_HOLD_RELEASE",
+    "applicable_when": "A viewer must recognize rapid state change followed by a readable stable result",
+    "do_not_apply_when": ["The source action is physically slow", "Overshoot would imply a false causal event", "The target object cannot deform without identity loss"],
+    "normalization_required": ["Dimensions relative to target object", "Times relative to event, not whole scene", "Choose safe amplitude for the new subject"],
+    "status": "HYPOTHESIS_NOT_PRODUCTION_RULE"
+  },
+  "human_approved": false,
+  "production_promotion": false,
+  "limitations": ["Audio absent", "Full surface contact not validated", "Exact typography and source wall shapes remain different", "New-script transfer pending"]
+}

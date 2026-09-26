@@ -1,0 +1,62 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><style>html,body{margin:0;background:#f8f5dd}#master{width:1920px;height:1080px;overflow:hidden}#master>svg{width:100%;height:100%}text{font-family:Arial,sans-serif;letter-spacing:0}</style></head><body>
+<div id="master" data-composition-id="blood-opening-study" data-width="1920" data-height="1080" data-duration="21" data-fps="30"><svg viewBox="0 0 1920 1080">
+<defs><radialGradient id="paper"><stop stop-color="#ffffef"/><stop offset="1" stop-color="#c9c5b6"/></radialGradient><clipPath id="bodyClip"><path d="M-60-300Q-60-365 0-365Q60-365 60-300V-245H105Q145-245 145-195V50Q145 80 115 80Q85 80 85 50V-150H65V325Q65 355 35 355Q5 355 5 325V105H-5V325Q-5 355-35 355Q-65 355-65 325V-150H-85V50Q-85 80-115 80Q-145 80-145 50V-195Q-145-245-105-245H-60Z"/></clipPath><g id="bodyArtwork"><path d="M-60-300Q-60-365 0-365Q60-365 60-300V-245H105Q145-245 145-195V50Q145 80 115 80Q85 80 85 50V-150H65V325Q65 355 35 355Q5 355 5 325V105H-5V325Q-5 355-35 355Q-65 355-65 325V-150H-85V50Q-85 80-115 80Q-145 80-145 50V-195Q-145-245-105-245H-60Z" fill="#230604" stroke="#a21919" stroke-width="12"/><g id="vessels" clip-path="url(#bodyClip)"></g></g><clipPath id="earthClip"><circle r="270"/></clipPath></defs>
+<rect width="1920" height="1080" fill="url(#paper)"/>
+<g id="human" transform="translate(960 540)"><use href="#bodyArtwork"/><text id="bodyVolume" y="5" text-anchor="middle" fill="#f9e9d0" font-size="45" opacity="0">4–5 L</text></g>
+<g id="world" visibility="hidden"><rect width="1920" height="1080" fill="#200301"/><g id="stars"></g><g id="earth" transform="translate(960 470)"><circle r="270" fill="#50c8b9"/><g clip-path="url(#earthClip)" id="land" fill="#167364"><path d="M-270-90L-210-160-150-210-80-170-30-185 10-120-45-85-85-40-75 10-135 30-170-35-240-40Z M-100 30L-15 55 15 130-10 205-65 290-100 195-120 80Z M75-220L155-240 255-175 300-80 205-20 170 35 90 10 60-50 30-70 30-130Z M100 10L175 50 155 170 100 230 50 100Z M215 165L310 180 300 245 220 250 180 210Z"/></g><g fill="#ffefd5"><rect x="70" y="-170" width="120" height="33" rx="16"/><rect x="115" y="-145" width="70" height="22" rx="11"/><rect x="-190" y="100" width="120" height="31" rx="15"/></g><g id="wraps" fill="none" stroke="#f34435" stroke-width="12" stroke-linecap="round"><path d="M-275-65H255Q300-65 300-40Q300-15 255-15H-260Q-300-15-300 10Q-300 35-260 35H270"/></g></g><text x="960" y="910" text-anchor="middle" fill="#fff4de" font-size="52">95,000 km</text></g>
+<g id="tankScene" visibility="hidden"><path id="shadow" d="M1090 185L1690 785V965H790V185Z" fill="#eb9c8e" opacity=".28"/><g id="tank" transform="translate(0 0)"><rect x="770" y="170" width="380" height="770" fill="#d0f6e7" stroke="#84cebd" stroke-width="16"/><rect id="bloodFill" x="790" y="430" width="340" height="490" fill="#ff4935"/><text x="960" y="650" text-anchor="middle" fill="#fff3dd" font-size="56">7,500 L</text></g><path id="drip" d="M960 0V425" fill="none" stroke="#ff4935" stroke-width="10" stroke-dasharray="4 28"/></g>
+<g id="network" opacity="0"><g id="leftTank"><rect x="180" y="195" width="340" height="700" fill="#d0f6e7" stroke="#84cebd" stroke-width="14"/><rect x="198" y="213" width="304" height="664" fill="#ed3e30"/><text x="350" y="570" text-anchor="middle" fill="#fff5de" font-size="52">7,500 L</text></g><g id="rightTank"><rect x="1420" y="195" width="340" height="700" fill="#d0f6e7" stroke="#84cebd" stroke-width="14"/><rect id="returnFill" x="1438" y="877" width="304" height="0" fill="#ed3e30"/><text x="1590" y="570" text-anchor="middle" fill="#5ab2a6" font-size="52">7,500 L</text></g><path id="pipes" d="M520 820H625Q655 820 655 790V450H815M1105 450H1330Q1350 450 1350 425V260H1420" stroke="#f34c38" stroke-width="9" stroke-dasharray="5 14" fill="none"/><path d="M825 435H665M1095 435H1280" stroke="#45100b" stroke-width="44" stroke-linecap="round"/><path d="M825 435H665M1095 435H1280" stroke="#e94433" stroke-width="12" stroke-linecap="round"/></g>
+</svg></div><script>
+gsap.config({force3D:false});const ns='http://www.w3.org/2000/svg';function add(tag,a,p){const e=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(a))e.setAttribute(k,v);p.append(e);return e}
+for(let i=0;i<100;i++){let x=-160+(i%11)*30,y=-365+Math.floor(i/11)*80;add('path',{d:`M${x} ${y}h22v28h-13v28h25v35`,fill:'none',stroke:i%3?'#d73a2f':'#2f9583','stroke-width':i%3?5:3,'stroke-linejoin':'round'},document.querySelector('#vessels'))}
+for(let i=0;i<50;i++){let x=(i*431)%1920,y=(i*277)%1080;add('circle',{cx:x,cy:y,r:i%5?1.8:3.5,fill:'#e9c6af'},document.querySelector('#stars'))}
+const network=document.querySelector('#network');
+network.replaceChildren();
+network.setAttribute('transform','translate(650 0)');
+function reservoir(x,filled){
+ add('path',{d:`M${x+400} 110L${x+1230} 950H${x+400}Z`,fill:'#eb9c8e',opacity:.25},network);
+ add('rect',{x,y:110,width:400,height:840,fill:'#d0f6e7',stroke:'#84cebd','stroke-width':18},network);
+ add('rect',{...(filled?{}:{id:'returnFill'}),x:x+16,y:filled?126:934,width:368,height:filled?808:0,fill:'#f44334'},network);
+ add('text',{x:x+200,y:550,'text-anchor':'middle',fill:filled?'#fff3dd':'#79c6b7','font-size':54},network).textContent='7,500 L';
+}
+reservoir(100,true);reservoir(1400,false);
+add('path',{id:'pipes',d:'M500 900H610Q650 900 650 860V330H610M1310 330V190Q1310 170 1340 170H1400',stroke:'#eb4334','stroke-width':8,fill:'none'},network);
+add('path',{id:'flowDots',d:'M500 900H610Q650 900 650 860V330H610M1310 330V190Q1310 170 1340 170H1400',stroke:'#c82a27','stroke-width':12,'stroke-linecap':'round','stroke-dasharray':'1 25',fill:'none'},network);
+const networkActor=add('g',{transform:'translate(960 555) scale(1.05)'},network);
+const silhouette='M-55-300Q-55-360 0-360Q55-360 55-300V-240H310Q340-240 340-212Q340-185 310-185H85V335Q85 360 60 360Q35 360 35 335V30H-35V335Q-35 360-60 360Q-85 360-85 335V-185H-310Q-340-185-340-212Q-340-240-310-240H-55Z';
+const networkClip=add('clipPath',{id:'networkBodyClip'},document.querySelector('defs'));
+add('path',{d:silhouette},networkClip);
+add('path',{d:silhouette,fill:'#230604',stroke:'#a21919','stroke-width':12},networkActor);
+const circuitCopy=add('g',{'clip-path':'url(#networkBodyClip)'},networkActor);
+for(const vessel of document.querySelector('#vessels').children)circuitCopy.append(vessel.cloneNode(true));
+add('path',{d:'M-325-215H325',stroke:'#df4337','stroke-width':8,fill:'none'},networkActor);
+for(const x of [-24,24]){add('circle',{cx:x,cy:-287,r:8,fill:'#fff3dd'},networkActor);add('circle',{cx:x+2,cy:-287,r:3,fill:'#173d36'},networkActor)}
+add('path',{d:'M0-133C-38-162-44-104 0-77C44-104 38-162 0-133Z',fill:'#47a891'},networkActor);
+add('rect',{x:-67,y:-62,width:134,height:56,rx:8,fill:'#411008',opacity:.85},networkActor);
+add('text',{y:-20,'text-anchor':'middle',fill:'#f9e9d0','font-size':38},networkActor).textContent='4–5 L';
+const tankRects=document.querySelectorAll('#tank rect');
+for(const[k,v]of Object.entries({x:750,y:110,width:400,height:840}))tankRects[0].setAttribute(k,v);
+for(const[k,v]of Object.entries({x:766,width:368}))tankRects[1].setAttribute(k,v);
+document.querySelector('#tank text').setAttribute('y',550);
+document.querySelector('#shadow').setAttribute('d','M1150 110L1980 950H1150Z');
+const tl=gsap.timeline({paused:true});
+gsap.set('#wraps path',{strokeDasharray:1900,strokeDashoffset:1900});
+tl.to('#vessels',{opacity:.72,duration:.5,repeat:12,yoyo:true,ease:'sine.inOut'},.5)
+.set('#human',{visibility:'hidden'},8.2).set('#world',{visibility:'visible'},8.2)
+.fromTo('#world',{opacity:0},{opacity:1,duration:.3},8.2)
+.to('#wraps path',{strokeDashoffset:0,duration:1.3,ease:'power1.inOut'},8.5)
+.to('#land',{x:-20,duration:3.9,ease:'none'},8.5)
+.set('#world',{visibility:'hidden'},12.6).set('#tankScene',{visibility:'visible'},12.6)
+.fromTo('#bloodFill',{attr:{y:580,height:354}},{attr:{y:126,height:808},duration:2,ease:'none',immediateRender:false},12.6)
+.to('#drip',{strokeDashoffset:-128,duration:3.5,ease:'none'},12.6)
+.set('#drip',{opacity:0},16.8)
+.set('#tankScene',{visibility:'hidden'},18.6)
+.set('#network',{opacity:1},18.6)
+.fromTo('#network',{attr:{transform:'translate(650 0)'}},{attr:{transform:'translate(0 0)'},duration:.85,ease:'power2.inOut',immediateRender:false},18.6)
+.fromTo('#pipes',{strokeDasharray:1800,strokeDashoffset:1800},{strokeDashoffset:0,duration:1.2,immediateRender:false},18.6)
+.fromTo('#flowDots',{opacity:0},{opacity:1,duration:.1,immediateRender:false},19.7)
+.to('#flowDots',{strokeDashoffset:-100,duration:1.2,ease:'none'},19.7)
+.to('#returnFill',{attr:{y:927,height:7},duration:1,ease:'none'},20)
+.to({}, {duration:.1},20.9);
+window.__timelines={'blood-opening-study':tl};
+</script></body></html>

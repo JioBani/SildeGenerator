@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 
@@ -52,17 +52,20 @@ def _bounded_float(name: str, fallback: float, minimum: float, maximum: float) -
 @dataclass(frozen=True)
 class Settings:
     data_dir: Path = Path(_value("DATA_DIR", "/data"))
+    source_media_dir: Path = Path(_value("SOURCE_MEDIA_DIR", "/data/source-media"))
+    illustration_assets_dir: Path = Path(_value("ILLUSTRATION_ASSETS_DIR", "/data/illustration-assets"))
     harnesses_dir: Path = Path(_value("HARNESSES_DIR", "/app/harnesses"))
     prompts_dir: Path = Path(_value("PROMPTS_DIR", "/app/harnesses/classic-slide/prompts"))
     schemas_dir: Path = Path(_value("SCHEMAS_DIR", "/app/schemas"))
     runner_mode: str = _value("RUNNER_MODE", "mock").lower()
     image_provider: str = _value("IMAGE_PROVIDER", "mock").lower()
+    motion_local_production: bool = _value("MOTION_LOCAL_PRODUCTION", "false").lower() in {"1", "true", "yes", "on"}
     subscription_base_url: str = _value(
         "CHATGPT_OAUTH_BASE_URL",
         _value("IMAGE_OAUTH_BASE_URL", "http://127.0.0.1:10531"),
     ).rstrip("/")
-    codex_model: str = _value("CODEX_MODEL", "gpt-5.6-luna")
-    codex_reasoning_effort: str = _value("CODEX_REASONING_EFFORT", "max").lower()
+    codex_model: str = _value("CODEX_MODEL", "gpt-5.6-terra")
+    codex_reasoning_effort: str = _value("CODEX_REASONING_EFFORT", "low").lower()
     codex_fast_mode: bool = _value("CODEX_FAST_MODE", "false").lower() in {"1", "true", "yes", "on"}
     codex_read_timeout_seconds: float = _float("CODEX_READ_TIMEOUT_SECONDS", 300.0)
     codex_connect_timeout_seconds: float = _float("CODEX_CONNECT_TIMEOUT_SECONDS", 10.0)
@@ -88,10 +91,40 @@ class Settings:
     elevenlabs_speed: float = _bounded_float("ELEVENLABS_SPEED", 0.70, 0.70, 1.20)
     width: int = _integer("VIDEO_WIDTH", 1920)
     height: int = _integer("VIDEO_HEIGHT", 1080)
+    subtitles_enabled: bool = True
     fps: int = _integer("VIDEO_FPS", 24)
     ffmpeg_preset: str = _value("FFMPEG_PRESET", "veryfast")
     crossfade_seconds: float = _float("CROSSFADE_SECONDS", 0.35)
     render_segment_scenes: int = min(12, max(2, _integer("RENDER_SEGMENT_SCENES", 8)))
+    layer_decomposition_enabled: bool = _value("LAYER_DECOMPOSITION_ENABLED", "true").lower() in {"1", "true", "yes", "on"}
+    director_research_mode: str = _value("DIRECTOR_RESEARCH_MODE", "off").lower()
 
 
 settings = Settings()
+
+
+def production_settings(base: Settings, harness_id: str, motion_style: dict | None,
+                        slide_visual_profile: dict | None = None, *,
+                        production_job: bool = False) -> Settings:
+    if slide_visual_profile is not None:
+        if harness_id != "classic-slide" or slide_visual_profile.get("id") != "local_illustration":
+            raise ValueError("Unsupported slide visual route")
+        selected = replace(base, runner_mode="local", image_provider="local_illustration")
+    elif harness_id == "astra-motion" and motion_style and motion_style.get("productionRoute") == "local_graphic":
+        if not base.motion_local_production:
+            raise ValueError("Local motion production is not enabled on this runner")
+        if base.runner_mode != "live":
+            raise ValueError("Local motion graphics require live scene direction")
+        selected = replace(base, image_provider="local_graphic", layer_decomposition_enabled=False)
+    else:
+        selected = base
+    if production_job and (selected.runner_mode == "mock" or selected.image_provider == "mock"):
+        raise ValueError("User video production cannot use mock scene planning or mock images")
+    return selected
+
+
+def output_settings(base: Settings, aspect_ratio: str, subtitles_enabled: bool) -> Settings:
+    if aspect_ratio not in {"16:9", "9:16"}:
+        raise ValueError("unsupported aspect ratio")
+    width, height = ((1080, 1920) if aspect_ratio == "9:16" else (1920, 1080))
+    return replace(base, width=width, height=height, subtitles_enabled=subtitles_enabled)

@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><style>html,body{margin:0;background:#360000}#master{width:1920px;height:1080px;overflow:hidden}svg{width:100%;height:100%}text{font-family:'Arial Narrow',Arial,sans-serif;letter-spacing:0;fill:#fff0cf}</style></head><body>
+<div id="master" data-composition-id="blood-pressure-study" data-width="1920" data-height="1080" data-duration="30" data-fps="30"><svg viewBox="0 0 1920 1080">
+<defs><radialGradient id="paper"><stop stop-color="#ffffeb"/><stop offset="1" stop-color="#d9d5b7"/></radialGradient><marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0 0L8 4 0 8Z" fill="#ffd95e"/></marker>
+<g id="heartArt"><path d="M-45-190V-310Q-45-385 40-385Q105-385 105-310V-255" fill="none" stroke="#f4483e" stroke-width="45"/><path d="M-25-218H-135V-120" fill="none" stroke="#e53931" stroke-width="42"/><path class="heartBody" d="M-120-200Q-10-265 95-180L150-25Q190 200 80 230Q-10 230-85 100Q-155-30-120-200Z" fill="#aa0907"/><path d="M-120-200Q-30-240 20-210L30 130Q-75 75-95-30Z" fill="#d62018"/><path d="M30-190H120V-70" stroke="#fb5645" stroke-width="27" fill="none"/></g>
+<path id="bodyShape" d="M-165 145V0Q-165-185 0-185Q165-185 165 0V145H280Q450 145 450 335V1110H335V355H285V1480H30V1030H-30V1480H-285V355H-335V1110H-450V335Q-450 145-280 145Z"/>
+<clipPath id="bodyClip"><use href="#bodyShape"/></clipPath></defs>
+<g id="field"><rect width="1920" height="1080" fill="#360000"/><rect y="135" width="1920" height="810" fill="#540000"/><rect y="250" width="1920" height="585" fill="#690000"/><g id="vesselCamera" transform="translate(480 0)"><g id="walls"></g><g id="vectors" opacity="0"></g><g id="labels" text-anchor="middle" font-size="76"><text id="diastolicA" x="960" y="570" opacity="0">DIASTOLIC PRESSURE</text><text id="systolic" x="960" y="570" opacity="0">SYSTOLIC PRESSURE</text><text id="rangeHigh" x="960" y="570" opacity="0">90 - 120 mm Hg</text><text id="diastolicB" x="960" y="570" opacity="0">DIASTOLIC PRESSURE</text><text id="rangeLow" x="960" y="570" opacity="0">60 - 80 mm Hg</text><text id="combined" x="960" y="570" opacity="0">120/80 mm Hg</text></g></g>
+<g id="heartPanel"><rect width="960" height="1080" fill="#410000"/><g id="circuits"></g><g id="heart" transform="translate(480 580)"><use href="#heartArt"/></g><g id="heartVectors" stroke="#fff1ce" stroke-width="9" opacity="1"><path d="M460 560L410 590M490 590V650M520 575L560 620M470 530H400"/></g><rect x="947" width="13" height="1080" fill="#fff0d0"/></g></g>
+<g id="bodyPanel" transform="translate(1920 0)"><rect width="1920" height="1080" fill="url(#paper)"/><text id="bodyTitle" x="960" y="125" text-anchor="middle" font-size="80" fill="#111111" style="fill:#111" opacity="0">CIRCULATORY SYSTEM</text><g id="body" transform="translate(960 430) scale(.95)"><use href="#bodyShape" fill="#640500" stroke="#a31d16" stroke-width="23"/><g id="bodyCircuits" clip-path="url(#bodyClip)"></g><path d="M-115 35V-100M110 35V-100M-60 330V-40Q-60-150 70-130M-85 290H-265Q-385 290-385 420V1000M80 290H265Q385 290 385 420V1000M80 380V1290M-80 380V1290" stroke="#157c69" stroke-width="22" fill="none" stroke-linecap="round"/><path d="M10-90V260M-330 1030V400Q-330 205-85 220H-15M20 225H245Q330 225 330 450V1030M-25 480V1320M35 480V1320" stroke="#df3125" stroke-width="25" fill="none" stroke-linecap="round"/><g transform="translate(10 440) scale(.5)"><use href="#heartArt"/><path d="M-110-190Q-20-245 55-155L120 115Q170 250 70 230Q-80 150-110-190Z" fill="#198776"/></g><circle cx="-66" cy="45" r="20" fill="#fff1ce"/><circle cx="66" cy="45" r="20" fill="#fff1ce"/><circle cx="-66" cy="45" r="10" fill="#305d51"/><circle cx="66" cy="45" r="10" fill="#305d51"/></g></g>
+</svg></div><script>
+gsap.config({force3D:false});const ns='http://www.w3.org/2000/svg';function add(tag,attrs,parent){const e=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e}
+const tl=gsap.timeline({paused:true});
+document.querySelector('#heart').setAttribute('transform','translate(480 580) scale(1)');
+for(const [base,sign]of [[345,-1],[730,1]]){const shape=phase=>{let d='';for(let x=-500;x<=2400;x+=40){const y=base+sign*48*Math.pow(Math.max(0,Math.cos(x/210-phase)),6);d+=(x===-500?'M':'L')+x+' '+y.toFixed(3)}return d};for(const [stroke,width,dash]of [['#a22220',88,null],['#ff7c65',54,null],['#ffab88',36,'1 26'],['#ffe8c2',13,'10 15']]){
+ const p=add('path',{d:shape(0),stroke,'stroke-width':width,fill:'none',...(dash?{'stroke-dasharray':dash,'stroke-linecap':width===36?'round':'butt'}:{})},document.querySelector('#walls'));
+ const wave=gsap.timeline({repeat:14});for(let s=1;s<=8;s++)wave.to(p,{attr:{d:shape(s*Math.PI/4)},duration:.275,ease:'none'});tl.add(wave,0);
+}}
+for(let i=0;i<18;i++)for(const[a,b]of [[470,395],[610,680]])add('path',{d:`M${50+i*110} ${a}V${b}`,stroke:'#ffd95e','stroke-width':6,'marker-end':'url(#arrow)'},document.querySelector('#vectors'));
+for(let i=0;i<88;i++){const x=(i%11)*90,y=Math.floor(i/11)*145;add('path',{d:`M${x} ${y}h45v60h-20v55h40`,stroke:i%3?'#a82020':'#d8322e','stroke-width':16,fill:'none','stroke-linejoin':'round'},document.querySelector('#circuits'))}
+for(let i=0;i<140;i++){const x=(i%14)*65-440,y=Math.floor(i/14)*140-150;add('path',{d:`M${x} ${y}h25v45h-16v45h34`,stroke:i%3?'#a82020':'#147968','stroke-width':10,fill:'none','stroke-linejoin':'round'},document.querySelector('#bodyCircuits'))}
+tl.to('#heart',{attr:{transform:'translate(480 580) scale(.94)'},duration:.3,repeat:17,yoyo:true,ease:'sine.inOut'},0)
+.to('#heartVectors',{opacity:0,duration:.3},1.2)
+.to('.heartBody',{fill:'#d78c75',duration:.35},3.5)
+.to('#heartPanel',{attr:{transform:'translate(-970 0)'},duration:.8,ease:'power2.inOut'},5)
+.to('#vesselCamera',{attr:{transform:'translate(0 0)'},duration:.8,ease:'power2.inOut'},5)
+.to('#diastolicA',{opacity:1,duration:.2},3.5).set('#diastolicA',{opacity:0},7.5)
+.set('#systolic',{opacity:1},7.5).set('#systolic',{opacity:0},9.5)
+.set('#rangeHigh',{opacity:1},9.5).set('#rangeHigh',{opacity:0},13.5)
+.set('#diastolicB',{opacity:1},13.5).set('#diastolicB',{opacity:0},15.5)
+.set('#rangeLow',{opacity:1},15.5).set('#rangeLow',{opacity:0},19.5)
+.to('#vectors',{opacity:1,duration:.3},17.5)
+.set('#combined',{opacity:1},19.5)
+.to('#field',{attr:{transform:'translate(-1920 0)'},duration:1,ease:'power2.inOut'},22)
+.to('#bodyPanel',{attr:{transform:'translate(0 0)'},duration:1,ease:'power2.inOut'},22)
+.to('#bodyTitle',{opacity:1,duration:.3},24)
+.to({}, {duration:.1},29.9);
+window.__timelines={'blood-pressure-study':tl};
+</script><script src="factors.js"></script></body></html>

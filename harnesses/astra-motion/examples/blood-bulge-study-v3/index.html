@@ -1,0 +1,67 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><script src="assets/track.js"></script><style>html,body{margin:0;background:#400500}svg{display:block;width:1920px;height:1080px}</style></head><body><svg viewBox="0 0 640 360"><defs><clipPath id="fluid-clip"><path id="fluid-path"/></clipPath></defs><rect width="640" height="360" fill="#400500"/><rect y="79" width="640" height="215" fill="#590600"/><g id="insert"><rect x="301" width="40" height="130" fill="#154a41"/><rect x="309" width="24" height="117" fill="#0f302d"/><circle cx="321" cy="95" r="11" fill="#ffedab"/><path d="M313 102L329 87" stroke="#f1ac83" stroke-width="9"/></g><path id="fluid" fill="#fc4827"/><g id="particles" clip-path="url(#fluid-clip)"></g><g id="walls"></g></svg><script>
+const ns='http://www.w3.org/2000/svg',track=window.bulgeTrack;
+function el(tag,a,p){const n=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(a))n.setAttribute(k,v);p.append(n);return n}
+const walls=document.querySelector('#walls'),particles=document.querySelector('#particles');
+const upper=el('path',{fill:'#be221d'},walls),lower=el('path',{fill:'#be221d'},walls);
+upper.id='upper-wall';lower.id='lower-wall';
+const wallClip=el('clipPath',{id:'wall-only'},document.querySelector('defs'));
+el('use',{href:'#upper-wall'},wallClip);el('use',{href:'#lower-wall'},wallClip);
+const striations=el('g',{'clip-path':'url(#wall-only)'},walls);
+for(let x=10;x<630;x+=15)el('rect',{x,y:80,width:7,height:205,fill:'#d22c24'},striations);
+const topBand=el('path',{fill:'none',stroke:'#ff5b47','stroke-width':9,'stroke-dasharray':'9 2'},walls);
+const bottomBand=el('path',{fill:'none',stroke:'#ff5b47','stroke-width':9,'stroke-dasharray':'9 2'},walls);
+const topEdge=el('path',{fill:'none',stroke:'#850c04','stroke-width':7,'stroke-dasharray':'1 12','stroke-linecap':'round'},walls);
+const bottomEdge=el('path',{fill:'none',stroke:'#850c04','stroke-width':7,'stroke-dasharray':'1 12','stroke-linecap':'round'},walls);
+function line(points){return points.map(([x,y],i)=>(i?'L':'M')+x+' '+y).join(' ')}
+function area(a,b){return line(a)+' '+line([...b].reverse()).replace(/^M/,'L')+'Z'}
+function geometry(row){
+ const xset=new Set(row.lumen_support.map(p=>p[0]));
+ const a=row.upper.filter(p=>xset.has(p[0])),b=row.lower.filter(p=>xset.has(p[0]));
+ if(a.length<50||b.length<50)throw new Error('Insufficient measured band support');
+ const outerA=a.map(p=>[p[0],p[1]]),outerB=b.map(p=>[p[0],p[2]]);
+ const innerA=row.lumen_support.map(p=>[p[0],p[1]]),innerB=row.lumen_support.map(p=>[p[0],p[2]]);
+ return [[upper,area(outerA,innerA)],[lower,area(innerB,outerB)],
+ [topBand,line(a.map(p=>[p[0],(p[1]+p[2])/2]))],[bottomBand,line(b.map(p=>[p[0],(p[1]+p[2])/2]))],
+ // The measured contour already bounds visible fluid; keep stroke on the wall side.
+ [topEdge,line(innerA.map(([x,y])=>[x,y-3.5]))],[bottomEdge,line(innerB.map(([x,y])=>[x,y+3.5]))],
+ [document.querySelector('#fluid'),area(innerA,innerB)],[document.querySelector('#fluid-path'),area(innerA,innerB)]];
+}
+for(const [node,d]of geometry(track.rows[0]))node.setAttribute('d',d);
+const tl=gsap.timeline({paused:true});
+for(const row of track.rows){
+ const t=row.source_second-track.rows[0].source_second;
+ for(const[node,d]of geometry(row))tl.set(node,{attr:{d}},t);
+}
+// Independent lane-following hypothesis, not measured source particle trajectories.
+function boundsAt(row,x){
+ const p=row.lumen_support;
+ if(x<=p[0][0])return p[0].slice(1);
+ if(x>=p.at(-1)[0])return p.at(-1).slice(1);
+ const j=p.findIndex(v=>v[0]>=x),a=p[j-1],b=p[j],u=(x-a[0])/(b[0]-a[0]);
+ return [a[1]+u*(b[1]-a[1]),a[2]+u*(b[2]-a[2])];
+}
+function pose(row,x,lane){
+ // A radius-10 disk conservatively contains the rotated ellipse and its stroke.
+ const samples=[x-10,x,x+10,...row.lumen_support.map(p=>p[0]).filter(v=>v>x-10&&v<x+10)];
+ const bounds=samples.map(v=>boundsAt(row,v));
+ const top=Math.max(...bounds.map(b=>b[0]))+11,bottom=Math.min(...bounds.map(b=>b[1]))-11;
+ if(top>bottom)throw new Error(`Particle cannot fit: source=${row.source_second}, x=${x}, allowedY=${top}..${bottom}`);
+ return {x,y:top+(bottom-top)*lane,top,bottom};
+}
+window.__particleEvidence=[];
+for(let i=0;i<36;i++){
+ const x=(i*47)%700-30,lane=(i%3)/2;
+ const cell=el('g',{'data-cell':i},particles);el('ellipse',{cx:0,cy:0,rx:10,ry:7,fill:'#950e05',transform:'rotate(-40)'},cell);
+ el('path',{d:'M-5 4L5-4',stroke:'#bd2b11','stroke-width':2},cell);
+ for(let f=0;f<209;f++){
+  const t=f/30,sourceTime=track.rows[0].source_second+t;
+  const row=track.rows.filter(r=>r.source_second<=sourceTime).at(-1);
+  const p=pose(row,x+170*t/6.966666666666667,lane);
+  if(f===0)cell.setAttribute('transform',`translate(${p.x} ${p.y})`);
+  tl.set(cell,{attr:{transform:`translate(${p.x} ${p.y})`}},t);
+  window.__particleEvidence.push({frame:f,id:i,...p});
+ }
+}
+tl.to({},{duration:.01},6.956666666666667);
+window.__timelines={'blood-bulge-study':tl};
+</script></body></html>

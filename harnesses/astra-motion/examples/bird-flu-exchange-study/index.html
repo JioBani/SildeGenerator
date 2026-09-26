@@ -1,0 +1,59 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><style>html,body{margin:0;background:#be4018}#master{width:1920px;height:1080px;overflow:hidden}svg{width:100%;height:100%}.atlas{overflow:hidden}</style></head><body>
+<div id="master" data-composition-id="bird-flu-exchange-study" data-width="1920" data-height="1080" data-duration="19" data-fps="30"><svg viewBox="0 0 1920 1080">
+<defs><radialGradient id="light"><stop offset="0" stop-color="#fffde8" stop-opacity=".95"/><stop offset=".64" stop-color="#fffde8" stop-opacity=".9"/><stop offset="1" stop-color="#fffde8" stop-opacity="0"/></radialGradient></defs>
+<rect width="1920" height="1080" fill="#c13f17"/><g id="tissue"></g>
+<g id="membrane" transform="translate(-1920 0)"><path d="M0 0Q450 150 880 1080H0Z" fill="#e78324" stroke="#f5a82f" stroke-width="25"/><g id="markers" stroke="#efd458" stroke-width="13" stroke-linecap="round" fill="none"></g></g>
+<g id="glow" opacity="0"><ellipse cx="960" cy="520" rx="560" ry="490" fill="url(#light)"/></g>
+<g id="particles"></g>
+<g id="pair"><g id="arms" opacity="0" fill="none" stroke-linecap="round"><path id="armLeft" d="M720 590Q760 750 960 715" stroke="#29151d" stroke-width="34"/><path id="skinLeft" d="M720 590Q760 750 960 715" stroke="#e8ac50" stroke-width="21"/><path id="armRight" d="M1200 590Q1130 750 960 715" stroke="#29151d" stroke-width="34"/><path id="skinRight" d="M1200 590Q1130 750 960 715" stroke="#e6a2cb" stroke-width="21"/><ellipse id="hands" cx="960" cy="715" rx="33" ry="20" fill="#e8b48e" stroke="#29151d" stroke-width="6"/></g><g id="orange"></g><g id="pink"></g></g>
+<g id="hybrid" opacity="0"></g>
+</svg></div><script>
+gsap.config({force3D:false});const ns='http://www.w3.org/2000/svg';
+function add(tag,attrs,parent){let e=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e}
+for(let i=0;i<35;i++){let x=(i*731)%2200-100,y=(i*431)%1400-150;add('path',{d:`M${x} ${y-180}q-100 140 0 250t-60 270`,stroke:i%2?'#d95928':'#922f18','stroke-width':i%2?90:12,'stroke-linecap':'round',fill:'none',opacity:.7},document.querySelector('#tissue'))}
+function actor(id,col){document.getElementById(id).innerHTML=`<svg class="atlas" x="-230" y="-270" width="460" height="540" viewBox="${col*512} 180 512 600"><image href="assets/actors.png" width="1536" height="1024"/></svg><g class="face"><ellipse class="eye" cx="-23" cy="-15" rx="20" ry="28" fill="#fff9cf" stroke="#211923" stroke-width="5"/><ellipse class="eye" cx="23" cy="-15" rx="20" ry="28" fill="#fff9cf" stroke="#211923" stroke-width="5"/><g class="pupils" fill="#211923"><ellipse cx="-18" cy="-12" rx="7" ry="13"/><ellipse cx="28" cy="-12" rx="7" ry="13"/></g><path class="brow" d="M-43-53Q0-78 43-53" fill="none" stroke="#211923" stroke-width="5" stroke-linecap="round"/><path class="mouth" d="M-28 35Q0 60 28 35" fill="none" stroke="#211923" stroke-width="5" stroke-linecap="round"/></g>`}
+actor('orange',1);actor('pink',2);actor('hybrid',0);
+// Reuse only the body paint, not the old marker topology, for the new identity.
+const hybrid=document.querySelector('#hybrid');
+const defs=document.querySelector('defs');
+const clip=add('clipPath',{id:'hybridBodyClip',clipPathUnits:'userSpaceOnUse'},defs);
+add('circle',{cx:0,cy:-5,r:166},clip);
+const paint=add('g',{'clip-path':'url(#hybridBodyClip)'},hybrid);
+paint.append(hybrid.querySelector('.atlas'));
+paint.firstElementChild.setAttribute('transform','scale(1.15)');
+hybrid.prepend(paint);
+const outline=add('circle',{cx:0,cy:-5,r:166,fill:'none',stroke:'#211923','stroke-width':7},hybrid);
+hybrid.insertBefore(outline,hybrid.querySelector('.face'));
+// Distinct inherited marker shapes remain visible after the identity transition.
+for(let i=0;i<10;i++){let angle=i*Math.PI/5,x=205*Math.cos(angle),y=-5+205*Math.sin(angle),color=i%2?'#d077b1':'#ba5c2e';
+add('path',{d:`M${164*Math.cos(angle)} ${-5+164*Math.sin(angle)}L${x} ${y}`,stroke:'#24141a','stroke-width':13,'stroke-linecap':'round'},hybrid);
+add('path',{d:`M${164*Math.cos(angle)} ${-5+164*Math.sin(angle)}L${x} ${y}`,stroke:color,'stroke-width':6,'stroke-linecap':'round'},hybrid);
+if(i%2)add('circle',{cx:x,cy:y,r:18,fill:color,stroke:'#24141a','stroke-width':6},hybrid);else add('rect',{x:x-17,y:y-23,width:34,height:46,rx:3,fill:color,stroke:'#24141a','stroke-width':6,transform:`rotate(${i*36} ${x} ${y})`},hybrid)}
+for(let i=0;i<75;i++){let a=i*2.399963,r=60+Math.sqrt(i/75)*330;add('circle',{id:`p${i}`,cx:960+Math.cos(a)*r,cy:520+Math.sin(a)*r, r:4+i%7,fill:['#d77cb3','#e9a13e','#bb592d'][i%3],opacity:0},document.querySelector('#particles'))}
+for(let i=0;i<12;i++){let y=70+i*90,x=120+y*.63;add('path',{d:`M${x} ${y}l30-10m-15 5l5-28`},document.querySelector('#markers'))}
+gsap.set('#orange',{x:610,y:480});gsap.set('#pink',{x:1330,y:480});gsap.set('#hybrid',{svgOrigin:'0 0',x:910,y:451,scale:.15});
+const tl=gsap.timeline({paused:true});
+tl.to('#orange',{x:680,duration:.9,ease:'sine.inOut'},0).to('#pink',{x:1240,duration:.9,ease:'sine.inOut'},0)
+.to('#pair .eye',{attr:{ry:2},duration:.25},1.1).to('#pair .pupils',{opacity:0,duration:.2},1.1)
+.to('#arms',{opacity:1,duration:.2},1.65)
+.fromTo('#armLeft,#skinLeft',{attr:{d:'M720 590Q760 635 780 640'}},{attr:{d:'M720 590Q760 750 960 715'},duration:.55,immediateRender:false},1.65)
+.fromTo('#armRight,#skinRight',{attr:{d:'M1200 590Q1160 635 1140 640'}},{attr:{d:'M1200 590Q1130 750 960 715'},duration:.55,immediateRender:false},1.65)
+.fromTo('#hands',{opacity:0},{opacity:1,duration:.1,immediateRender:false},2.15)
+.to('#pair',{x:-55,y:15,rotation:-2,svgOrigin:'960 520',duration:3.8,ease:'sine.inOut'},2.2)
+.to('#glow',{opacity:.85,duration:2},5.5)
+.to('#particles circle',{opacity:1,duration:1.2,stagger:.012},6)
+.to('#pair',{opacity:0,duration:.65},8.65)
+.to('#glow',{opacity:1,duration:.3},8.8)
+.to('#particles',{scale:.18,svgOrigin:'960 520',opacity:0,duration:.65,ease:'power2.in'},9)
+.to('#hybrid',{opacity:1,scale:1.42,duration:.65,ease:'back.out(1.3)'},9.35)
+.to('#glow',{opacity:0,duration:.75},9.6)
+.to('#hybrid .pupils',{x:-8,y:4,duration:.2},10.25)
+.to('#hybrid .brow',{attr:{d:'M-43-53Q0-30 43-53'},duration:.3},10.55)
+.to('#hybrid .eye',{attr:{ry:17},duration:.3},10.55)
+.to('#hybrid',{y:486,rotation:3,duration:1.5,ease:'sine.inOut'},11)
+.to('#hybrid',{y:456,rotation:-2,duration:1.5,ease:'sine.inOut'},12.5)
+.to('#membrane',{x:0,duration:1.8,ease:'sine.inOut'},14.8)
+.to('#hybrid',{x:770,y:476,rotation:-6,duration:1.8,ease:'sine.inOut'},15)
+.to({}, {duration:2.2},16.8);
+window.__timelines={'bird-flu-exchange-study':tl};
+</script></body></html>

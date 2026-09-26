@@ -11,12 +11,15 @@ def _ass_time(seconds: float) -> str:
     return f"{hours}:{minutes:02d}:{secs:02d}.{cs:02d}"
 
 
-def _ass_text(value: str) -> str:
+def _ass_text(value: str, width: int = 32) -> str:
     clean = value.replace("\\", "／").replace("{", "(").replace("}", ")").replace("\n", " ")
-    return r"\N".join(textwrap.wrap(clean, width=32, break_long_words=True, break_on_hyphens=False))
+    return r"\N".join(textwrap.wrap(clean, width=width, break_long_words=True, break_on_hyphens=False))
 
 
 def write_subtitles(scenes: list[Any], path: Path, settings: Any, config: dict[str, object]) -> None:
+    portrait = settings.height > settings.width
+    font_size = 42 if portrait else config.get('subtitle_size',54)
+    wrap_width = 16 if portrait else 28
     header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {settings.width}
@@ -26,14 +29,21 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{config.get('subtitle_font','Noto Sans CJK KR')},{config.get('subtitle_size',54)},&H00FFFFFF,&H00FFFFFF,&H00101010,&H78000000,-1,0,0,0,100,100,0,0,1,3,1,2,100,100,{config.get('subtitle_margin_vertical',72)},1
+Style: Default,{config.get('subtitle_font','Noto Sans CJK KR')},{font_size},&H00FFFFFF,&H00FFFFFF,&H00101010,&H78000000,-1,0,0,0,100,100,0,0,1,3,1,2,100,100,{config.get('subtitle_margin_vertical',72)},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     cursor = 0.0; events: list[str] = []
     for scene in scenes:
-        end = cursor + scene.duration_seconds; events.append(f"Dialogue: 0,{_ass_time(cursor)},{_ass_time(end)},Default,,0,0,0,,{_ass_text(scene.narration)}"); cursor = end
+        end = cursor + scene.duration_seconds
+        cues = (getattr(scene, 'layout', {}) or {}).get('subtitle_cues') or []
+        if cues:
+            for cue in cues:
+                events.append(f"Dialogue: 0,{_ass_time(cursor + cue['start'])},{_ass_time(cursor + cue['end'])},Default,,0,0,0,,{_ass_text(cue['text'], wrap_width)}")
+        else:
+            events.append(f"Dialogue: 0,{_ass_time(cursor)},{_ass_time(end)},Default,,0,0,0,,{_ass_text(scene.narration, wrap_width)}")
+        cursor = end
     path.write_text(header + "\n".join(events) + "\n", encoding="utf-8-sig")
 
 
@@ -45,7 +55,10 @@ def video_filter(scenes: list[Any], subtitles: Path, settings: Any, config: dict
     current = "v0"; cursor = scenes[0].duration_seconds
     for index in range(1, len(scenes)):
         output = f"x{index}"; filters.append(f"[{current}][v{index}]xfade=transition={transition}:duration={fade:.6f}:offset={cursor:.6f}[{output}]"); current = output; cursor += scenes[index].duration_seconds
-    subtitle_path = subtitles.as_posix().replace("'", r"\'").replace(":", r"\:"); filters.append(f"[{current}]subtitles=filename='{subtitle_path}'[video]")
+    if getattr(settings, "subtitles_enabled", True):
+        subtitle_path = subtitles.as_posix().replace("'", r"\'").replace(":", r"\:"); filters.append(f"[{current}]subtitles=filename='{subtitle_path}'[video]")
+    else:
+        filters.append(f"[{current}]null[video]")
     return ";".join(filters), "video"
 
 

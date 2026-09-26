@@ -1,0 +1,19 @@
+{
+  "id": "hybrid-story",
+  "version": "0.18.1",
+  "engine_api": ">=1.0,<2.0",
+  "entrypoint": "hybrid_story.plugin:HybridStoryHarness",
+  "display_name": "영화·설명·자료 혼합 · 개발판",
+  "description": "영화형 장면·편집 가능한 설명 도식·출처 자료를 장면별로 조합하는 개발판",
+  "public": false,
+  "prompts_dir": "prompts",
+  "config_dir": "config",
+  "fixtures_dir": "fixtures",
+  "python": {
+    "package": "hybrid-story-harness",
+    "lockfile": "requirements.lock"
+  },
+  "defaults": {
+    "config": "config/default.yaml"
+  }
+}

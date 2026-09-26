@@ -19,6 +19,33 @@ if [ "$RECONFIGURE" -eq 1 ]; then
   rm -f "$RUNTIME/setup-complete"
 fi
 compose() { docker compose --env-file "$ENV_FILE" "$@"; }
+project_codex_login() {
+  default_codex_home=${CODEX_HOME:-"${HOME:-}/.codex"}
+  [ "$RUNTIME/codex" != "$default_codex_home" ] || { echo "refusing to share the desktop Codex home" >&2; exit 1; }
+  echo "The video service needs its own Codex login. Approve the same ChatGPT account in the browser."
+  CODEX_HOME="$RUNTIME/codex" codex login -c 'cli_auth_credentials_store="file"'
+  CODEX_HOME="$RUNTIME/codex" codex login status >/dev/null
+}
+image_oauth_ready() {
+  attempts=${1:-12}; attempt=1
+  while [ "$attempt" -le "$attempts" ]; do
+    if [ -n "$(compose --profile live ps -q image-oauth 2>/dev/null)" ] && compose exec -T runner python -c "import json,urllib.request; data=json.load(urllib.request.urlopen('http://image-oauth:10531/v1/models',timeout=5)); assert isinstance(data.get('data'),list)" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2; attempt=$((attempt+1))
+  done
+  return 1
+}
+repair_image_oauth_login() {
+  if [ -f "$RUNTIME/codex/auth.json" ]; then
+    backup_dir="$RUNTIME/backups/codex/$(date -u +%Y%m%dT%H%M%SZ)"
+    mkdir -p "$backup_dir"; chmod 700 "$RUNTIME/backups" "$RUNTIME/backups/codex" "$backup_dir"
+    cp -p "$RUNTIME/codex/auth.json" "$backup_dir/auth.json"
+  fi
+  project_codex_login
+  compose --profile live up -d --force-recreate image-oauth
+  image_oauth_ready || { echo "image OAuth validation failed after the project login" >&2; exit 1; }
+}
 if [ "$MOCK" -eq 1 ] && [ ! -f "$RUNTIME/setup-complete" ]; then compose --profile setup up -d --build setup setup-proxy; ready=0; for attempt in 1 2 3 4 5 6 7 8 9 10; do if curl -fsS "http://127.0.0.1:$SETUP_PORT_VALUE/api/setup/status" >/dev/null 2>&1; then ready=1; break; fi; sleep 1; done; [ "$ready" -eq 1 ] || { echo "setup portal did not become ready" >&2; exit 1; }; curl -fsS -X POST "http://127.0.0.1:$SETUP_PORT_VALUE/api/setup/save" -H 'content-type: application/json' --data "{\"mode\":\"mock\",\"voiceProvider\":\"mock\",\"webPort\":$WEB_PORT_VALUE,\"imageConcurrency\":12,\"voiceConcurrency\":2,\"fps\":24,\"retentionHours\":720,\"edgeVoice\":\"ko-KR-InJoonNeural\",\"edgeRate\":\"-30%\",\"edgePitch\":\"+0Hz\",\"edgeVolume\":\"+0%\"}" >/dev/null; fi
 if [ ! -f "$RUNTIME/setup-complete" ]; then compose --profile setup up -d --build setup setup-proxy; echo "Setup: http://127.0.0.1:$SETUP_PORT_VALUE"; while [ ! -f "$RUNTIME/setup-complete" ]; do echo "Waiting for setup..."; sleep 5; done; fi
 compose --profile setup stop setup-proxy setup; grep -Ev '^(RUNNER_MODE|IMAGE_PROVIDER|VOICE_PROVIDER|WEB_PORT|IMAGE_TASK_CONCURRENCY|VOICE_TASK_CONCURRENCY|VIDEO_FPS|JOB_RETENTION_HOURS|ELEVENLABS_CONFIGURED|MICROSOFT_EDGE_|ELEVENLABS_VOICE_|ELEVENLABS_MODEL_ID)=' "$ENV_FILE" > "$ENV_FILE.tmp"; cat "$RUNTIME/compose.user.env" >> "$ENV_FILE.tmp"; mv "$ENV_FILE.tmp" "$ENV_FILE"; chmod 600 "$ENV_FILE" "$RUNTIME/runner.env"
@@ -36,6 +63,10 @@ if [ "$mode" = live ]; then
   RUNNER_IMAGE_DIGEST=$(docker image inspect --format '{{.Id}}' "$project_name-runner:$SOURCE_REVISION")
   export RUNNER_IMAGE_DIGEST
   compose --profile live up -d
+  if ! image_oauth_ready; then
+    echo "Stored Codex credentials exist but the image bridge rejected them. Repairing the project-only login." >&2
+    repair_image_oauth_login
+  fi
 else
   compose build
   project_name=$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' "$ENV_FILE" | tail -1); project_name=${project_name:-slidegenerator}

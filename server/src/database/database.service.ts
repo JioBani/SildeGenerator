@@ -120,11 +120,12 @@ const migrations = [
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS image_model text`,
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS continuity_enabled boolean NOT NULL DEFAULT false`,
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS image_style text NOT NULL DEFAULT 'legacy'`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS motion_style jsonb`,
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS narrative_blueprint jsonb`,
   `DO $$ BEGIN
+    ALTER TABLE generation_jobs DROP CONSTRAINT IF EXISTS generation_jobs_image_style_check;
     ALTER TABLE generation_jobs ADD CONSTRAINT generation_jobs_image_style_check
-      CHECK (image_style IN ('legacy','editorial_illustration','cinematic_realism','graphic_explainer'));
-    EXCEPTION WHEN duplicate_object THEN NULL;
+      CHECK (image_style IN ('legacy','editorial_illustration','cinematic_realism','graphic_explainer','cute_character','fantasy_anime','animation_3d','disney_animation','dystopian'));
   END $$`,
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS video_fps integer NOT NULL DEFAULT 24`,
   `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS voice_concurrency integer NOT NULL DEFAULT 2`,
@@ -336,13 +337,168 @@ const migrations = [
     UNIQUE(job_id,segment_index)
   )`,
   `CREATE INDEX IF NOT EXISTS render_segments_job_idx ON render_segments(job_id,segment_index)`,
+  `CREATE TABLE IF NOT EXISTS video_projects (
+    id uuid PRIMARY KEY,
+    user_id text NOT NULL,
+    title text NOT NULL,
+    status text NOT NULL DEFAULT 'active',
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS episodes (
+    id uuid PRIMARY KEY,
+    project_id uuid NOT NULL REFERENCES video_projects(id) ON DELETE CASCADE,
+    ordinal integer NOT NULL CHECK (ordinal > 0),
+    title text NOT NULL,
+    status text NOT NULL DEFAULT 'production_requested',
+    duration_profile text NOT NULL DEFAULT 'episode_60',
+    target_seconds integer NOT NULL DEFAULT 50,
+    maximum_seconds integer NOT NULL DEFAULT 60,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE(project_id,ordinal)
+  )`,
+  `CREATE TABLE IF NOT EXISTS production_versions (
+    id uuid PRIMARY KEY,
+    episode_id uuid NOT NULL REFERENCES episodes(id) ON DELETE CASCADE,
+    job_id uuid UNIQUE REFERENCES generation_jobs(id) ON DELETE SET NULL,
+    version integer NOT NULL DEFAULT 1 CHECK (version > 0),
+    status text NOT NULL DEFAULT 'queued',
+    scene_plan jsonb NOT NULL DEFAULT '{}'::jsonb,
+    production_pack jsonb NOT NULL DEFAULT '{}'::jsonb,
+    quality_gate_report jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE(episode_id,version)
+  )`,
+  `CREATE TABLE IF NOT EXISTS approvals (
+    id uuid PRIMARY KEY,
+    production_version_id uuid NOT NULL REFERENCES production_versions(id) ON DELETE CASCADE,
+    gate text NOT NULL,
+    status text NOT NULL,
+    evidence jsonb NOT NULL DEFAULT '{}'::jsonb,
+    approved_by text,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS quality_reviews (
+    id uuid PRIMARY KEY,
+    production_version_id uuid NOT NULL REFERENCES production_versions(id) ON DELETE CASCADE,
+    review_type text NOT NULL,
+    status text NOT NULL,
+    findings jsonb NOT NULL DEFAULT '[]'::jsonb,
+    evidence jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS delivery_receipts (
+    id uuid PRIMARY KEY,
+    production_version_id uuid NOT NULL REFERENCES production_versions(id) ON DELETE CASCADE,
+    output_path text NOT NULL,
+    output_sha256 text,
+    duration_ms bigint,
+    validation_status text NOT NULL,
+    manifest jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS director_capability_reviews (
+    id uuid PRIMARY KEY,
+    production_version_id uuid NOT NULL REFERENCES production_versions(id) ON DELETE CASCADE,
+    capability text NOT NULL CHECK (capability IN ('actor_reaction','limited_mesh','grasp_and_retain','interaction_ready','hyperframes_scene','theory_rule')),
+    scope_id text NOT NULL,
+    contract_sha256 char(64) NOT NULL CHECK (contract_sha256 ~ '^[0-9a-f]{64}$'),
+    status text NOT NULL CHECK (status IN ('APPROVED','REVISION_REQUIRED','REJECTED','REVOKED')),
+    reviewer_kind text NOT NULL DEFAULT 'human' CHECK (reviewer_kind='human'),
+    reviewer_id text NOT NULL,
+    evidence jsonb NOT NULL DEFAULT '{}'::jsonb,
+    expires_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS director_knowledge_candidates (
+    id uuid PRIMARY KEY,
+    project_id uuid NOT NULL REFERENCES video_projects(id) ON DELETE CASCADE,
+    kind text NOT NULL CHECK (kind IN ('theory','observed_grammar','director_experience','project_style','user_preference')),
+    status text NOT NULL DEFAULT 'candidate' CHECK (status IN ('candidate','project_approved','rejected')),
+    contract_sha256 char(64) NOT NULL CHECK (contract_sha256 ~ '^[0-9a-f]{64}$'),
+    content jsonb NOT NULL,
+    provenance jsonb NOT NULL,
+    approved_by text,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS project_id uuid REFERENCES video_projects(id)`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS episode_id uuid REFERENCES episodes(id)`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS production_version_id uuid REFERENCES production_versions(id)`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS duration_profile text NOT NULL DEFAULT 'episode_60'`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS aspect_ratio text NOT NULL DEFAULT '16:9' CHECK (aspect_ratio IN ('16:9','9:16'))`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS subtitles_enabled boolean NOT NULL DEFAULT true`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS slide_visual_profile jsonb`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS music_selection jsonb`,
+  `CREATE TABLE IF NOT EXISTS music_uploads (
+    id uuid PRIMARY KEY,
+    user_id text NOT NULL,
+    original_name text NOT NULL,
+    mime_type text NOT NULL,
+    size_bytes integer NOT NULL CHECK (size_bytes > 0 AND size_bytes <= 10485760),
+    sha256 char(64) NOT NULL,
+    storage_path text NOT NULL,
+    deleted_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS music_uploads_user_idx ON music_uploads(user_id,created_at DESC)`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS scenario_input text`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS remake_of_job_id uuid REFERENCES generation_jobs(id)`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS genre_id text`,
+  `ALTER TABLE generation_jobs ADD COLUMN IF NOT EXISTS genre_version text`,
+  `CREATE INDEX IF NOT EXISTS episodes_project_idx ON episodes(project_id,ordinal)`,
+  `CREATE INDEX IF NOT EXISTS production_versions_episode_idx ON production_versions(episode_id,version DESC)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS approvals_version_gate_idx ON approvals(production_version_id,gate)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS quality_reviews_version_type_idx ON quality_reviews(production_version_id,review_type)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS delivery_receipts_version_idx ON delivery_receipts(production_version_id)`,
+  `CREATE INDEX IF NOT EXISTS director_capability_reviews_lookup_idx ON director_capability_reviews(production_version_id,capability,scope_id,created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS director_knowledge_candidates_project_idx ON director_knowledge_candidates(project_id,status,created_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS user_notifications (
+    id bigserial PRIMARY KEY,
+    user_id text NOT NULL,
+    job_id uuid NOT NULL REFERENCES generation_jobs(id) ON DELETE CASCADE,
+    kind text NOT NULL CHECK (kind IN ('completed')),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    read_at timestamptz,
+    UNIQUE(user_id,job_id,kind)
+  )`,
+  `CREATE INDEX IF NOT EXISTS user_notifications_unread_idx ON user_notifications(user_id,read_at,created_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS time_wallets (
+    user_id text PRIMARY KEY,
+    balance_seconds bigint NOT NULL DEFAULT 0 CHECK (balance_seconds >= 0),
+    reserved_seconds bigint NOT NULL DEFAULT 0 CHECK (reserved_seconds >= 0 AND reserved_seconds <= balance_seconds),
+    updated_at timestamptz NOT NULL DEFAULT now()
+  )`,
+  `CREATE TABLE IF NOT EXISTS time_reservations (
+    job_id uuid PRIMARY KEY REFERENCES generation_jobs(id) ON DELETE CASCADE,
+    user_id text NOT NULL REFERENCES time_wallets(user_id),
+    reserved_seconds bigint NOT NULL CHECK (reserved_seconds > 0),
+    charged_seconds bigint NOT NULL DEFAULT 0 CHECK (charged_seconds >= 0),
+    status text NOT NULL CHECK (status IN ('reserved','settled','released')),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    finished_at timestamptz
+  )`,
+  `CREATE TABLE IF NOT EXISTS time_wallet_entries (
+    id bigserial PRIMARY KEY,
+    user_id text NOT NULL REFERENCES time_wallets(user_id),
+    job_id uuid REFERENCES generation_jobs(id),
+    kind text NOT NULL CHECK (kind IN ('grant','settle')),
+    seconds bigint NOT NULL,
+    external_reference text,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE(job_id,kind),
+    UNIQUE(external_reference)
+  )`,
   `UPDATE generation_jobs job SET continuity_enabled=true,updated_at=now()
-    WHERE job.continuity_enabled=false AND EXISTS (
+    WHERE job.continuity_enabled=false AND job.slide_visual_profile IS NULL AND EXISTS (
       SELECT 1 FROM image_tasks task
       WHERE task.job_id=job.id AND (
         task.task_type='continuity_asset' OR jsonb_array_length(task.reference_asset_ids)>0
       )
     )`,
+  `UPDATE generation_jobs SET continuity_enabled=false,updated_at=now()
+    WHERE slide_visual_profile IS NOT NULL AND continuity_enabled=true`,
 ];
 
 type SnapshotRow = {

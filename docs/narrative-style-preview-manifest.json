@@ -1,0 +1,29 @@
+{
+  "version": "style-preview-2026-09-26",
+  "provider": "builtin_imagegen",
+  "calls": 4,
+  "separate_paid_api_calls": 0,
+  "scope": "fictional visual style studies; not historical evidence or rendered film validation",
+  "assets": [
+    {
+      "id": "cinematic",
+      "path": "web/public/style-previews/cinematic-realism-v1.png",
+      "prompt": "Use case: historical-scene. Asset type: 16:9 cinematic slide style preview. An original fictional Antarctic expedition rescue scene, not an archival photograph and not a portrait of a real explorer. A frost-covered expedition leader in a red wool scarf and weathered dark parka, beside a wooden lifeboat on sea ice, looks back at a struggling companion, visibly torn between reaching open water and helping them. Medium-wide shot, clear eye line, both figures and lifeboat readable; storm clouds breaking into low sunlight, natural ice texture, practical early twentieth century equipment. Style: live-action prestige adventure film still, natural skin, photochemical film grain, realistic lens depth; NOT illustration or 3D. No text, logos, watermarks. Full-bleed landscape."
+    },
+    {
+      "id": "3d",
+      "path": "web/public/style-previews/animation-3d-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: 16:9 cinematic slide style preview. Original fictional Antarctic rescue scene: a rugged expedition leader in a red wool scarf and dark parka beside a wooden lifeboat on sea ice, turns back toward a struggling companion instead of departing toward open water. Clear readable medium-wide staging with expressive eyes, anxious brows, gesture and eye line making the choice legible. Style: high quality 3D animated feature, sculpted appealing character forms, dimensional modeled ice and wooden boat, tactile fabric, subtle subsurface shading, soft area lighting, silver clouds and warm sunlight. Clearly rendered animation, not live-action or flat 2D. Original faces and costumes, no franchise characters. Full-bleed landscape, no text, logos, watermark. Fictional style study, not archival evidence."
+    },
+    {
+      "id": "disney",
+      "path": "web/public/style-previews/disney-animation-v1.png",
+      "prompt": "Use case: illustration-story. Asset type: 16:9 cinematic slide style preview. Disney-inspired hand-drawn animation style, entirely original expedition characters. A worried bearded expedition leader with a red wool scarf and dark parka at a wooden lifeboat on Antarctic ice turns back and reaches toward a struggling companion. Make the leader's choice and tenderness readable through eye lines and clear strong silhouettes. Medium-wide full-bleed landscape. Expressive brows and eyes, clean controlled ink contours, hand-painted icy seascape, selective cel shading, blue-white ice with red scarf and soft golden light. Beautiful traditionally drawn animated feature aesthetic, NOT photoreal and NOT glossy 3D. No existing film characters or franchise costumes, no text, studio logos or watermark. Fictional scene, not historical evidence."
+    },
+    {
+      "id": "dystopian",
+      "path": "web/public/style-previews/dystopian-v1.png",
+      "prompt": "Use case: stylized-concept. Asset type: 16:9 cinematic slide style preview. Dystopian film interpretation of an original fictional polar rescue, explicitly not historical evidence: a vulnerable expedition leader in a weathered dark parka and red wool scarf beside an old wooden lifeboat turns back toward a struggling companion. Medium-wide shot: retain readable faces, eye line and outstretched gesture. Beyond them an enormous abandoned concrete polar harbor looms above cracked ice, broken floodlights and a steel barrier define the narrowing escape route. Restrained desaturated gray-green steel, white ice, single red scarf accent. Oppressive industrial scale, worn believable materials, practical low winter light illuminating faces. Cinematic realistic photography, not cartoon, not generic neon cyberpunk, not simply a dark image. Full-bleed landscape. No text, logos, watermark."
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="한 주체의 변화와 결과를 보여주는 모션 디자인 예시">
+  <rect width="640" height="360" fill="#17343c"/>
+  <path d="M0 260Q185 225 290 264T640 245V360H0Z" fill="#32666c"/>
+  <circle cx="496" cy="93" r="52" fill="#ebbc60"/>
+  <path d="M102 271q41-102 105-102 61 0 88 102Z" fill="#ed795e" stroke="#102b32" stroke-width="9"/>
+  <circle cx="201" cy="129" r="56" fill="#f3bd86" stroke="#102b32" stroke-width="9"/>
+  <path d="M153 125q17-77 85-50 22 7 18 56-42-30-103-6Z" fill="#102b32"/>
+  <circle cx="186" cy="139" r="5" fill="#102b32"/><circle cx="222" cy="139" r="5" fill="#102b32"/>
+  <path d="M339 182h89" stroke="#f2d9a3" stroke-width="5" stroke-linecap="round"/>
+  <path d="m416 171 15 11-15 11" fill="none" stroke="#f2d9a3" stroke-width="5"/>
+  <path d="M479 204q34-51 69 0-16 35-69 0Z" fill="#ef8065" stroke="#102b32" stroke-width="6"/>
+  <circle cx="515" cy="204" r="11" fill="#f4c95f"/>
+</svg>

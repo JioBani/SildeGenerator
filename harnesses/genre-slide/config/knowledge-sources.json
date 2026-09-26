@@ -1,0 +1,46 @@
+{
+  "version": "astra-motion-knowledge-sources-1.0",
+  "policy": "Primary sources first. Knowledge changes contracts or benchmarks before it changes production behavior.",
+  "sources": [
+    {
+      "priority": 1,
+      "name": "OpenToonz Plastic",
+      "url": "https://opentoonz.readthedocs.io/en/latest/create_animations_using_plastic_tool.html",
+      "extract": ["mesh density", "angle bounds", "rigidity", "stacking order"],
+      "use": "gold deformation reference",
+      "production_dependency": false
+    },
+    {
+      "priority": 1,
+      "name": "Blender Armature",
+      "url": "https://docs.blender.org/manual/en/latest/modeling/modifiers/deform/armature.html",
+      "extract": ["vertex groups", "bone weights", "preserve volume"],
+      "use": "offline gold actor authoring",
+      "production_dependency": false
+    },
+    {
+      "priority": 1,
+      "name": "Playwright visual comparisons",
+      "url": "https://playwright.dev/docs/test-snapshots",
+      "extract": ["expected actual diff", "stable environment", "diff thresholds"],
+      "use": "baseline candidate review interface",
+      "production_dependency": false
+    },
+    {
+      "priority": 1,
+      "name": "scikit-image metrics",
+      "url": "https://scikit-image.org/docs/stable/api/skimage.metrics.html",
+      "extract": ["SSIM", "Hausdorff", "PSNR", "MSE"],
+      "use": "neutral and silhouette regression evidence",
+      "production_dependency": false
+    },
+    {
+      "priority": 2,
+      "name": "libigl ARAP and SLIM",
+      "url": "https://libigl.github.io/tutorial/",
+      "extract": ["ARAP", "locally injective mapping", "flip prevention"],
+      "use": "solver benchmark only",
+      "production_dependency": false
+    }
+  ]
+}

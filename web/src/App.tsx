@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./app.css";
 import { PromptManager } from "./PromptManager";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
@@ -9,6 +9,7 @@ import { HarnessSettings } from "./HarnessSettings";
 import { ActiveStageTable, StageTimeline } from "./StageTimeline";
 import { CostDiagram } from "./CostDiagram";
 import { estimateNarrationDuration, formatPlaybackDuration } from "./duration-estimate";
+import { VideoPreview } from "./VideoPreview";
 
 type JobStatus = {
   id: string;
@@ -25,6 +26,11 @@ type JobStatus = {
   qualityScore?: number | string | null;
   imageModel?: string | null;
   imageStyle?: string | null;
+  motionStyle?: { id: "narrative" | "educational_info"; version: string; productionRoute?: "local_graphic" } | null;
+  slideVisualProfile?: { id: "local_illustration"; version: string; imageStyle: ImageStyle } | null;
+  musicSelection?: { mode: "none" | "auto" | "upload"; preset?: string } | null;
+  genreId?: string | null;
+  genreVersion?: string | null;
   continuityEnabled?: boolean;
   videoFps?: number;
   voiceConcurrency?: number;
@@ -34,6 +40,13 @@ type JobStatus = {
   narrationSpeed?: number;
   harnessId?: string | null;
   harnessVersion?: string | null;
+  episodeNumber?: number | null;
+  episodeTitle?: string | null;
+  durationProfile?: string | null;
+  aspectRatio?: "16:9" | "9:16";
+  subtitlesEnabled?: boolean;
+  qualityGateStatus?: string | null;
+  reviewStatus?: string | null;
   queuePosition?: number | null;
   jobsAhead?: number | null;
   activeJobs?: number | null;
@@ -43,8 +56,26 @@ type JobStatus = {
   costPerVideoMinuteKrw?: number | string | null;
 };
 
+type MyJob = {
+  id: string;
+  title: string;
+  status: string;
+  currentStage: string | null;
+  progress: number;
+  error: string | null;
+  queuedAt: string;
+  finishedAt: string | null;
+  durationProfile: string;
+  videoDurationMs: number | null;
+  hasThumbnail: boolean;
+};
+type JobNotification = { id: string; jobId: string; title: string; kind: string; createdAt: string };
+type ScriptEstimate = { title: string | null; narrationText: string; narrationChars: number; estimatedSeconds: number; maximumSeconds: number };
+type TimeWallet = { enabled: boolean; balanceSeconds?: number; reservedSeconds?: number; availableSeconds?: number };
+
 type ImageModel = "gpt-image-2" | "gpt-image-2.5-sunburst" | "gpt-image-2.5-flare";
-type ImageStyle = "editorial_illustration" | "cinematic_realism" | "graphic_explainer";
+type ImageStyle = "editorial_illustration" | "cinematic_realism" | "graphic_explainer" | "cute_character" | "fantasy_anime" | "animation_3d" | "disney_animation" | "dystopian";
+type MotionStyleId = "narrative" | "educational_info";
 type HarnessOption = { id: string; version: string; display_name: string; description: string; compatible: boolean; public: boolean };
 
 const IMAGE_MODEL_OPTIONS: Array<{ value: ImageModel; label: string; note: string }> = [
@@ -52,10 +83,18 @@ const IMAGE_MODEL_OPTIONS: Array<{ value: ImageModel; label: string; note: strin
   { value: "gpt-image-2.5-sunburst", label: "GPT Image 2.5 Sunburst", note: "최고 품질 · 기본값" },
   { value: "gpt-image-2.5-flare", label: "GPT Image 2.5 Flare", note: "빠른 2.5" },
 ];
-const IMAGE_STYLE_OPTIONS: Array<{ value: ImageStyle; label: string; note: string }> = [
-  { value: "editorial_illustration", label: "에디토리얼 일러스트", note: "정교한 편집 일러스트와 절제된 상징" },
-  { value: "cinematic_realism", label: "영화적 사실주의", note: "영화 스틸 같은 인물·공간·조명" },
-  { value: "graphic_explainer", label: "그래픽 설명", note: "인과와 구조를 명료한 도형·공간으로 설명" },
+const IMAGE_STYLE_OPTIONS: Array<{ value: ImageStyle; label: string; note: string; preview: string }> = [
+  { value: "cute_character", label: "귀여운 캐릭터", note: "따뜻한 그림책 분위기", preview: "slide-character-original" },
+  { value: "fantasy_anime", label: "판타지 애니메이션", note: "손그림 배경과 셀 채색", preview: "slide-fantasy-original" },
+  { value: "cinematic_realism", label: "실사 영화", note: "사실적인 인물과 영화적 조명", preview: "cinematic-realism-v1" },
+  { value: "animation_3d", label: "3D 애니메이션", note: "입체적인 인물과 촉감 있는 재질", preview: "animation-3d-v1" },
+  { value: "disney_animation", label: "디즈니풍", note: "풍부한 표정과 손그림 애니메이션", preview: "disney-animation-v1" },
+  { value: "dystopian", label: "디스토피아", note: "압도적인 공간과 긴장감 있는 분위기", preview: "dystopian-v1" },
+];
+const CINEMATIC_STYLE_IDS: ImageStyle[] = ["cinematic_realism", "animation_3d", "disney_animation", "dystopian"];
+const MOTION_STYLE_OPTIONS: Array<{ value: MotionStyleId; label: string; note: string; preview: string }> = [
+  { value: "narrative", label: "내러티브형", note: "주체의 변화가 더 큰 맥락과 결과로 이어집니다", preview: "/style-previews/motion-narrative.svg" },
+  { value: "educational_info", label: "교육·정보형", note: "질문과 원리를 도식·단계·비교로 풉니다", preview: "/style-previews/motion-educational.svg" },
 ];
 
 type Dashboard = {
@@ -161,7 +200,7 @@ const STAGE_LABELS: Record<string, string> = {
   video_render: "영상 렌더링",
   asset_generation: "이미지·음성 생성",
   progressive_video_render: "선행 구간 렌더링",
-  segment_render: "FFmpeg 구간 렌더",
+  segment_render: "장면 구간 렌더링",
   video_assembly: "영상 조립",
   deterministic_validation: "결과 검사",
   done: "완료",
@@ -181,6 +220,7 @@ const integer = (value: unknown) => (Number(value) || 0).toLocaleString("ko-KR")
 
 export function App() {
   const [detailJobId] = useState(() => new URLSearchParams(window.location.search).get("adminJob"));
+  const [requestedJobId] = useState(() => new URLSearchParams(window.location.search).get("job"));
   const [tab, setTab] = useState<"create" | "admin">(() => detailJobId ? "admin" : "create");
   const [adminView, setAdminView] = useState<"overview" | "analytics" | "prompts" | "settings">("overview");
   const [overviewSection, setOverviewSection] = useState<"jobs" | "metrics">("jobs");
@@ -189,48 +229,239 @@ export function App() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) ?? "");
   const [scenario, setScenario] = useState("");
   const [imageModel, setImageModel] = useState<ImageModel>("gpt-image-2.5-sunburst");
-  const [imageStyle, setImageStyle] = useState<ImageStyle>("editorial_illustration");
+  const [imageStyle, setImageStyle] = useState<ImageStyle>("cute_character");
+  const [motionStyleId, setMotionStyleId] = useState<MotionStyleId>("narrative");
+  const [localSlideImages, setLocalSlideImages] = useState(false);
+  const [musicMode, setMusicMode] = useState<"none" | "auto" | "upload">("none");
+  const [musicUpload, setMusicUpload] = useState<{ id: string; name: string } | null>(null);
+  const [musicUploadProgress, setMusicUploadProgress] = useState<number | null>(null);
+  const [musicPreviewUrl, setMusicPreviewUrl] = useState<string | null>(null);
   const [continuityEnabled, setContinuityEnabled] = useState(false);
-  const [harnessId, setHarnessId] = useState("classic-slide");
+  const [harnessId, setHarnessId] = useState("astra-motion");
   const [narrationSpeed, setNarrationSpeed] = useState(0.7);
+  const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16">("16:9");
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
   const [harnesses, setHarnesses] = useState<HarnessOption[]>([]);
+  const [optionsReady, setOptionsReady] = useState(false);
+  const [optionsError, setOptionsError] = useState("");
+  const [optionsAttempt, setOptionsAttempt] = useState(0);
+  const [connectionError, setConnectionError] = useState("");
+  const [estimateError, setEstimateError] = useState("");
+  const videoKindLabel = harnessId === "astra-motion" ? "모션그래픽 영상"
+    : harnessId === "hybrid-story" ? "모션·슬라이드 혼합 영상" : "슬라이드 영상";
+  const [productionMode, setProductionMode] = useState<{ imageProvider: string; motionImageProvider?: string; motionProductionAvailable?: boolean; voiceProvider: string; slideV05LocalImages?: boolean; supportedImageModels?: ImageModel[]; imageGenerationPausedUntilUnix?: number } | null>(null);
   const [job, setJob] = useState<JobStatus | null>(null);
+  const selectedJobRequest = useRef(0);
+  const currentToken = useRef(token);
+  currentToken.current = token;
+  const [remaking, setRemaking] = useState(false);
+  const listBackoffUntil = useRef(0);
+  const [myJobs, setMyJobs] = useState<MyJob[]>([]);
+  const [notifications, setNotifications] = useState<JobNotification[]>([]);
   const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [jobs, setJobs] = useState<JobStatus[]>([]);
   const [detail, setDetail] = useState<JobDetail | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const [restorePending, setRestorePending] = useState(true);
+  const [scriptEstimate, setScriptEstimate] = useState<ScriptEstimate | null>(null);
+  const [timeWallet, setTimeWallet] = useState<TimeWallet | null>(null);
+  const forcedLocalSlides = productionMode?.slideV05LocalImages === true && productionMode.imageProvider === "mock";
+  const localGraphics = (harnessId === "astra-motion" ? productionMode?.motionImageProvider ?? productionMode?.imageProvider : productionMode?.imageProvider) === "local_graphic";
+  const supportsLocalIllustrations = imageStyle === "cute_character" || imageStyle === "fantasy_anime";
+  const localIllustrations = harnessId === "classic-slide" && productionMode?.slideV05LocalImages === true && localSlideImages && supportsLocalIllustrations;
+  const imageGenerationPaused = productionMode?.imageProvider === "oauth"
+    && !localIllustrations && !localGraphics
+    && (productionMode.imageGenerationPausedUntilUnix ?? 0) * 1000 > Date.now();
+  useEffect(() => () => { if (musicPreviewUrl) URL.revokeObjectURL(musicPreviewUrl); }, [musicPreviewUrl]);
+  const hasNarrationLabels = /(?:나레이션|내레이션)[*_\s]*[:：]/.test(scenario);
   const durationEstimate = useMemo(() => estimateNarrationDuration(scenario, narrationSpeed), [narrationSpeed, scenario]);
+  const maximumVideoSeconds = ["classic-slide", "cinematic-slide"].includes(harnessId) ? 1800 : 60;
+  const estimatedSeconds = scriptEstimate?.estimatedSeconds ?? (hasNarrationLabels ? null : durationEstimate?.centerSeconds ?? null);
+  const overDurationLimit = estimatedSeconds !== null && estimatedSeconds > maximumVideoSeconds;
+  const estimatedUsageSeconds = estimatedSeconds === null ? null : Math.max(1, Math.ceil(estimatedSeconds));
+  const insufficientTime = timeWallet?.enabled === true && estimatedUsageSeconds !== null && estimatedUsageSeconds > (timeWallet.availableSeconds ?? 0);
+
+  useEffect(() => {
+    setEstimateError("");
+    if (!scenario.trim()) { setScriptEstimate(null); return; }
+    setScriptEstimate(null);
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      void fetch(API_BASE + "/api/jobs/estimate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scenario, narrationSpeed, harnessId }), signal: controller.signal,
+      }).then(async (response) => {
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(String(payload.message ?? "대본을 분석하지 못했습니다. 잠시 후 다시 시도해 주세요."));
+        }
+        const result: unknown = await response.json();
+        if (!result || typeof result !== "object" ||
+            !Number.isFinite((result as ScriptEstimate).estimatedSeconds) ||
+            !Number.isFinite((result as ScriptEstimate).narrationChars)) throw new Error("invalid estimate");
+        if (!controller.signal.aborted) setScriptEstimate(result as ScriptEstimate);
+      }).catch((reason) => { if (!controller.signal.aborted) { setScriptEstimate(null); setEstimateError(reason instanceof Error ? reason.message : "대본 분석 연결이 끊어졌습니다."); } });
+    }, 300);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [scenario, narrationSpeed, harnessId]);
 
   useEffect(() => localStorage.setItem(TOKEN_KEY, token), [token]);
 
-  useEffect(() => { void fetch(API_BASE + "/api/jobs/options/harnesses").then(response => response.ok ? response.json() : []).then(items => setHarnesses(items.filter((item: HarnessOption) => item.compatible && item.public))).catch(() => setHarnesses([])); }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    setOptionsReady(false);
+    setOptionsError("");
+    void Promise.all(["harnesses", "production"].map(async name => {
+      const response = await fetch(API_BASE + `/api/jobs/options/${name}`, { signal: controller.signal });
+      if (!response.ok) throw new Error("제작 설정을 불러오지 못했습니다. 연결을 확인하고 다시 시도해 주세요.");
+      return response.json();
+    })).then(([items, production]) => {
+      if (controller.signal.aborted) return;
+      if (!Array.isArray(items) || !production?.imageProvider || !production?.voiceProvider) throw new Error("제작 설정이 올바르지 않습니다. 다시 불러와 주세요.");
+      const available = items.filter((item: HarnessOption) => item.compatible && item.public && ["astra-motion", "classic-slide", "cinematic-slide", "narrative-slide", "hybrid-story"].includes(item.id))
+        .filter((item: HarnessOption) => production.slideV05LocalImages && production.imageProvider === "mock" ? item.id === "classic-slide" : production.imageProvider !== "local_graphic" || item.id === "astra-motion");
+      if (!available.length) throw new Error("현재 사용 가능한 영상 구성 방식이 없습니다.");
+      setHarnesses(available);
+      setProductionMode(production);
+      setHarnessId(current => available.some((item: HarnessOption) => item.id === current) ? current : available[0].id);
+      setOptionsReady(true);
+    }).catch(reason => { if (!controller.signal.aborted) setOptionsError(reason.message ?? "제작 서비스에 연결할 수 없습니다."); });
+    return () => controller.abort();
+  }, [optionsAttempt]);
+  useEffect(() => {
+    if (productionMode?.supportedImageModels?.length && !productionMode.supportedImageModels.includes(imageModel)) {
+      setImageModel(productionMode.supportedImageModels[0]);
+    }
+  }, [productionMode, imageModel]);
 
   const api = useCallback((url: string, init?: RequestInit, authenticated = true) => {
     const headers = new Headers(init?.headers);
-    if (authenticated && token) headers.set("Authorization", `Bearer ${token}`);
+    if (authenticated && token.trim()) headers.set("Authorization", `Bearer ${token.trim()}`);
     return fetch(API_BASE + url, { ...init, headers });
   }, [token]);
 
+  const refreshMyJobs = useCallback(async () => {
+    if (!token) { setMyJobs([]); setNotifications([]); setTimeWallet(null); return; }
+    if (Date.now() < listBackoffUntil.current) return;
+    const [jobResponse, notificationResponse, walletResponse] = await Promise.all([
+      api('/api/jobs'), api('/api/jobs/notifications'), api('/api/jobs/wallet'),
+    ]);
+    if (currentToken.current !== token) return;
+    if ([jobResponse, notificationResponse, walletResponse].some(response => response.status === 429)) {
+      listBackoffUntil.current = Date.now() + 60_000;
+      setConnectionError("조회 요청이 많아 잠시 후 자동으로 다시 확인합니다. 제작 작업은 계속됩니다.");
+      return;
+    }
+    if (jobResponse.status === 401 || jobResponse.status === 403) {
+      setMyJobs([]); setNotifications([]); setTimeWallet(null);
+      setConnectionError("접근 토큰이 거부되었습니다. 올바른 토큰인지 확인해 주세요.");
+      return;
+    }
+    if (jobResponse.ok) setConnectionError("");
+    if (jobResponse.ok) setMyJobs(await jobResponse.json());
+    if (notificationResponse.ok) setNotifications(await notificationResponse.json());
+    if (walletResponse.ok) setTimeWallet(await walletResponse.json());
+  }, [api, token]);
+
+  useEffect(() => {
+    const refreshVisible = () => { if (document.visibilityState === "visible") void refreshMyJobs().catch(() => undefined); };
+    refreshVisible();
+    if (!token) return;
+    const timer = window.setInterval(refreshVisible, 30_000);
+    document.addEventListener("visibilitychange", refreshVisible);
+    return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", refreshVisible); };
+  }, [refreshMyJobs, token]);
+
+  async function selectMyJob(id: string) {
+    const request = ++selectedJobRequest.current;
+    setError("");
+    try {
+      const response = await api(`/api/jobs/${id}`);
+      if (!response.ok) throw new Error('작업을 불러오지 못했습니다. 접근 토큰과 연결을 확인해 주세요.');
+      const selected = await response.json();
+      if (request !== selectedJobRequest.current || currentToken.current !== token) return;
+      localStorage.setItem(RECENT_JOB_KEY, id);
+      setJob(selected);
+    } catch { if (request === selectedJobRequest.current) setError('작업을 불러오지 못했습니다. 다시 선택해 주세요.'); }
+  }
+
+  async function openNotification(notification: JobNotification) {
+    await selectMyJob(notification.jobId);
+    await api(`/api/jobs/notifications/${notification.id}/read`, { method: 'POST' });
+    setNotifications((items) => items.filter((item) => item.id !== notification.id));
+  }
+
   useEffect(() => {
     if (!restorePending || !token || job) return;
-    const id = localStorage.getItem(RECENT_JOB_KEY);
+    let active = true;
+    const id = requestedJobId ?? localStorage.getItem(RECENT_JOB_KEY);
     if (!id) { setRestorePending(false); return; }
     void api(`/api/jobs/${id}`).then(async (response) => {
-      if (response.ok) setJob(await response.json());
-      else if ([401, 404, 410].includes(response.status)) localStorage.removeItem(RECENT_JOB_KEY);
-    }).finally(() => setRestorePending(false));
-  }, [api, job, restorePending, token]);
+      const result = response.ok ? await response.json() : null;
+      if (!active) return;
+      if (result) setJob(result);
+      else if ([404, 410].includes(response.status)) localStorage.removeItem(RECENT_JOB_KEY);
+    }).catch(() => { if (active) setError("이전 작업을 불러오지 못했습니다. 작업 목록에서 다시 선택해 주세요."); }).finally(() => { if (active) setRestorePending(false); });
+    return () => { active = false; };
+  }, [api, job, requestedJobId, restorePending, token]);
 
   useEffect(() => {
     if (!job || ["completed", "failed"].includes(job.status)) return;
-    const timer = window.setTimeout(async () => {
-      const response = await api(`/api/jobs/${job.id}`);
-      if (response.ok) setJob(await response.json());
-    }, 2_000);
-    return () => window.clearTimeout(timer);
-  }, [api, job]);
+    let cancelled = false;
+    let timer: number;
+    const poll = async () => {
+      let nextPoll = 5_000;
+      try {
+        if (document.visibilityState !== "visible") return;
+        const response = await api(`/api/jobs/${job.id}`);
+        if (response.status === 429) nextPoll = 60_000;
+        if (response.ok) {
+          const updated = await response.json();
+          if (!cancelled) { setJob(updated); setConnectionError(""); }
+        }
+        else if (!cancelled) setConnectionError(response.status === 401 || response.status === 403 ? "접근 토큰을 확인해 주세요. 제작 상태를 조회할 수 없습니다." : "제작 상태 연결이 끊어졌습니다. 자동으로 다시 확인합니다.");
+      } catch {
+        if (!cancelled) setConnectionError("제작 상태 연결이 끊어졌습니다. 자동으로 다시 확인합니다.");
+      } finally {
+        if (!cancelled) timer = window.setTimeout(poll, nextPoll);
+      }
+    };
+    timer = window.setTimeout(poll, 2_000);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [api, job?.id, job?.status]);
+
+  useEffect(() => {
+    if (!job || !job.slideVisualProfile || !productionMode?.slideV05LocalImages ||
+        ["completed", "failed"].includes(job.status)) return;
+    const controller = new AbortController();
+    const id = job.id;
+    void (async () => {
+      const response = await api(`/api/jobs/${id}/events`, {
+        headers: { Accept: "text/event-stream" }, signal: controller.signal,
+      });
+      if (!response.ok || !response.body) return;
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let pending = "";
+      while (!controller.signal.aborted) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        pending += decoder.decode(value, { stream: true });
+        const events = pending.split("\n\n");
+        pending = events.pop() ?? "";
+        for (const event of events) {
+          const data = event.split("\n").filter((line) => line.startsWith("data:")).map((line) => line.slice(5).trim()).join("\n");
+          if (!data) continue;
+          const updated = JSON.parse(data) as JobStatus;
+          if (updated.id === id && !controller.signal.aborted) setJob(updated);
+        }
+      }
+    })().catch(() => { /* Existing polling recovers from SSE failures. */ });
+    return () => controller.abort();
+  }, [api, job?.id, job?.status, job?.slideVisualProfile?.version, productionMode?.slideV05LocalImages]);
 
   const refreshAdmin = useCallback(async () => {
     setAdminLoading(true);
@@ -265,27 +496,117 @@ export function App() {
 
   async function submit() {
     setError("");
-    const response = await api("/api/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scenario, imageModel, imageStyle, continuityEnabled, harnessId, narrationSpeed }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      setError(payload.message ?? payload.error ?? response.statusText);
+    const invalid = !scenario.trim() ? ["대본을 입력해 주세요.", "scenario"]
+      : !token.trim() ? ["접근 토큰을 입력해 주세요.", "token"]
+      : !optionsReady ? [optionsError || "제작 설정을 불러오는 중입니다. 잠시 후 다시 눌러 주세요.", "creative-harness"]
+      : !harnesses.some(item => item.id === harnessId) ? ["사용 가능한 영상 구성 방식을 선택해 주세요.", "creative-harness"]
+      : estimateError ? [estimateError, "scenario"]
+      : !scriptEstimate ? ["읽을 문장을 분석하는 중입니다. 잠시 후 다시 눌러 주세요.", "scenario"]
+      : overDurationLimit ? [`예상 길이가 ${formatPlaybackDuration(maximumVideoSeconds)}를 넘습니다. 대본을 줄이거나 나레이션 속도를 높여 주세요.`, "narration-speed"]
+      : insufficientTime ? ["제작 가능 시간이 부족합니다. 이용 가능 시간을 확인해 주세요.", "narration-speed"]
+      : imageGenerationPaused ? [`구독 이미지 생성 한도에 도달했습니다. ${new Date((productionMode?.imageGenerationPausedUntilUnix ?? 0) * 1000).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })} 이후 다시 시도해 주세요.`, "creative-harness"]
+      : harnessId === "astra-motion" && productionMode?.motionProductionAvailable === false ? ["이 시험 환경에서는 모션 장면 설계가 비활성화되어 있습니다. 실제 모션 제작에는 감독 설계 연결이 필요합니다.", "creative-harness"]
+      : forcedLocalSlides && harnessId === "classic-slide" && !localIllustrations ? ["이 시험 사이트에는 AI 장면 이미지가 연결되지 않았습니다. 로컬 도형 삽화 시험 옵션을 선택해야 제작할 수 있습니다.", "local-slide-images"]
+      : harnessId === "classic-slide" && musicMode === "upload" && !musicUpload ? ["배경음악 파일을 먼저 올려 주세요.", "music-file"] : null;
+    if (invalid) {
+      setFormError(invalid[0]);
+      document.getElementById(invalid[1])?.focus();
       return;
     }
+    setFormError("");
+    setSubmitting(true);
+    try {
+      const response = await api("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scenario, ...(localGraphics || localIllustrations ? {} : { imageModel }), ...(harnessId === "astra-motion" ? { motionStyleId } : { imageStyle }), ...(localIllustrations ? { sceneVisualMode: "local_illustration" } : {}), ...(harnessId === "classic-slide" && productionMode?.slideV05LocalImages ? { musicMode, ...(musicMode === "upload" ? { musicUploadId: musicUpload?.id } : {}) } : {}), continuityEnabled: localGraphics || localIllustrations ? false : continuityEnabled, harnessId, narrationSpeed, aspectRatio, subtitlesEnabled }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setFormError(response.status === 401 ? "접근 토큰이 거부되었습니다. 올바른 토큰인지 확인해 주세요." : String(payload.message ?? payload.error ?? response.statusText));
+        if (response.status === 401) document.getElementById("token")?.focus();
+        return;
+      }
+      localStorage.setItem(RECENT_JOB_KEY, payload.id);
+      setJob({ ...payload, queuePosition: null, jobsAhead: null });
+      void refreshMyJobs();
+    } catch {
+      setFormError("제작 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function uploadMusic(file: File) {
+    setFormError("");
+    setMusicUploadProgress(0);
+    if (!token.trim()) {
+      setFormError("배경음악을 올리려면 접근 토큰을 먼저 입력해 주세요.");
+      document.getElementById("token")?.focus();
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setFormError("배경음악 파일은 10MB 이하만 올릴 수 있습니다.");
+      return;
+    }
+    const form = new FormData();
+    form.append("file", file);
+    const request = new XMLHttpRequest();
+    request.open("POST", API_BASE + "/api/jobs/music");
+    request.setRequestHeader("Authorization", `Bearer ${token}`);
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) setMusicUploadProgress(Math.round(event.loaded / event.total * 100));
+    };
+    request.onload = () => {
+      setMusicUploadProgress(null);
+      let payload: { id?: string; name?: string; message?: string } = {};
+      try { payload = JSON.parse(request.responseText || "{}"); } catch { /* Proxy errors may be HTML. */ }
+      if (request.status >= 200 && request.status < 300 && payload.id && payload.name) {
+        setMusicUpload({ id: payload.id, name: payload.name });
+        setMusicMode("upload");
+      } else setFormError(payload.message || "배경음악 업로드에 실패했습니다.");
+    };
+    request.onerror = () => { setMusicUploadProgress(null); setFormError("배경음악 업로드 중 연결이 끊어졌습니다."); };
+    request.send(form);
+  }
+
+  async function previewMusic() {
+    if (!musicUpload) return;
+    const response = await api(`/api/jobs/music/${musicUpload.id}`);
+    if (!response.ok) { setFormError("배경음악을 불러오지 못했습니다."); return; }
+    setMusicPreviewUrl(URL.createObjectURL(await response.blob()));
+  }
+
+  async function removeMusic() {
+    if (!musicUpload) return;
+    const response = await api(`/api/jobs/music/${musicUpload.id}`, { method: "DELETE" });
+    if (!response.ok) { setFormError("배경음악을 삭제하지 못했습니다."); return; }
+    setMusicUpload(null);
+    setMusicMode("none");
+    setMusicPreviewUrl(null);
+  }
+
+  async function remake() {
+    if (!job || remaking) return;
+    setError("");
+    setRemaking(true);
+    try {
+    const response = await api(`/api/jobs/${job.id}/remake`, { method: "POST" });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) { setError(payload.message ?? "다시 만들기를 시작하지 못했습니다."); return; }
     localStorage.setItem(RECENT_JOB_KEY, payload.id);
-    // The worker can claim the first job immediately after POST, making the
-    // creation-time position stale before it is painted. Show the explicit
-    // checking state until the first authoritative 2-second status poll.
     setJob({ ...payload, queuePosition: null, jobsAhead: null });
+    void refreshMyJobs();
+    } catch { setError("다시 만들기 서비스에 연결할 수 없습니다. 잠시 후 다시 시도해 주세요."); }
+    finally { setRemaking(false); }
   }
 
   async function downloadJob(id: string) {
+    try {
     const response = await api(`/api/jobs/${id}/video`);
     if (!response.ok) return setError("완성 영상을 내려받지 못했습니다. 이 작업을 만든 접근 토큰인지 확인해 주세요.");
     await saveVideo(response, id);
+    } catch { setError("영상 다운로드 연결이 끊어졌습니다. 다시 시도해 주세요."); }
   }
 
   async function downloadAdminJob(id: string) {
@@ -298,11 +619,24 @@ export function App() {
     const url = URL.createObjectURL(await response.blob());
     const anchor = Object.assign(document.createElement("a"), { href: url, download: `slide-${id}.mp4` });
     anchor.click();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
   }
 
   async function download() {
     if (job) await downloadJob(job.id);
+  }
+
+  async function review(verdict: "APPROVED" | "REVISION_REQUIRED") {
+    if (!job) return;
+    setError("");
+    const response = await api(`/api/jobs/${job.id}/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ verdict }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) return setError(payload.message ?? "검수 결과를 저장하지 못했습니다.");
+    setJob({ ...job, reviewStatus: payload.reviewStatus });
   }
 
   function openDetailInNewTab(id: string) {
@@ -325,49 +659,97 @@ export function App() {
 
       {tab === "create" ? (
         <main className="page create-page">
+          {notifications.length > 0 && <div className="completion-notice" role="status">
+            <strong>영상이 완성됐습니다</strong>
+            {notifications.map((item) => <button key={item.id} type="button" onClick={() => void openNotification(item)}>{item.title} 확인</button>)}
+          </div>}
           <section className="hero">
-            <p className="eyebrow">NARRATED SLIDE VIDEO</p>
-            <h1>대본 하나로 완성하는<br />슬라이드 영상</h1>
+            <p className="eyebrow">NARRATED VIDEO</p>
+            <h1>대본 하나로 완성하는<br />{videoKindLabel}</h1>
             <p>장면 구성, 이미지, 한국어 음성, 자막과 전환 효과를 자동으로 만듭니다.</p>
           </section>
 
           <section className="panel composer">
             <label htmlFor="token">접근 토큰</label>
             <input id="token" type="password" autoComplete="off" placeholder="관리자가 발급한 토큰" value={token} onChange={(event) => setToken(event.target.value)} />
+            {connectionError && <p className="error" role="status">{connectionError}</p>}
             <div className="label-row"><label htmlFor="scenario">영상 대본</label><span>{scenario.length.toLocaleString()} / 20,000자</span></div>
             <textarea id="scenario" rows={13} maxLength={20_000} placeholder="영상에서 읽을 한국어 대본을 붙여넣으세요." value={scenario} onChange={(event) => setScenario(event.target.value)} />
+            {estimateError && <p className="error" role="alert">{estimateError}</p>}
             {durationEstimate && <div className="duration-estimate">
-              <strong aria-live="polite">예상 영상 길이 약 {formatPlaybackDuration(durationEstimate.centerSeconds)}</strong>
-              <span>말하기 속도와 문장부호에 따라 약 {formatPlaybackDuration(durationEstimate.minSeconds)}~{formatPlaybackDuration(durationEstimate.maxSeconds)}</span>
-              <small>현재 한국어 음성과 선택한 {narrationSpeed.toFixed(2)}배 속도 기준의 완성 영상 재생시간이며, 생성 소요시간이 아닙니다.</small>
+              <strong aria-live="polite">{estimatedSeconds === null ? "읽을 문장 분석 중" : `예상 영상 길이 약 ${formatPlaybackDuration(estimatedSeconds)}`}</strong>
+              {scriptEstimate ? <span>읽을 문장 {scriptEstimate.narrationChars.toLocaleString()}자 기준</span> : !hasNarrationLabels && <span>말하기 속도와 문장부호에 따라 약 {formatPlaybackDuration(durationEstimate.minSeconds)}~{formatPlaybackDuration(durationEstimate.maxSeconds)}</span>}
+              <small>선택한 {narrationSpeed.toFixed(2)}배 속도 기준의 완성 영상 길이이며, 생성 소요시간이 아닙니다.</small>
+              {overDurationLimit && <small role="alert">최대 {formatPlaybackDuration(maximumVideoSeconds)}를 넘습니다. 대본을 줄이거나 나레이션 속도를 높여 주세요.</small>}
+              {timeWallet?.enabled && estimatedUsageSeconds !== null && <small>예상 사용 {formatPlaybackDuration(estimatedUsageSeconds)} · 제작 가능 {formatPlaybackDuration(timeWallet.availableSeconds ?? 0)}</small>}
+              {insufficientTime && <small role="alert">제작 가능 시간이 부족합니다.</small>}
             </div>}
+            {scriptEstimate?.narrationText && <details className="narration-preview">
+              <summary>음성 대본 미리보기</summary>
+              <p>{scriptEstimate.narrationText}</p>
+            </details>}
             <div className="model-picker">
               <div className="narration-speed-control">
                 <div className="label-row"><label htmlFor="narration-speed">나레이션 속도</label><strong>{narrationSpeed.toFixed(2)}배</strong></div>
                 <input id="narration-speed" type="range" min="0.7" max="1.2" step="0.05" value={narrationSpeed} aria-valuetext={`${narrationSpeed.toFixed(2)}배`} onChange={(event) => setNarrationSpeed(Number(event.target.value))} />
                 <div className="speed-scale" aria-hidden="true"><span>0.70배</span><span>0.85배</span><span>1.00배</span><span>1.20배</span></div>
               </div>
-              <label htmlFor="image-model">이미지 모델</label>
-              <select id="image-model" value={imageModel} onChange={(event) => setImageModel(event.target.value as ImageModel)}>
-                {IMAGE_MODEL_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label} — {option.note}</option>)}
+              {localGraphics || localIllustrations ? <p className="production-mode">제작 방식: {localGraphics ? "로컬 그래픽" : "로컬 도형 삽화 시험판"} · 한국어 음성 · 별도 이미지 API 호출 없음</p> : forcedLocalSlides && harnessId === "classic-slide" ? <p className="production-mode" role="status">이 시험 사이트에는 AI 장면 이미지가 연결되지 않았습니다. 아래 로컬 삽화 시험 옵션을 선택해야 제작할 수 있습니다.</p> : <>
+                <label htmlFor="image-model">이미지 모델</label>
+                <select id="image-model" value={imageModel} onChange={(event) => setImageModel(event.target.value as ImageModel)}>
+                  {IMAGE_MODEL_OPTIONS.filter((option) => !productionMode?.supportedImageModels || productionMode.supportedImageModels.includes(option.value)).map((option) => <option key={option.value} value={option.value}>{option.label} — {productionMode?.imageProvider === "oauth" ? "구독 이미지 연결" : option.note}</option>)}
+                </select>
+              </>}
+              {imageGenerationPaused && <p className="production-mode" role="status">구독 이미지 생성 한도에 도달했습니다. {new Date((productionMode?.imageGenerationPausedUntilUnix ?? 0) * 1000).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })} 이후 다시 시도해 주세요.</p>}
+              <label htmlFor="creative-harness">영상 구성 방식</label>
+              {optionsError && <div><p className="error" role="alert">{optionsError}</p><button type="button" className="secondary" onClick={() => setOptionsAttempt(value => value + 1)}>제작 설정 다시 불러오기</button></div>}
+              <select id="creative-harness" disabled={!optionsReady} value={harnessId} onChange={(event) => setHarnessId(event.target.value)}>
+                {!optionsReady && <option value={harnessId}>{optionsError ? "제작 설정 연결 실패" : "제작 설정 확인 중"}</option>}
+                {optionsReady && harnesses.map(option => <option key={option.id} value={option.id}>{option.display_name} · {option.version}</option>)}
               </select>
-              <label htmlFor="image-style">이미지 스타일</label>
-              <select id="image-style" value={imageStyle} onChange={(event) => setImageStyle(event.target.value as ImageStyle)}>
-                {IMAGE_STYLE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label} · {option.note}</option>)}
-              </select>
-              <label htmlFor="creative-harness">영상 연출 Harness</label>
-              <select id="creative-harness" value={harnessId} onChange={(event) => setHarnessId(event.target.value)}>
-                {(harnesses.length ? harnesses : [{ id: "classic-slide", version: "1.0.0", display_name: "기본 슬라이드 연출", description: "", compatible: true, public: true }]).map(option => <option key={option.id} value={option.id}>{option.display_name} · {option.version}</option>)}
-              </select>
-              <label className="continuity-toggle">
+              <fieldset className="style-options"><legend>영상 스타일</legend>
+                {harnessId === "astra-motion" && MOTION_STYLE_OPTIONS.map((option) => <button key={option.value} type="button" className={motionStyleId === option.value ? "style-choice selected" : "style-choice"} aria-pressed={motionStyleId === option.value} onClick={() => setMotionStyleId(option.value)}>
+                  <img src={option.preview} alt="" width="640" height="360" />
+                  <strong>{option.label}</strong><small>{option.note}</small>
+                </button>)}
+                {IMAGE_STYLE_OPTIONS.filter((option) => harnessId === "astra-motion" ? harnesses.some(item => item.id === "classic-slide") && !forcedLocalSlides && CINEMATIC_STYLE_IDS.includes(option.value) : !forcedLocalSlides || option.value === "cute_character" || option.value === "fantasy_anime").map((option) => <button key={option.value} type="button" className={harnessId !== "astra-motion" && imageStyle === option.value ? "style-choice selected" : "style-choice"} aria-pressed={harnessId !== "astra-motion" && imageStyle === option.value} onClick={() => { if (harnessId === "astra-motion") setHarnessId("classic-slide"); setImageStyle(option.value); setLocalSlideImages(false); }}>
+                  <img src={`/style-previews/${option.preview}.png`}
+                    alt="" width="1280" height="720" />
+                  <strong>{option.label}</strong><small>{option.note}{harnessId === "astra-motion" ? " · 슬라이드 연출" : ""}</small>
+                </button>)}
+              </fieldset>
+              {harnessId === "classic-slide" && productionMode?.slideV05LocalImages && supportsLocalIllustrations && <label className="continuity-toggle">
+                <input id="local-slide-images" type="checkbox" checked={localIllustrations} onChange={(event) => setLocalSlideImages(event.target.checked)} />
+                <span><strong>로컬 도형 삽화 · 시험판</strong><small>대표 이미지는 화풍 참고용입니다. 이 옵션의 실제 영상은 간단한 도형 삽화이며 대표 이미지의 품질이나 화풍을 재현하지 않습니다.</small></span>
+              </label>}
+              {harnessId === "classic-slide" && productionMode?.slideV05LocalImages && <div className="music-controls">
+                <label htmlFor="music-mode">배경음악</label>
+                <select id="music-mode" value={musicMode} onChange={(event) => setMusicMode(event.target.value as "none" | "auto" | "upload")}>
+                  <option value="none">없음</option><option value="auto">자동 음악</option><option value="upload">내 파일 사용</option>
+                </select>
+                {musicMode === "upload" && <>
+                  <label htmlFor="music-file">음악 파일 · MP3, WAV, M4A, OGG · 최대 10MB</label>
+                  <input id="music-file" type="file" accept="audio/mpeg,audio/wav,audio/mp4,audio/ogg,.mp3,.wav,.m4a,.ogg" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadMusic(file); }} />
+                  {musicUploadProgress !== null && <progress aria-label="배경음악 업로드" value={musicUploadProgress} max={100} />}
+                  {musicUpload && <div className="music-upload-actions"><span>{musicUpload.name}</span><button type="button" className="secondary" onClick={() => void previewMusic()}>미리듣기</button><button type="button" className="secondary" onClick={() => void removeMusic()}>삭제</button></div>}
+                  {musicPreviewUrl && <audio controls src={musicPreviewUrl} />}
+                </>}
+              </div>}
+              <fieldset className="aspect-options"><legend>화면 비율</legend>
+                <label><input type="radio" name="aspect-ratio" checked={aspectRatio === "16:9"} onChange={() => setAspectRatio("16:9")} /> 가로 16:9</label>
+                <label><input type="radio" name="aspect-ratio" checked={aspectRatio === "9:16"} onChange={() => setAspectRatio("9:16")} /> 세로 9:16</label>
+              </fieldset>
+              <label className="continuity-toggle"><input type="checkbox" checked={subtitlesEnabled} onChange={(event) => setSubtitlesEnabled(event.target.checked)} /><span><strong>자막 포함</strong></span></label>
+              {!localGraphics && !localIllustrations && <label className="continuity-toggle">
                 <input type="checkbox" checked={continuityEnabled} onChange={(event) => setContinuityEnabled(event.target.checked)} />
                 <span><strong>이미지 연속성 유지</strong><small>영상에 등장하는 주요 등장인물과 요소의 이미지를 일관되게 유지되도록 합니다. 추가 비용이 소모되고, 영상 생성시간이 늘어납니다.</small></span>
-              </label>
+              </label>}
             </div>
-            <div className="composer-footer">
-              <div className="auto-features"><span>자동 장면 분할</span><span>자동 길이 조절</span><span>Ken Burns + 크로스페이드</span></div>
-              <button className="primary" onClick={submit} disabled={!scenario.trim() || !token || Boolean(job && !["completed", "failed"].includes(job.status))}>영상 만들기</button>
+              <div className="composer-footer">
+              <div className="auto-features"><span>영상 한 편 최대 {formatPlaybackDuration(maximumVideoSeconds)}</span><span>자동 장면 설계</span><span>{videoKindLabel}</span></div>
+              <button className="primary" onClick={() => void submit()} disabled={submitting}>{submitting ? "접수 중" : "영상 만들기"}</button>
             </div>
+            {formError && <p className="error" role="alert">{formError}</p>}
           </section>
 
           {error && <p className="error" role="alert">{error}</p>}
@@ -383,15 +765,39 @@ export function App() {
                 {job.activeJobs !== null && job.activeJobs !== undefined && <span>현재 영상 {job.activeJobs}개 생성 중</span>}
               </div>}
               {job.status === "running" && <p className="queue-copy"><strong>생성 중 · 현재 작업을 처리하고 있습니다</strong></p>}
-              {job.imageModel && <p className="job-model">이미지 모델: <strong>{job.imageModel}</strong></p>}
-              {job.imageStyle && <p className="job-model">이미지 스타일: <strong>{IMAGE_STYLE_OPTIONS.find((option) => option.value === job.imageStyle)?.label ?? job.imageStyle}</strong></p>}
+              {job.imageModel && !job.slideVisualProfile && job.motionStyle?.productionRoute !== "local_graphic" && productionMode?.imageProvider !== "local_graphic" && <p className="job-model">이미지 모델: <strong>{job.imageModel}</strong></p>}
+              {job.motionStyle ? <p className="job-model">영상 스타일: <strong>{MOTION_STYLE_OPTIONS.find((option) => option.value === job.motionStyle?.id)?.label ?? job.motionStyle.id} · {job.motionStyle.version}</strong></p> : job.imageStyle && <p className="job-model">이미지 스타일: <strong>{IMAGE_STYLE_OPTIONS.find((option) => option.value === job.imageStyle)?.label ?? job.imageStyle}</strong></p>}
+              {job.slideVisualProfile && <p className="job-model">장면 이미지: <strong>로컬 삽화 · {job.slideVisualProfile.version}</strong></p>}
+              {job.musicSelection && job.musicSelection.mode !== "none" && <p className="job-model">배경음악: <strong>{job.musicSelection.mode === "auto" ? "자동 음악" : "업로드 파일"}</strong></p>}
               {job.harnessId && <p className="job-model">영상 연출: <strong>{job.harnessId}@{job.harnessVersion ?? "-"}</strong></p>}
+              {job.episodeNumber && <p className="job-model">{job.durationProfile === "single_30m" ? "영상" : `에피소드 ${job.episodeNumber}`}: <strong>{job.episodeTitle ?? "제작 중"}</strong> · 최대 {job.durationProfile === "single_30m" ? "30분" : "60초"}</p>}
               {job.narrationSpeed && <p className="job-model">나레이션 속도: <strong>{Number(job.narrationSpeed).toFixed(2)}배</strong></p>}
+              <p className="job-model">화면: <strong>{job.aspectRatio ?? "16:9"}</strong> · 자막: <strong>{job.subtitlesEnabled === false ? "없음" : "포함"}</strong></p>
               <p className="job-model">이미지 연속성: <strong>{job.continuityEnabled ? "ON" : "OFF"}</strong>{job.videoFps ? ` · ${job.videoFps}fps` : ""}</p>
               {job.error && <p className="error">{job.error}</p>}
-              {job.status === "completed" && <button className="primary" onClick={download}>MP4 내려받기</button>}
+              {job.status === "failed" && <button type="button" className="secondary" disabled={remaking} onClick={() => void remake()}>{remaking ? "접수 중" : "같은 설정으로 다시 만들기"}</button>}
+              {job.status === "completed" && job.qualityGateStatus && <p className="job-model"><strong>{job.qualityGateStatus === "TECHNICAL_PASS_HUMAN_PENDING" ? "기술 검수 통과 · 디자인 검수 대기" : job.qualityGateStatus}</strong></p>}
+              {job.status === "completed" && <VideoPreview key={`${job.id}:${token}`} jobId={job.id} api={api} />}
+              {job.status === "completed" && <div className="result-actions">
+                <button className="primary" onClick={download}>영상 받기</button>
+                <button className="secondary" disabled={remaking} onClick={() => void remake()}>{remaking ? "접수 중" : "다시 만들기"}</button>
+                {job.reviewStatus === "approved" ? <span className="review-result approved">승인됨</span> : job.reviewStatus === "revision_required" ? <span className="review-result revision">수정 필요</span> : <>
+                  <button className="secondary" onClick={() => review("APPROVED")}>이 결과 승인</button>
+                  <button className="secondary danger" onClick={() => review("REVISION_REQUIRED")}>수정 필요</button>
+                </>}
+              </div>}
             </section>
           )}
+          {token && <section className="my-jobs" aria-labelledby="my-jobs-title">
+            <div className="section-title"><h2 id="my-jobs-title">내 작업</h2><button type="button" className="secondary" onClick={() => void refreshMyJobs().catch(() => setConnectionError("작업 목록을 불러오지 못했습니다. 연결을 확인해 주세요."))}>새로고침</button></div>
+            {myJobs.length === 0 ? <p>아직 만든 영상이 없습니다.</p> : <div className="my-jobs-list">
+              {myJobs.map((item) => <button className="my-job-row" key={item.id} type="button" onClick={() => void selectMyJob(item.id)} aria-current={job?.id === item.id ? 'true' : undefined}>
+                <JobThumbnail api={api} id={item.id} available={item.hasThumbnail} />
+                <span className="my-job-text"><strong>{item.title}</strong><small>{new Date(item.queuedAt).toLocaleDateString('ko-KR')} · {item.videoDurationMs ? formatPlaybackDuration(Math.round(item.videoDurationMs / 1000)) : stageLabel(item.currentStage ?? undefined)}</small></span>
+                <span className="my-job-status">{statusLabel(item.status)}{item.status === 'running' ? ` ${item.progress}%` : ''}</span>
+              </button>)}
+            </div>}
+          </section>}
         </main>
       ) : (
         <main className="page admin-page">
@@ -563,6 +969,37 @@ const usageEffort = (entry: Record<string, unknown>) => {
 
 function DetailMetric({ label, value, note }: { label: string; value: string; note: string }) {
   return <article><span>{label}</span><strong>{value}</strong><small>{note}</small></article>;
+}
+
+function JobThumbnail({ api, id, available }: {
+  api: (url: string, init?: RequestInit, authenticated?: boolean) => Promise<Response>;
+  id: string;
+  available: boolean;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const element = useRef<HTMLSpanElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) { setVisible(true); observer.disconnect(); }
+    }, { rootMargin: "100px" });
+    if (element.current) observer.observe(element.current);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    if (!available || !visible) return;
+    let active = true;
+    let objectUrl: string | null = null;
+    void api(`/api/jobs/${id}/thumbnail`).then(async (response) => {
+      if (!response.ok) return;
+      const blob = await response.blob();
+      if (!active) return;
+      objectUrl = URL.createObjectURL(blob);
+      setUrl(objectUrl);
+    }).catch(() => undefined);
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [api, id, available, visible]);
+  return <span ref={element} className="my-job-thumb">{url ? <img src={url} alt="" /> : '영상'}</span>;
 }
 
 function QualityEditor({ api, detail, onSaved }: { api: (url: string, init?: RequestInit, authenticated?: boolean) => Promise<Response>; detail: JobDetail; onSaved: (score: number, note: string | null) => void }) {

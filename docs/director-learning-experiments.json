@@ -1,0 +1,23 @@
+{
+  "experiments": [{
+    "id": "transport-gpu-contract-v1",
+    "hypothesis": "A source-derived temporal transport principle can execute through a compiler on new GPU tokens, without copying source artwork or coordinates.",
+    "candidate": {"path": ".runtime/reference-study/transport-lab-gpu-v1/study.mp4", "sha256": "104f7ca0da974de0bb16919bd0674ac5b0e77bf4c03be8a4eaaf8a7b59b762a5"},
+    "best_version": null,
+    "checks": [
+      {"id":"position-and-reverse-seek","field":"pass","op":"eq","expected":true,"evidence":{"path":".runtime/reference-study/transport-lab-gpu-v1/contract-review.json","sha256":"dedeeaa22ac524288b84e2b0555da9a62c901fc22d1d66da3deeb3f8949d8c98"}},
+      {"id":"quarter-pixel-position-bound","field":"maxErrorPixels","op":"lte","expected":0.25,"evidence":{"path":".runtime/reference-study/transport-lab-gpu-v1/contract-review.json","sha256":"dedeeaa22ac524288b84e2b0555da9a62c901fc22d1d66da3deeb3f8949d8c98"}}
+    ],
+    "quality_questions": {
+      "meaning": "Can a viewer distinguish inputs, processing and outputs rather than just six moving boxes?",
+      "design": "Does the design match the approved GPU art direction rather than the inherited generic template?",
+      "layout": "Are labels, tokens and explanation readable together without overlap?",
+      "motion": "Does accurate motion communicate computation, not merely movement?",
+      "transition": "Does context survive entering and leaving this scene?",
+      "rhythm": "Are the important states held long enough to read with narration?",
+      "audio": "Does the unchanged user narration align with processing events? The current fixture is silent."
+    },
+    "known_regressions": [],
+    "next_action": "Add independently designed input/processing/output states and compare against the existing narrated GPU baseline; do not treat this technical fixture as the best design."
+  }]
+}

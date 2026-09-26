@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "reference": "Ab9OZsDECZw",
+  "source_window": [201, 231],
+  "source_observation": "One-second samples at 209-226; times below are bounded visual hypotheses, not exact native-frame event annotations",
+  "scene_function": "Explain a sequence through entry, guided movement, expansion, withdrawal and retained support",
+  "design_rules": ["Large scalloped inner lining", "Rectangular outer cells", "Three particle classes", "Warm red vessel palette", "Single unhighlighted balloon silhouette"],
+  "object_states": ["Guide wire enters", "Sleeve travels along stationary guide", "Balloon expands and deposits flatten", "Carrier withdraws", "Support moves with second carrier", "Support expands", "Carrier withdraws while support remains"],
+  "timing_hypotheses_seconds": {"wire_entry": [4, 9], "sleeve_travel": [9, 12], "inflate": [14, 15], "deflate": [15.25, 16], "first_withdrawal": [16.4, 18], "second_entry": [19, 21], "support_expansion": [21, 22], "second_withdrawal": [22.4, 24], "flow_return": [23.8, 24.3]},
+  "layout": "Central vessel cutaway with fixed world-space intervention location",
+  "transition": "Continuous object-state changes without scene cut",
+  "rhythm": "Guide arrival, sleeve arrival, hold, expansion, release, second action",
+  "invariants": ["Sleeve may slide before acquisition; attachment checked only after 12s", "Support follows carrier during entry", "Support does not follow departing carrier", "Lining and deposits share a quadratic profile"],
+  "human_approved": false,
+  "production_promotion": false,
+  "limitations": ["No source narration", "Not clinical validation", "Not a general contact solver", "Whole-reference fidelity pending"]
+}

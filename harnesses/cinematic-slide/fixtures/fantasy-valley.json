@@ -1,0 +1,17 @@
+{
+  "script": "새벽, 여행자는 안개에 잠긴 골짜기 앞에서 잠시 멈춰 섰습니다.\n바람이 길을 드러내자, 여행자는 다시 떠날 준비를 합니다.",
+  "image_style": "fantasy_anime",
+  "crossfade_seconds": 0,
+  "shots": [
+    {
+      "image": "fantasy-valley-wide-v1.png",
+      "visual_summary": "옥색 망토의 여행자와 안개 낀 골짜기를 함께 보여주는 전경",
+      "camera": {"mode": "pull", "strength": 0.025, "focus": [0.28, 0.35]}
+    },
+    {
+      "image": "fantasy-valley-medium-v1.png",
+      "visual_summary": "같은 여행자의 결심한 표정과 이어지는 돌길",
+      "camera": {"mode": "push", "strength": 0.02, "focus": [0.33, 0.25]}
+    }
+  ]
+}

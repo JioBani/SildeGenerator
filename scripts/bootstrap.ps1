@@ -18,6 +18,54 @@ function Assert-Prerequisites {
   Write-Host "PASS Docker/Compose/architecture/runtime path checks"
 }
 function Compose([string[]]$arguments) { & docker compose --env-file $composeEnv @arguments; if ($LASTEXITCODE -ne 0) { throw "docker compose 실패: $($arguments -join ' ')" } }
+function Invoke-ProjectCodexLogin {
+  $slidegenCodexHome = (Resolve-Path (Join-Path $runtimeDir "codex")).Path
+  $defaultCodexHome = [IO.Path]::GetFullPath((Join-Path $HOME ".codex"))
+  if ([IO.Path]::GetFullPath($slidegenCodexHome) -eq $defaultCodexHome) {
+    throw "영상 서비스 CODEX_HOME이 데스크톱 Codex 경로와 같아 로그인을 중단했습니다."
+  }
+  $previousCodexHome = $env:CODEX_HOME
+  $env:CODEX_HOME = $slidegenCodexHome
+  try {
+    Write-Host "영상 서비스 전용 Codex 로그인이 필요합니다. 브라우저에서 같은 ChatGPT 계정을 승인하세요."
+    codex login -c 'cli_auth_credentials_store="file"'
+    if ($LASTEXITCODE -ne 0) { throw "Codex 로그인이 완료되지 않았습니다." }
+    codex login status | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Codex 로그인 상태를 확인할 수 없습니다." }
+  } finally {
+    if ($null -eq $previousCodexHome) { Remove-Item Env:CODEX_HOME -ErrorAction SilentlyContinue }
+    else { $env:CODEX_HOME = $previousCodexHome }
+  }
+}
+function Test-ImageOAuthBridge {
+  param([int]$Attempts = 12)
+  for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+    $containerId = (& docker compose --env-file $composeEnv --profile live ps -q image-oauth 2>$null).Trim()
+    if ($containerId) {
+      $previousPreference = $ErrorActionPreference
+      $ErrorActionPreference = "Continue"
+      & docker compose --env-file $composeEnv exec -T runner python -c "import json,urllib.request; data=json.load(urllib.request.urlopen('http://image-oauth:10531/v1/models',timeout=5)); assert isinstance(data.get('data'),list)" *> $null
+      $probeExitCode = $LASTEXITCODE
+      $ErrorActionPreference = $previousPreference
+      if ($probeExitCode -eq 0) { return $true }
+    }
+    Start-Sleep -Seconds 2
+  }
+  return $false
+}
+function Repair-ImageOAuthLogin {
+  $authFile = Join-Path $runtimeDir "codex/auth.json"
+  if (Test-Path $authFile) {
+    $backupDir = Join-Path $runtimeDir ("backups/codex/" + [DateTime]::UtcNow.ToString("yyyyMMddTHHmmssZ"))
+    New-Item -ItemType Directory -Force $backupDir | Out-Null
+    Copy-Item -LiteralPath $authFile -Destination (Join-Path $backupDir "auth.json")
+  }
+  Invoke-ProjectCodexLogin
+  Compose @("--profile","live","up","-d","--force-recreate","image-oauth")
+  if (-not (Test-ImageOAuthBridge)) {
+    throw "프로젝트 전용 Codex 로그인 후에도 이미지 OAuth 브리지 검증에 실패했습니다."
+  }
+}
 function Initialize-Runtime {
   New-Item -ItemType Directory -Force $runtimeDir, (Join-Path $runtimeDir "codex") | Out-Null
   if (-not (Test-Path $composeEnv)) {
@@ -89,6 +137,10 @@ if ($state.mode -eq "live") {
   $env:RUNNER_IMAGE_DIGEST = (& docker image inspect --format '{{.Id}}' $runnerImage).Trim()
   if ($LASTEXITCODE -ne 0 -or -not $env:RUNNER_IMAGE_DIGEST) { throw "runner image digest lookup failed" }
   Compose @("--profile","live","up","-d")
+  if (-not (Test-ImageOAuthBridge)) {
+    Write-Warning "저장된 Codex 로그인은 존재하지만 이미지 브리지가 실제 인증을 거부했습니다. 서비스 전용 로그인을 복구합니다."
+    Repair-ImageOAuthLogin
+  }
 } else {
   Compose @("build")
   $projectName = ((Get-Content $composeEnv | Select-String '^COMPOSE_PROJECT_NAME=' | Select-Object -Last 1).Line -replace '^COMPOSE_PROJECT_NAME=','')

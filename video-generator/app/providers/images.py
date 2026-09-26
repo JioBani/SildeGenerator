@@ -19,6 +19,7 @@ from ..tracking import Tracker
 class ImageSubject(Protocol):
     id: str
     image_prompt: str
+    narration: str
 
 
 def _now() -> str:
@@ -71,7 +72,7 @@ async def _oauth_image(
         "model": model or settings.image_generation_model,
         "prompt": full_prompt,
         "quality": quality,
-        "size": "1536x1024",
+        "size": "1024x1536" if settings.height > settings.width else "1536x1024",
     }
     if reference_paths and input_fidelity:
         payload["input_fidelity"] = input_fidelity
@@ -105,7 +106,7 @@ async def _oauth_image(
         "image": result.get("usage") or {},
         "image_model": model or settings.image_generation_model,
         "quality": result.get("quality") or quality,
-        "size": result.get("size") or "1536x1024",
+        "size": result.get("size") or payload["size"],
         "request_kind": "edit" if reference_paths else "generation",
         "reference_images": [path.name for path in reference_paths],
         "input_fidelity": input_fidelity,
@@ -127,6 +128,7 @@ async def generate_image(
     input_fidelity: str | None = None,
     record_usage: bool = True,
     model: str | None = None,
+    image_style: str | None = None,
 ) -> dict[str, Any]:
     started_at = _now()
     started = time.perf_counter()
@@ -134,6 +136,19 @@ async def generate_image(
     if settings.image_provider == "mock":
         _mock_image(scene, path, settings.width, settings.height)
         provider = "mock"
+    elif settings.image_provider == "local_graphic":
+        from .local_graphics import draw_background
+        draw_background(scene, path, settings.width, settings.height)
+        provider = "local_graphic"
+    elif settings.image_provider == "local_illustration":
+        from .scene_illustrations import IllustratedSceneImageProvider
+        illustration = IllustratedSceneImageProvider().render(
+            scene.narration, image_style or "cute_character", settings.width, settings.height, path,
+        )
+        provider = "local_illustration"
+        raw_usage = {"image": {}, "image_model": "local-illustration-v0.5.0", "quality": quality,
+                     "size": f"{settings.width}x{settings.height}", "request_kind": "authored_local",
+                     "reference_images": [], "paid_calls": 0, **illustration}
     elif settings.image_provider == "oauth":
         content, raw_usage, revised_prompt = await _oauth_image(
             scene.image_prompt,
@@ -164,10 +179,16 @@ async def generate_image(
             "size": f"{settings.width}x{settings.height}", "request_kind": "generation",
             "reference_images": [path.name for path in reference_paths or []],
         }
-    if record_usage and provider == "mock":
+    elif provider == "local_graphic":
+        raw_usage = {
+            "image": {}, "image_model": "local-graphics-v1", "quality": quality,
+            "size": f"{settings.width}x{settings.height}", "request_kind": "authored_local",
+            "reference_images": [], "paid_calls": 0,
+        }
+    if record_usage and provider in {"mock", "local_graphic", "local_illustration"}:
         tracker.add_usage(
             provider=provider,
-            model="mock-image-v1",
+            model=raw_usage["image_model"],
             stage=stage,
             scene_id=scene.id,
             images_generated=1,

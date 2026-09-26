@@ -1,0 +1,14 @@
+{
+  "status": "EXPERIMENTAL_REQUIRES_REVIEW",
+  "source": {"video_id": "OyK0oE5rwFY", "window": [48,60]},
+  "function": "Show sustained phone attention and a progressively bent body, then reveal the whole posture",
+  "design": {"background":"green","skin":"pink","shirt":"purple","legs":"dark teal","shape_language":"elongated curved limbs and minimal face"},
+  "states": ["phone_attention","lower_phone","bend_torso","wide_hold"],
+  "rig_parts": ["head","neck","body","nearArm","farArm","hand","frontLeg","backLeg"],
+  "constraints": ["Feet remain fixed in actor space","Hand and phone share one transform","Head and neck endpoints share the same target position","Camera changes do not alter actor pose"],
+  "timing": {"arm_start":2.8,"torso_start":3.1,"pose_end":5.8,"camera_start":7.2,"camera_end":8.5},
+  "limitations": ["Timing is an initial fit from sparse observations, not a measured trajectory","No automatic support, contact or acting approval","Narration and sound not reconstructed","Leg curves bend with fixed feet; weight shift is not physically validated"],
+  "human_approved": false,
+  "production_promotion": false,
+  "paid_calls": 0
+}

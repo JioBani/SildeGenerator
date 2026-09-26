@@ -1,0 +1,61 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><style>
+*{box-sizing:border-box}html,body{margin:0;background:#ab3813}#master{position:relative;width:1920px;height:1080px;overflow:hidden}.scene{position:absolute;inset:0;overflow:hidden}.bg{position:absolute;width:1920px;height:1080px}.actor{position:absolute;width:340px;height:400px;transform-origin:170px 200px}.actor svg{width:100%;height:100%;overflow:visible}.other{visibility:hidden}.rna{position:absolute;left:0;top:0;width:180px;height:150px;opacity:0}.enclosure{position:absolute;left:0;top:0;width:370px;height:370px;border:16px solid #ffb830;border-radius:50%;opacity:0}.arms{position:absolute;inset:0;width:1920px;height:1080px;overflow:visible}.pair{position:absolute;inset:0}.membrane{position:absolute;inset:0}.nucleus{position:absolute;left:1500px;top:900px;width:800px;height:800px;background:#f0bd28;border:25px solid #e69815;border-radius:50%}.eye,.brow,.mouth{transform-box:fill-box;transform-origin:center}
+.actor svg svg{overflow:hidden}
+.membrane{overflow:visible}
+</style></head><body><div id="master" data-composition-id="bird-flu-study" data-width="1920" data-height="1080" data-duration="18" data-fps="30">
+<section class="scene" id="entry"><svg class="bg" viewBox="0 0 1920 1080"></svg><svg class="membrane" viewBox="0 0 1920 1080"><path id="boundary" d="M-100 1050 Q700 680 2020 240 L2020 1180 L-100 1180Z" fill="#ee7810" stroke="#f39a25" stroke-width="24"/><g id="receptors" stroke="#f6c936" fill="none" stroke-width="14" stroke-linecap="round"></g></svg><div class="nucleus"></div><div class="enclosure"></div><div class="actor" id="blueEntry"></div><svg class="rna" viewBox="0 0 180 150"><g fill="none" stroke="#123a46" stroke-width="13" stroke-linecap="round"><path d="M10 30q20-30 35 0t35 0t35 0t35 0"/><path d="M10 70q20-30 35 0t35 0t35 0t35 0"/><path d="M10 110q20-30 35 0t35 0t35 0t35 0"/></g><g fill="none" stroke="#55d7df" stroke-width="7" stroke-linecap="round"><path d="M10 30q20-30 35 0t35 0t35 0t35 0"/><path d="M10 70q20-30 35 0t35 0t35 0t35 0"/><path d="M10 110q20-30 35 0t35 0t35 0t35 0"/></g></svg></section>
+<section class="scene other" id="reaction"><svg class="bg" viewBox="0 0 1920 1080"></svg><svg class="membrane" viewBox="0 0 1920 1080"><path d="M-100 1100 Q800 700 2020 350 L2020 1180Z" fill="#df8b29" stroke="#fbb956" stroke-width="18"/><g id="wrongReceptors" fill="none" stroke="#f6c985" stroke-width="10" stroke-linecap="round"></g></svg><div class="actor" id="blueReaction"></div></section>
+<section class="scene other" id="contact"><svg class="bg" viewBox="0 0 1920 1080"></svg><div class="pair"><svg class="arms" viewBox="0 0 1920 1080"><path id="leftArm" d="M780 585Q825 730 960 680" stroke="#251419" stroke-width="25" fill="none" stroke-linecap="round"/><path id="leftSkin" d="M780 585Q825 730 960 680" stroke="#e7a33f" stroke-width="14" fill="none" stroke-linecap="round"/><path id="rightArm" d="M1140 585Q1095 730 960 680" stroke="#251419" stroke-width="25" fill="none" stroke-linecap="round"/><path id="rightSkin" d="M1140 585Q1095 730 960 680" stroke="#e29dc8" stroke-width="14" fill="none" stroke-linecap="round"/><ellipse id="hands" cx="960" cy="680" rx="21" ry="13" fill="#e6af8a" stroke="#251419" stroke-width="6"/></svg><div class="actor" id="orange"></div><div class="actor" id="pink"></div></div></section>
+</div><script>
+const ns='http://www.w3.org/2000/svg';
+gsap.config({force3D:false});
+function node(tag,attrs,parent){let n=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))n.setAttribute(k,v);parent.append(n);return n}
+// Fixed deterministic tissue shapes carry depth without random animation or textured rectangles.
+document.querySelectorAll('.bg').forEach((svg,scene)=>{
+ node('rect',{width:1920,height:1080,fill:scene===1?'#923312':'#ba3c13'},svg);
+ for(let i=0;i<24;i++){const x=(i*317)%2100-100,y=(i*193)%1200-80;
+ node('ellipse',{cx:x,cy:y,rx:75+(i%4)*25,ry:180+(i%3)*32,fill:scene===1?'#a4431d':'#d4501b',transform:`rotate(${i%2?25:-25} ${x} ${y})`},svg);
+ node('path',{d:`M${x} ${y-220}q-100 140 0 230t-10 250`,fill:'none',stroke:scene===1?'#753315':'#91300f','stroke-width':7,opacity:.45},svg);
+ }
+});
+document.querySelector('#boundary').setAttribute('d','M-100 929 L2020 310 L2020 1800 L-100 1800Z');
+for(let i=0;i<15;i++){let x=30+i*140,y=900-x*.292;node('path',{d:`M${x} ${y}l-8-42m8 22l22-28`,stroke:'#f6ca32','stroke-width':12,fill:'none'},document.querySelector('#receptors'));node('path',{d:`M${x} ${1100-x*.36}l-5-24`,fill:'none'},document.querySelector('#wrongReceptors'))}
+function actor(id,col){const el=document.getElementById(id);el.innerHTML=`<svg viewBox="0 0 512 600"><svg x="0" y="0" width="512" height="600" viewBox="${col*512} 180 512 600"><image href="assets/actors.png" width="1536" height="1024"/></svg><g class="face"><g class="eyes"><ellipse class="eye" cx="235" cy="280" rx="19" ry="25" fill="#fff5bc" stroke="#211720" stroke-width="5"/><ellipse class="eye" cx="283" cy="280" rx="19" ry="25" fill="#fff5bc" stroke="#211720" stroke-width="5"/><g class="pupils" fill="#211720"><ellipse cx="240" cy="284" rx="7" ry="12"/><ellipse cx="288" cy="284" rx="7" ry="12"/></g></g><path class="brow" d="M213 248q20 14 43 5m7 0q18 7 38-7" fill="none" stroke="#211720" stroke-width="7" stroke-linecap="round"/><path class="mouth" d="M240 327q20 22 42 0" fill="none" stroke="#211720" stroke-width="6" stroke-linecap="round"/></g></svg>`}
+actor('blueEntry',0);actor('blueReaction',0);actor('orange',1);actor('pink',2);
+const tl=gsap.timeline({paused:true});
+gsap.set('.pair',{x:0,y:0,rotation:0,scale:1.65,transformOrigin:'960px 580px'});
+gsap.set('#blueEntry',{x:-150,y:-220,scale:.8});gsap.set('#blueReaction',{x:740,y:-470,scale:.85});gsap.set('#orange',{x:520,y:260});gsap.set('#pink',{x:1060,y:260});gsap.set('.arms',{opacity:0});
+// Contact precedes enclosure; strands retain the actor's cyan identity.
+tl.to('#blueEntry',{x:510,y:250,duration:.65,ease:'power2.out'},0)
+.to('#blueEntry',{y:270,duration:.5,ease:'sine.inOut'},.65)
+.to('#blueEntry',{x:550,y:400,duration:1.3,ease:'sine.inOut'},1.15)
+.to('#entry .membrane',{y:-450,duration:1.3,ease:'sine.inOut'},1.15)
+.fromTo('.enclosure',{x:535,y:412,opacity:0,scale:1.1},{opacity:1,scale:1,duration:.5},2.0)
+.to('#blueEntry,.enclosure',{opacity:0,duration:.45},3.35)
+.fromTo('.rna',{x:630,y:530,opacity:0},{opacity:1,duration:.35},3.35)
+.to('.rna',{x:1130,y:780,rotation:28,duration:1,ease:'sine.inOut'},3.75)
+.to('.nucleus',{x:-700,y:-420,duration:1.25,ease:'sine.inOut'},3.5)
+.to('.rna',{x:1480,y:390,duration:1.1,ease:'sine.inOut'},4.85)
+.set('#entry',{visibility:'hidden'},6).set('#reaction',{visibility:'visible'},6);
+// Body holds while gaze and expression communicate the failed encounter.
+tl.to('#blueReaction',{y:360,duration:1,ease:'power2.out'},6)
+.to('#blueReaction .pupils',{x:8,y:12,duration:.18},7.2)
+.to('#blueReaction .brow',{y:-10,duration:.22},8.65)
+.to('#blueReaction .mouth',{attr:{d:'M240 339q20-20 42 0'},duration:.25},8.9)
+.to('#blueReaction',{y:345,rotation:-4,duration:.35,ease:'sine.inOut'},9.8)
+.to('#blueReaction',{y:360,rotation:0,duration:.4,ease:'sine.inOut'},10.15)
+.to('#blueReaction .pupils',{x:-5,y:4,duration:.22},10.6)
+.set('#reaction',{visibility:'hidden'},12).set('#contact',{visibility:'visible'},12);
+tl.to('#orange',{x:600,duration:.9,ease:'sine.inOut'},12)
+.to('#pink',{x:980,duration:.9,ease:'sine.inOut'},12)
+.to('#contact .eye',{attr:{ry:2},duration:.25},13.1)
+.to('#contact .pupils',{opacity:0,duration:.15},13.1)
+.to('.arms',{opacity:1,duration:.18},13.65)
+.fromTo('#leftArm,#leftSkin',{attr:{d:'M780 585Q800 625 820 630'}},{attr:{d:'M780 585Q825 730 960 680'},duration:.55,ease:'sine.inOut',immediateRender:false},13.65)
+.fromTo('#rightArm,#rightSkin',{attr:{d:'M1140 585Q1120 625 1100 630'}},{attr:{d:'M1140 585Q1095 730 960 680'},duration:.55,ease:'sine.inOut',immediateRender:false},13.65)
+.fromTo('#hands',{opacity:0},{opacity:1,duration:.1,immediateRender:false},14.15)
+.to('.pair',{x:-70,y:80,rotation:-3,duration:3.5,ease:'sine.inOut'},14.2)
+.to({}, {duration:.3},17.7);
+window.__timelines={'bird-flu-study':tl};
+window.studyContract={duration:18,contact:{starts:14.2,ends:18,sharedEndpoint:[960,680]},sourceWindows:[121.8,176,256],humanApproved:false};
+</script></body></html>

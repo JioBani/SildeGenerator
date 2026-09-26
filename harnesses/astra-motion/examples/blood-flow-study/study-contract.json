@@ -1,0 +1,13 @@
+{
+  "status": "EXPERIMENTAL_REQUIRES_REVIEW",
+  "source": {"video_id":"Ab9OZsDECZw","window":[27,57]},
+  "information_order": ["oxygen","transported_constituents","vessel_flow","outward_pressure","heart_contraction","systolic_pressure"],
+  "scene_times": {"bridge_end":0.7,"gallery_expands":2.2,"vessel_reveal":6.3,"pressure_replaces_particles":8.9,"pressure_caption":13.3,"heart_panel":16.5,"systole":20.5,"systolic_pressure":26.5},
+  "visual_state": {"background":"burgundy and red","objects":"flat circular and molecular symbols","vessel":"layered red wall with light lining","pressure":"yellow outward arrows","heart":"independent schematic shape"},
+  "v2_design_revision": {"heart_panel_width_fraction":0.5,"vessel_wave_amplitude_px":65,"wall_outer_stroke_px":88,"symbol_definitions":7,"gallery_layout":"manually placed asymmetric field with varied scales","source_fit":"manual visual hypothesis, not approved measurements"},
+  "invariants": ["Particles travel consistently during the visible flow interval","Particles disappear before the pressure-only explanation","Heart panel does not obscure the caption","Beginning bridges from the previous candidate, not copied source pixels"],
+  "limitations": ["Timing manually fitted from sampled frames","Schematic symbols are not chemically accurate molecular models","Heart shape, typography, constituent arrangement and detailed wave timing differ","No source narration or sound","No physiological simulation"],
+  "human_approved":false,
+  "production_promotion":false,
+  "paid_calls":0
+}

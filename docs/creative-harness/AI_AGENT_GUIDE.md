@@ -117,6 +117,166 @@ SDK 또는 Core 확장은 영향 범위가 더 크므로 변경 이유와 호환
 
 ## 5. 새 Harness 만들기
 
+### 선택적 장면 사전 검수
+
+Harness는 provider-free `describe_planning_contract(config) -> dict`를 선택적으로
+제공할 수 있습니다. `version`, 지원 layout/transition/rhythm/effect 목록,
+독립 모션 목록, 자산 제작 경로, 제약을 반환합니다. Core는 이 계약을 선택된
+Harness의 감독 입력에만 넣고 작업 파일에 Harness snapshot과 함께 보존합니다.
+이 계약은 연출 의미를 대신 결정하거나 자산·사람 승인을 대신하지 않습니다.
+기존 Harness가 hook을 제공하지 않으면 기존 계획 경로를 유지합니다.
+
+Harness may optionally implement provider-free `plan_segments(scenes, preferred_size,
+config) -> list[tuple[int, int]]`. Ranges are half-open and must cover every scene
+exactly once in source order. Core validates the partition before scheduling work.
+Without this hook, fixed-size chunks are retained. The preferred size is soft for
+creative continuity; existing episode complexity limits are not waived. Final
+assembly receives the resulting segments in the same order. Render cache fingerprints
+include the full scene contract so layout, captions and transitions invalidate reuse.
+
+Harness는 동기식 `validate_plan(scenes, config) -> list[str]`를 제공할 수 있습니다.
+Core는 음성·이미지 작업을 등록하기 전에 호출하고, 오류 목록을 production pack에
+기록하여 제작을 차단합니다. 이 함수에서는 provider 호출, 파일 생성, 렌더를 하지
+않습니다. 함수가 없는 기존 Harness의 동작은 유지됩니다. 반환값은 오류 문자열
+목록이어야 하며, 빈 목록은 기술 계약만 통과했다는 뜻이지 미술·연기 승인이 아닙니다.
+
+Private hybrid-story 0.1 adds `prepare_local_scene_asset(scene, output, settings)`
+for a deterministic diagram poster. Core calls it only for a typed diagram route;
+it must write PNG without providers or secrets. The final renderer still animates
+the editable diagram. Core, not this hook, resolves `source` routes through the
+`SOURCE_MEDIA_DIR/catalog.json` registry and verifies original/prepared hashes.
+Missing registered files fail before voice/image work. Registry metadata must
+include source/rights URLs, usage basis, attribution, date and meaning limitation.
+Catalog metadata is trusted installation input, never a model-generated file path.
+
+Private hybrid-story 0.2 adds generated illustration packs via
+`ILLUSTRATION_ASSETS_DIR/catalog.json`. Core validates the registered background
+and alpha sprite and exposes ID/meaning/safe-rectangle metadata to planning. An
+optional typed composition on a diagram route selects the pack; Core prepares
+local assets and injects hash-bound `hybrid_illustration` runtime provenance.
+The harness rechecks those hashes. These generated assets are never source evidence.
+Existing diagram routes and old harnesses need no illustration catalog.
+
+The optional planning-contract field `rendered_observation_gate` can request
+`rendered-observations-0.2` as described below.
+
+Private hybrid-story0.4 adds the exact opt-in `semantic_analysis` contract from
+the public SDK. Core first requests semantic-beats-0.1, verifies exact source
+coverage, route/purpose structure, supported grammar and registered source IDs,
+then supplies those spans as the scene planner's source units. Core binds the
+accepted analysis to each scene and rejects merges or route/grammar substitution.
+Only episode_60 is supported by this first analysis contract. Old harnesses do
+not receive an extra provider call. A plain deterministic Mock cannot stand in
+for meaning analysis; tests explicitly substitute the subscription transport.
+Structural acceptance is not independent semantic, factual or aesthetic approval.
+
+Private hybrid-story0.5 opts into semantic-beats-0.2 and narrative-direction-0.2.
+The new semantic model replaces untyped cause numbers with event_cause, motivation,
+context and sequence relations, exact endpoint quotations and explicit/inferred
+grounding. Core checks quote ownership/order and carries the typed relations into
+scene layout. Context/sequence may not become cross-scene causes. This still needs
+independent semantic judgment; substring matches do not prove causality. Legacy0.1
+parsing and analysis hashes remain supported without guessing relation kinds.
+Direction0.2 does not impose a dilemma or a later consequence on every character
+script. Explicit supplied choices retain their structural checks. Core requires
+the selected direction version in model output; old engines retain0.1 behavior.
+
+Private hybrid-story0.6 proposes hybrid-scene-0.4 with a shared film-design-0.1.
+Core requires the selected hybrid payload version, rejects design drift before
+assets, and includes the validated cinematic design in image prompts. The harness
+uses those tokens for diagram marks/text, source framing/labels and opaque captions.
+Tokens never recolor source pixels or establish image adherence. Old scene payloads
+remain replayable. Independent concept selection is not implemented by this hook.
+
+Private hybrid-story0.7 adds the opt-in concept-selection-0.1 contract. Core generates
+exactly three concepts after meaning analysis, checks executable palettes and quoted
+script grounding, then uses a distinct model for anonymous ABC/CBA reviews. Critical
+criteria and preferred identity must agree across orders. Only the selected concept
+may reach scene design; Core rejects downstream design changes and carries its hash
+and blueprint into cinematic prompts. One batch and two reviews are bounded without
+automatic retries. This is pre-render selection, never full-film or viewer approval.
+Legacy harnesses have no added model calls. No public deployment is implied.
+
+Development concept-review-0.4 constrains evidence quotations to grounded options.
+Consensus0.2 requires at least90% criterion agreement across all proposals AND
+unanimous all-PASS criteria plus shared preference for the selected identity.
+Disputed losing candidates are quarantined, never promoted. This is not a relaxation
+of the winner gate. A hash-checked offline adapter can re-review frozen concepts and
+resume scene design without repeating successful analysis/concept generation.
+Private hybrid-story0.8 adds locked-scene-design-0.1 after those gates. The model
+returns a beat_designs object keyed by exact accepted beat IDs, plus ordered group
+references. Core expands references into existing scene proposals with immutable
+source count, route, grammar, source ID, shared design and supported cut transition.
+The compact schema omits owned fields and fixed local cameras; attempted overrides,
+missing/duplicate/reordered beats fail. Existing semantic/design checks still run.
+No new output aesthetic, source-rights or actor capability is implied.
+Private hybrid-story0.9 extends this to hybrid-scene-0.5 and snapshot-pair-0.1.
+before_after requires one explicitly named entity/metric and two grounded time
+quotations. Generic nodes/edges are absent from that director slot and expanded
+as empty by Core. Existing diagram contracts remain compatible. Concept review
+receives the new mark limits only when this grammar is advertised. A snapshot
+pair is not a causal mechanism, character morph or arbitrary time series.
+Private hybrid-story0.9.1 opts into semantic capability_reporting
+required-grammar-0.1. It permits reporting a schema-known required grammar even
+when the renderer lacks it. The existing capability gate still stops before
+assets; null grammar or supported substitutes are not workarounds. Contracts
+without this opt-in retain their prior analysis instructions and schemas.
+Private hybrid-story0.10 opts into semantic-sufficiency-0.1. Core independently
+reviews structurally valid meaning beats before concepts and scene design. Valid
+FAIL feedback shares the three-repair budget; UNKNOWN, invalid review, unchanged
+resubmission and repeated causes stop. Matching Core review provenance is required
+even at direct scene-planning entry and copied into scene layout. This is semantic
+preflight only, not full-film approval, and old contracts have no added calls.
+Semantic scene planning uses planning-repeat-stop-0.2: any recurring failure cause
+on consecutive attempts stops, even when other findings change. Old engines retain
+their previous repair flow. Validation reports include bounded reasons, not inputs.
+
+Private hybrid-story0.12 opts into concept-selection-0.2 and film-design-0.2.
+Accepted beat routes constrain concept capabilities; absent routes do not create
+new shots. before_after can use columns, rows or fixed dot tracks on equal zero
+scales. Three diagram-only snapshot concepts must use distinct real layouts.
+Concept generation schema is pinned to the opt-in design version; legacy schemas
+and film-design-0.1 serialization/hashes remain unchanged. HybridScene0.6 accepts
+the new design; earlier scene versions reject it. Independent review remains
+pre-render only. Actual geometry, voice timing and text checks are still required.
+
+Private hybrid-story0.12.1 opts into semantic-sufficiency-0.2. Core offers exact
+source spans as evidence IDs and expands the critic's selection into the existing
+verdict shape. Unknown or wrong-beat IDs and changed wire/catalog evidence fail.
+IDs do not change any PASS/FAIL/UNKNOWN criterion or grant approval. The old0.1
+wire schema remains unchanged. Pre-render acceptance does not review subsequently
+generated diagram titles; those still need independent output-text inspection.
+
+The optional final-image check uses
+`rendered-observations-0.2`. After final assembly Core samples actual pixels and
+persists `rendered-observations.json` before recording final_video or success.
+Failures stop delivery; they never trigger paid retries. Without this field old
+harnesses are unchanged. This gate covers technical image presence, duplication
+and frozen declared diagrams, not semantic correctness or emotional quality.
+
+Private hybrid-story0.14.0 retains visible-text-0.2 after structural scene
+planning. Core reviews generated diagram titles/labels with a distinct model.
+One remaining shared repair may generate three complete text alternatives, filter
+overlength values without truncation and recheck the selected shortest eligible
+candidate. Only failed text slots may change; unit and grounded referent edits
+require re-planning. UNKNOWN/provider failure or repeated failure stops. Legacy
+engines have no added calls. This is not OCR, rendering quality or viewer approval.
+
+Private hybrid-story0.14.0 also opts into relation-alternatives-0.1. Only a
+single UNKNOWN inferred motivation/event-cause link can enter the bounded
+context-versus-sequence comparison. Both anonymous candidate orders and the
+final independent sufficiency review must pass within the existing shared
+planning budget. Provider errors stop. The first mixed-script replay stopped
+on a 401 during the reverse-order review; it did not produce a scene plan.
+
+Private hybrid-story0.15.0 adds preproduction-brief-0.1. Core compiles accepted
+beats into a provider-free list of visual events, supported grammar limits and
+registered source boundaries. The same brief goes to concept and scene planning,
+is stored in the work record, and cannot change during a repair. Core rejects a
+cause-change-result plan whose affected target has no visible state change.
+The brief does not judge narration truth, artwork, emotional impact or transfer
+to new scripts. Old harnesses do not opt in.
+
 CLI가 구현된 뒤 다음 흐름을 정본으로 사용한다.
 
 ```sh

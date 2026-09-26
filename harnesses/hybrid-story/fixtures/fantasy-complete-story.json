@@ -1,0 +1,14 @@
+{
+  "script": "늦은 밤, 한 사람이 컴퓨터 앞에서 새로운 이야기를 상상합니다.\n이야기의 무대는 먼 산맥과 안개로 둘러싸인 골짜기입니다.\n작은 여행자가 돌길 앞에 서서, 저 멀리 이어지는 풍경을 바라봅니다.\n가까이 다가가면, 옥색 망토와 가방을 멘 여행자의 표정이 보입니다.\n화면 속 작은 상상은 이렇게 하나의 세계가 됩니다.\n다시 작업실로 돌아오면, 모니터 앞에는 다음 이야기를 기다리는 사람이 있습니다.",
+  "image_style": "fantasy_anime",
+  "genre_id": "cartoon",
+  "crossfade_seconds": 0.3,
+  "shots": [
+    {"image": "fantasy-workroom-valley-v1.png", "visual_summary": "밤의 작업실에서 골짜기와 여행자가 보이는 모니터를 바라보는 창작자", "camera": {"mode": "hold"}, "transition": "dissolve"},
+    {"image": "fantasy-valley-wide-v1.png", "visual_summary": "넓은 골짜기와 먼 산맥을 보여주는 전경", "camera": {"mode": "pull", "strength": 0.025, "focus": [0.5, 0.35]}, "transition": "cut"},
+    {"image": "fantasy-valley-wide-v1.png", "visual_summary": "돌길 앞의 여행자를 포함한 풍경", "camera": {"mode": "hold"}, "transition": "cut"},
+    {"image": "fantasy-valley-medium-v1.png", "visual_summary": "옥색 망토를 입은 여행자의 표정과 복장", "camera": {"mode": "push", "strength": 0.025, "focus": [0.32, 0.3]}, "transition": "cut"},
+    {"image": "fantasy-valley-wide-v1.png", "visual_summary": "여행자와 상상의 세계를 다시 함께 보여주는 전경", "camera": {"mode": "hold"}, "transition": "dissolve"},
+    {"image": "fantasy-workroom-valley-v1.png", "visual_summary": "같은 골짜기가 보이는 작업실 모니터와 창작자로 돌아오는 결말", "camera": {"mode": "hold"}, "transition": "cut"}
+  ]
+}

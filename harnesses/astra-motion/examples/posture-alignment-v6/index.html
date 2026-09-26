@@ -1,0 +1,84 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><script src="assets/measurement.js"></script><style>html,body{margin:0;background:#1cb5a4}svg{display:block;width:1920px;height:1080px}</style></head><body>
+<svg viewBox="0 0 640 360"><defs><clipPath id="screen"><rect width="640" height="360"/></clipPath></defs><g clip-path="url(#screen)">
+<rect width="640" height="360" fill="#1cb5a4"/><rect id="sideField" x="640" width="640" height="360" fill="#ffd04e"/>
+<g id="front" transform="translate(316 0)" fill="#003c55">
+<path d="M-26-20H27V19Q36 20 34 29Q56 37 49 60Q43 74 29 76Q27 96 9 101V110Q49 117 48 164L49 360H7V341H1V360H-44L-43 164Q-46 123-9 111V101Q-29 96-29 76Q-51 75-51 52Q-51 34-30 26V20H-26Z"/>
+<g id="faceDetails" fill="#ee78a2"><ellipse cy="62" rx="28" ry="34"/><path d="M-9 94H9V117H-9Z"/><rect x="-40" y="156" width="11" height="116"/><rect x="34" y="156" width="11" height="116"/><path d="M-34 123Q0 105 34 123L34 272H-34Z" fill="#7862a5"/><g fill="#fff8e7"><circle cx="-14" cy="52" r="12"/><circle cx="14" cy="52" r="12"/></g><g fill="#003c55"><circle cx="-12" cy="53" r="7"/><circle cx="12" cy="53" r="7"/></g><path d="M-13 80Q0 87 14 80" fill="none" stroke="#003c55" stroke-width="3"/><rect x="-20" y="-10" width="40" height="37" fill="#b9c2da"/></g>
+<g id="frontDots" fill="#fff8e7"></g></g>
+<g id="side" transform="translate(760 0)" fill="#003c55">
+<path d="M-28-20H29V12H64Q72 12 72 20Q72 28 64 28H24Q42 33 45 49H59Q67 50 66 57Q67 65 59 65H47Q47 84 40 94Q30 106 7 101L4 111Q40 122 40 155V264Q63 285 57 316L53 360H-29L-29 332Q-58 307-42 280L-30 264L-36 151Q-36 127-17 117L-13 92Q-41 88-43 60Q-45 37-27 29Z"/>
+<g id="sideDots" fill="#fff8e7"></g></g></g></svg>
+<script>
+const ns='http://www.w3.org/2000/svg';
+function dot(parent,x,y,r){const e=document.createElementNS(ns,'circle');for(const[k,v]of Object.entries({cx:x,cy:y,r}))e.setAttribute(k,v);document.querySelector(parent).append(e);return e}
+const final=window.alignmentEvidence.rows.at(-1);
+const frontDots=final.left.map(p=>dot('#frontDots',p.x-140.7,p.y,3.1));
+const sideDots=final.right.map(p=>dot('#sideDots',p.x-440,p.y,2.35));
+gsap.set(frontDots,{opacity:0});gsap.set(sideDots,{opacity:0});
+// A colored performance precedes abstraction; the silhouette is not the action.
+const svg=document.querySelector('svg > g');
+function shape(tag,attrs,parent){const e=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e}
+const revealClip=shape('clipPath',{id:'profileReveal',clipPathUnits:'userSpaceOnUse'},document.querySelector('defs'));
+const revealRect=shape('rect',{id:'profileRevealRect',x:640,y:0,width:640,height:360},revealClip);
+const revealLayer=shape('g',{'clip-path':'url(#profileReveal)'},svg);
+const performer=shape('g',{id:'profilePerformance',transform:'translate(440 0)'},revealLayer);
+const torso=shape('path',{d:'M-28 360L-42 247Q-49 164 8 162Q52 150 60 177Q29 203 2 254L30 336V360Z',fill:'#7862a5'},performer);
+const neck=shape('path',{d:'M36 178L64 174',stroke:'#fa6093','stroke-width':20},performer);
+const head=shape('g',{id:'performanceHead',transform:'translate(80 175) rotate(85)'},performer);
+shape('path',{d:'M-34-8Q-54-41-25-55Q13-71 30-46L29 0Z',fill:'#003c55'},head);
+shape('path',{d:'M-21-31Q13-41 31-15V3L46 12Q48 20 31 20Q23 50-1 37Q-19 29-21 7Z',fill:'#fa6093'},head);
+shape('circle',{cx:-22,cy:-2,r:12,fill:'#fa6093'},head);
+shape('ellipse',{cx:18,cy:4,rx:11,ry:10,fill:'#fff8e7'},head);
+shape('circle',{cx:21,cy:6,r:6,fill:'#003c55'},head);
+shape('path',{d:'M7 27Q17 37 29 29',fill:'none',stroke:'#003c55','stroke-width':3},head);
+shape('rect',{x:-38,y:-55,width:94,height:12,rx:5,fill:'#8975b1'},head);
+shape('rect',{x:-27,y:-102,width:54,height:48,fill:'#b9c2da'},head);
+shape('rect',{x:-27,y:-102,width:35,height:48,fill:'#8975b1'},head);
+for(let i=0;i<3;i++)shape('path',{d:`M-20 ${-93+i*11}H23`,stroke:'#fff8e7','stroke-width':2},head);
+const arm=shape('path',{d:'M5 211Q0 297 49 284L74 240',fill:'none',stroke:'#fa6093','stroke-width':15,'stroke-linecap':'round'},performer);
+const grip=shape('g',{id:'performanceGrip',transform:'translate(74 240)'},performer);
+shape('circle',{r:11,fill:'#fa6093'},grip);
+shape('rect',{x:-22,y:-15,width:55,height:15,fill:'#003c55'},grip);
+shape('rect',{x:-22,y:-15,width:55,height:7,fill:'#1cb5a4'},grip);
+for(let i=0;i<2;i++)shape('path',{d:`M${-18+i*25}-8l10-7h7l-10 7Z`,fill:'#fff8e7'},grip);
+shape('path',{d:'M-18 211V360',stroke:'#fa6093','stroke-width':14},performer);
+performer.setAttribute('opacity',0);
+const tl=gsap.timeline({paused:true});
+tl.to('#faceDetails',{opacity:0,duration:1.1,ease:'none'},0);
+tl.to(frontDots,{opacity:1,duration:.12,stagger:.065,ease:'none'},1.55);
+// These reveal timings are authoring hypotheses; native geometry is separately recorded.
+const rows=window.alignmentEvidence.rows.filter(r=>r.divider_x!==null);
+for(let i=0;i<rows.length;i++){
+ const row=rows[i],t=row.source_second-106;
+ const previous=i?rows[i-1].source_second-106:t;
+ const duration=Math.max(.001,t-previous);
+ if(i===0)tl.set('#sideField',{attr:{x:row.divider_x}},t);
+ else tl.to('#sideField',{attr:{x:row.divider_x},duration,ease:'none'},previous);
+ if(i===0){tl.set(performer,{opacity:1},t);tl.set(revealRect,{attr:{x:row.divider_x}},t);}
+ else tl.to(revealRect,{attr:{x:row.divider_x},duration,ease:'none'},previous);
+}
+// Actor travel precedes divider visibility; do not condition one track on the other.
+const frontTrack=window.alignmentEvidence.rows.map(row=>{
+ const points=row.divider_x===null?row.points:row.left;
+ if(points.length<20)return null;
+ const xs=points.map(p=>p.x).sort((a,b)=>a-b);
+ if(xs.at(-1)-xs[0]>8)return null;
+ return {t:row.source_second-106,x:xs[Math.floor(xs.length/2)]};
+}).filter(Boolean);
+for(let i=0;i<frontTrack.length;i++){
+ const row=frontTrack[i],previous=frontTrack[i-1];
+ if(!previous||row.t-previous.t>.06){tl.set('#front',{attr:{transform:`translate(${row.x} 0)`}},row.t);continue;}
+ tl.to('#front',{attr:{transform:`translate(${row.x} 0)`},duration:row.t-previous.t,ease:'none'},previous.t);
+}
+tl.set('#side',{opacity:0,attr:{transform:'translate(440 0)'}},0);
+tl.to(head,{attr:{transform:'translate(0 52) rotate(0)'},duration:.4,ease:'power1.inOut'},7.58);
+tl.to(neck,{attr:{d:'M-7 133L0 79'},duration:.4,ease:'power1.inOut'},7.48);
+tl.to(torso,{attr:{d:'M-28 360L-29 247Q-42 122-7 119Q40 115 35 155Q29 210 30 264L30 336V360Z'},duration:.4,ease:'power1.inOut'},7.48);
+tl.to(arm,{attr:{d:'M5 211Q0 269 24 288L46 314'},duration:.4,ease:'power1.inOut'},7.48);
+tl.to(grip,{attr:{transform:'translate(46 314) rotate(35)'},duration:.4,ease:'power1.inOut'},7.48);
+tl.to(performer,{opacity:0,duration:.17,ease:'none'},7.88);
+tl.to('#side',{opacity:1,duration:.17,ease:'none'},7.88);
+tl.to(sideDots,{opacity:1,duration:.12,stagger:.018,ease:'none'},8.85);
+tl.to({}, {duration:.01},13.99);
+window.__timelines={'posture-alignment-study':tl};
+</script></body></html>

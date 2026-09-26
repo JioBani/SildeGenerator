@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="질문, 원리와 단계별 도식을 보여주는 모션 디자인 예시">
+  <rect width="640" height="360" fill="#f2f6f2"/>
+  <path d="M66 96h508M66 280h508" stroke="#19424a" stroke-width="4"/>
+  <circle cx="123" cy="187" r="50" fill="#efc961" stroke="#19424a" stroke-width="7"/>
+  <path d="M207 187h72m-13-13 14 13-14 13" fill="none" stroke="#e3634e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="307" y="133" width="106" height="106" rx="7" fill="#52a4a1" stroke="#19424a" stroke-width="7"/>
+  <path d="M432 187h45m-13-13 14 13-14 13" fill="none" stroke="#e3634e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="502" y="164" width="20" height="75" fill="#efc961"/><rect x="529" y="138" width="20" height="101" fill="#e3634e"/><rect x="556" y="111" width="20" height="128" fill="#19424a"/>
+</svg>

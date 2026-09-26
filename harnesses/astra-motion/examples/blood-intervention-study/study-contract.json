@@ -1,0 +1,12 @@
+{
+ "status":"EXPERIMENTAL_REQUIRES_REVIEW",
+ "source":{"video_id":"Ab9OZsDECZw","window":[201,231]},
+ "scene_function":"Explain a visible intervention by separating insertion, inflation, withdrawal and retention",
+ "layout":"Stationary vessel cross-section, device enters from left, focal region centered",
+ "object_states":["narrowed","flow_hidden","first_device_inserted","inflated","deflated","withdrawn","second_device_inserted","implant_expanded","carrier_withdrawn","flow_resumed"],
+ "motion":{"first_insertion":[4,8],"inflation":[12.5,13.7],"deflation":[15.5,16.5],"first_withdrawal":[17.5,19.5],"second_insertion":[20,22],"implant_expansion":[22,23],"carrier_withdrawal":[24,26]},
+ "design_rules":{"vessel":"layered warm reds","deposit":"cream","moving_device":"dark red carrier and bright rounded part","retained_object":"separate dark red mesh"},
+ "invariants":["Balloon stays attached to first carrier","Implant center remains fixed after expansion","Second carrier withdraws independently of implant","Expanded balloon and implant remain inside outer lumen envelope"],
+ "limitations":["Manual timing fit; exact trajectories not measured","Schematic not medically verified","No source audio","No general contact capability approval"],
+ "human_approved":false,"production_promotion":false,"paid_calls":0
+}

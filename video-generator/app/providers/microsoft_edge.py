@@ -10,6 +10,10 @@ from ..tracking import Tracker
 from .elevenlabs import _now, _run, media_duration
 
 
+class MicrosoftEdgeNetworkError(RuntimeError):
+    retryable = True
+
+
 class MicrosoftEdge:
     provider_id = "microsoft_edge"
     model_id = "edge-tts"
@@ -44,7 +48,10 @@ class MicrosoftEdge:
                 "-ar", "44100", "-ac", "1", "-c:a", "libmp3lame", "-b:a", "128k", str(path),
             )
         except Exception as error:
-            raise RuntimeError("무료 테스트 음성 생성에 실패했습니다. Microsoft Edge 음성은 온라인 연결이 필요합니다.") from error
+            raise MicrosoftEdgeNetworkError(
+                "무료 테스트 음성 생성에 실패했습니다. "
+                "Microsoft Edge 음성은 온라인 연결이 필요합니다."
+            ) from error
         finally:
             raw_path.unlink(missing_ok=True)
         duration = await media_duration(path)

@@ -1,0 +1,51 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><style>html,body{margin:0;background:#fbd052}#master{width:1920px;height:1080px;overflow:hidden}svg{width:100%;height:100%}</style></head><body>
+<div id="master" data-composition-id="posture-seating-study" data-width="1920" data-height="1080" data-duration="30" data-fps="30"><svg viewBox="0 0 1920 1080"><rect width="1920" height="1080" fill="#fbd052"/>
+<g id="camera" transform="translate(-347.367 -125.972) scale(1.183486)">
+<g id="chair"><path d="M590 490L610 685H780M690 675V860M690 860L575 890M690 860L790 890" fill="none" stroke="#03415b" stroke-width="24" stroke-linecap="round"/><rect x="596" y="646" width="220" height="36" rx="18" fill="#dd3674"/><rect x="578" y="393" width="27" height="225" rx="13" fill="#dd3674" transform="rotate(-5 591 500)"/><circle cx="575" cy="890" r="15" fill="#03415b"/><circle cx="790" cy="890" r="15" fill="#03415b"/><circle cx="690" cy="895" r="15" fill="#03415b"/><path d="M661 690Q656 728 628 719" stroke="#03415b" stroke-width="18" fill="none"/></g>
+<path id="farLeg" d="M690 618L930 737L1124 841" stroke="#07344f" stroke-width="47" fill="none" stroke-linejoin="round"/>
+<path id="nearLeg" d="M727 618L960 753L1155 855" stroke="#004963" stroke-width="49" fill="none" stroke-linejoin="round"/>
+<g id="farFoot" transform="translate(1124 841) rotate(-56)"><path d="M0 0V33H45V45H-9V0Z" fill="#fff2d0"/><path d="M-9 18H5M-9 30H5" stroke="#8772b3" stroke-width="9"/><path d="M-13 37H48V51H-13Z" fill="#04445c"/></g>
+<g id="nearFoot" transform="translate(1155 855) rotate(-56)"><path d="M0 0V33H45V45H-9V0Z" fill="#fff2d0"/><path d="M-9 18H5M-9 30H5" stroke="#8772b3" stroke-width="9"/><path d="M-13 37H48V51H-13Z" fill="#04445c"/></g>
+<path id="body" d="M633 370Q584 420 628 620Q672 651 756 635L744 590Q684 593 686 530L690 391Q673 365 633 370Z" fill="#7962aa"/>
+<path id="neck" d="M654 382L670 295" stroke="#f7669e" stroke-width="29" stroke-linecap="round"/>
+<g id="head" transform="translate(670 280)"><path d="M-55-77Q-93-33-45 26L-18 8L30-20L21-92Z" fill="#00445c"/><path d="M-28-60Q-35 3-9 39Q31 53 48 24V-27Q39-67-28-60Z" fill="#fa679b"/><ellipse cx="-28" cy="-10" rx="17" ry="22" fill="#fa679b"/><circle cx="30" cy="-29" r="24" fill="#fff8e1"/><circle cx="39" cy="-29" r="13" fill="#03445b"/><path d="M48-13Q85-25 70-3L47 1" fill="#e63477"/><path d="M12 16Q31 30 52 15" fill="none" stroke="#00445c" stroke-width="5"/><path d="M-72-83H62Q65-65 47-65H-72Z" fill="#8872b2"/><rect x="-49" y="-133" width="45" height="50" fill="#f5eedb"/><path d="M-40-130V-85M-29-130V-85M-18-130V-85" stroke="#8974b4" stroke-width="7"/></g>
+<path id="farArm" d="M634 404Q523 490 577 576L641 610" stroke="#ed5697" stroke-width="24" fill="none" stroke-linecap="round"/>
+<path id="nearArm" d="M663 415Q658 567 729 518L800 460" stroke="#fb6b9e" stroke-width="29" fill="none" stroke-linecap="round"/>
+<g id="hand" transform="translate(800 460)"><path d="M-13 4Q0-15 19-5L30 6L21 13L7 4L0 14Z" fill="#fb6b9e"/><g id="phone"><rect x="1" y="-17" width="57" height="17" fill="#04455d"/><path d="M9-16H49" stroke="#faf4da" stroke-width="5"/></g></g>
+<g id="armrest"><path d="M620 600H799" stroke="#00435b" stroke-width="28" stroke-linecap="round"/><path d="M620 589H799" stroke="#dc3675" stroke-width="23" stroke-linecap="round"/></g>
+<g id="desk" transform="translate(900 0)" opacity="0"><path d="M1030 590H1420V880H1398L1385 860H1060V897H1030Z" fill="#04354e"/><path d="M1008 580H1440" stroke="#26b78c" stroke-width="32"/><path d="M1290 569H1395L1330 495" stroke="#8270ad" stroke-width="18" fill="none" stroke-linejoin="round"/><rect x="1280" y="270" width="34" height="240" fill="#fff6db"/><rect x="1314" y="270" width="24" height="240" fill="#8773b1"/><path d="M1200 565L1188 494H1241L1230 565Z" fill="#e73377"/><path d="M1202 495L1184 433M1215 495V426M1225 495L1237 440" stroke="#26b68b" stroke-width="10"/><path d="M1065 564H1179" stroke="#8773b1" stroke-width="13"/><path d="M1125 804L1148 776L1179 797L1200 785L1228 812Z" fill="#fff4e6"/><path d="M1116 810H1235L1218 912H1134Z" fill="#7a63a8"/><path d="M1116 810H1235" stroke="#9383c3" stroke-width="13"/></g>
+<path id="gaze" d="M709 251L1280 310" stroke="#fff8dd" stroke-width="10" stroke-dasharray="8 28" stroke-linecap="round" opacity="0"/>
+</g></svg></div><script>
+gsap.config({force3D:false});const tl=gsap.timeline({paused:true});
+tl.fromTo('#head',{attr:{transform:'translate(770 330) rotate(70)'}},{attr:{transform:'translate(670 280)'},duration:.5,ease:'power2.out'},0)
+.fromTo('#body',{attr:{d:'M695 378Q575 408 628 620Q672 651 756 635L744 590Q679 593 692 530L751 419Q744 382 695 378Z'}},{attr:{d:'M633 370Q584 420 628 620Q672 651 756 635L744 590Q684 593 686 530L690 391Q673 365 633 370Z'},duration:.5,ease:'power2.out'},0)
+.fromTo('#neck',{attr:{d:'M726 415L770 345'}},{attr:{d:'M654 382L670 295'},duration:.5,ease:'power2.out'},0)
+.to('#phone',{opacity:0,duration:.2},2.8)
+.to('#nearArm',{attr:{d:'M663 415Q635 603 744 593L815 588'},duration:1.2,ease:'power1.inOut'},5)
+.to('#hand',{attr:{transform:'translate(815 588)'},duration:1.2,ease:'power1.inOut'},5)
+.to('#farLeg',{attr:{d:'M690 618L868 633L871 834'},duration:1.2,ease:'power1.inOut'},7)
+.to('#nearLeg',{attr:{d:'M727 618L905 633L908 844'},duration:1.2,ease:'power1.inOut'},7)
+.to('#farFoot',{attr:{transform:'translate(871 834) rotate(0)'},duration:1.2,ease:'power1.inOut'},7)
+.to('#nearFoot',{attr:{transform:'translate(908 844) rotate(0)'},duration:1.2,ease:'power1.inOut'},7)
+.set('#desk',{opacity:1},11)
+.to('#desk',{attr:{transform:'translate(0 0)'},duration:1,ease:'power2.out'},11)
+.to('#body',{attr:{d:'M695 378Q575 408 628 620Q672 651 756 635L744 590Q679 593 692 530L751 419Q744 382 695 378Z'},duration:1,ease:'power1.inOut'},10.5)
+.to('#neck',{attr:{d:'M726 415L770 345'},duration:1,ease:'power1.inOut'},10.5)
+.to('#head',{attr:{transform:'translate(770 330) rotate(18)'},duration:1,ease:'power1.inOut'},10.5)
+.to('#nearArm',{attr:{d:'M721 435Q795 690 952 582L1065 551'},duration:1,ease:'power1.inOut'},10.5)
+.to('#hand',{attr:{transform:'translate(1065 551)'},duration:1,ease:'power1.inOut'},10.5)
+.to('#farArm',{attr:{d:'M697 404Q580 490 604 559L641 589'},duration:1,ease:'power1.inOut'},10.5)
+.to('#head',{attr:{transform:'translate(670 280)'},duration:.5,ease:'power1.inOut'},18)
+.to('#neck',{attr:{d:'M654 382L670 295'},duration:.5,ease:'power1.inOut'},18)
+.to('#body',{attr:{d:'M633 370Q584 420 628 620Q672 651 756 635L744 590Q684 593 686 530L690 391Q673 365 633 370Z'},duration:.5,ease:'power1.inOut'},18)
+.to('#nearArm',{attr:{d:'M663 415Q630 593 790 589L1065 551'},duration:.5,ease:'power1.inOut'},18)
+.to('#camera',{attr:{transform:'translate(-1250 -330) scale(2.3)'},duration:.5,ease:'power2.inOut'},16.5)
+.to('#gaze',{opacity:1,duration:.4},18.5)
+.to('#gaze',{opacity:0,duration:.3},21.3)
+.to('#camera',{attr:{transform:'translate(-1350 -970) scale(2.5)'},duration:.5,ease:'power2.inOut'},21.5)
+.to('#nearArm',{attr:{d:'M663 415Q640 590 790 589L970 551'},duration:.8,ease:'power1.inOut'},23)
+.to('#hand',{attr:{transform:'translate(970 551)'},duration:.8,ease:'power1.inOut'},23)
+.to('#desk',{attr:{transform:'translate(-95 0)'},duration:.8,ease:'power1.inOut'},23)
+.to({}, {duration:.1},29.9);
+window.__timelines={'posture-seating-study':tl};
+</script><script src="face-performance.js"></script></body></html>

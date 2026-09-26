@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><script src="assets/measurement.js"></script><style>html,body{margin:0;background:#1cb5a4}svg{display:block;width:1920px;height:1080px}</style></head><body>
+<svg viewBox="0 0 640 360"><defs><clipPath id="screen"><rect width="640" height="360"/></clipPath></defs><g clip-path="url(#screen)">
+<rect width="640" height="360" fill="#1cb5a4"/><rect id="sideField" x="640" width="640" height="360" fill="#ffd04e"/>
+<g id="front" transform="translate(316 0)" fill="#003c55">
+<path d="M-26-20H27V19Q36 20 34 29Q56 37 49 60Q43 74 29 76Q27 96 9 101V110Q49 117 48 164L49 360H7V341H1V360H-44L-43 164Q-46 123-9 111V101Q-29 96-29 76Q-51 75-51 52Q-51 34-30 26V20H-26Z"/>
+<g id="faceDetails" fill="#ee78a2"><ellipse cy="62" rx="28" ry="34"/><path d="M-9 94H9V117H-9Z"/><rect x="-40" y="156" width="11" height="116"/><rect x="34" y="156" width="11" height="116"/><path d="M-34 123Q0 105 34 123L34 272H-34Z" fill="#7862a5"/><g fill="#fff8e7"><circle cx="-14" cy="52" r="12"/><circle cx="14" cy="52" r="12"/></g><g fill="#003c55"><circle cx="-12" cy="53" r="7"/><circle cx="12" cy="53" r="7"/></g><path d="M-13 80Q0 87 14 80" fill="none" stroke="#003c55" stroke-width="3"/><rect x="-20" y="-10" width="40" height="37" fill="#b9c2da"/></g>
+<g id="frontDots" fill="#fff8e7"></g></g>
+<g id="side" transform="translate(760 0)" fill="#003c55">
+<path d="M-28-20H29V12H64Q72 12 72 20Q72 28 64 28H24Q42 33 45 49H59Q67 50 66 57Q67 65 59 65H47Q47 84 40 94Q30 106 7 101L4 111Q40 122 40 155V264Q63 285 57 316L53 360H-29L-29 332Q-58 307-42 280L-30 264L-36 151Q-36 127-17 117L-13 92Q-41 88-43 60Q-45 37-27 29Z"/>
+<g id="sideDots" fill="#fff8e7"></g></g></g></svg>
+<script>
+const ns='http://www.w3.org/2000/svg';
+function dot(parent,x,y,r){const e=document.createElementNS(ns,'circle');for(const[k,v]of Object.entries({cx:x,cy:y,r}))e.setAttribute(k,v);document.querySelector(parent).append(e);return e}
+const final=window.alignmentEvidence.rows.at(-1);
+const frontDots=final.left.map(p=>dot('#frontDots',p.x-140.7,p.y,3.1));
+const sideDots=final.right.map(p=>dot('#sideDots',p.x-440,p.y,2.35));
+gsap.set(frontDots,{opacity:0});gsap.set(sideDots,{opacity:0});
+const tl=gsap.timeline({paused:true});
+tl.to('#faceDetails',{opacity:0,duration:1.1,ease:'none'},0);
+tl.to(frontDots,{opacity:1,duration:.12,stagger:.065,ease:'none'},1.55);
+// These reveal timings are authoring hypotheses; native geometry is separately recorded.
+const rows=window.alignmentEvidence.rows.filter(r=>r.divider_x!==null);
+for(let i=0;i<rows.length;i++){
+ const row=rows[i],t=row.source_second-106;
+ const previous=i?rows[i-1].source_second-106:t;
+ const duration=Math.max(.001,t-previous);
+ tl.to('#sideField',{attr:{x:row.divider_x},duration,ease:'none'},previous);
+ const left=row.left.length>10?row.left.reduce((s,p)=>s+p.x,0)/row.left.length:null;
+ if(left!==null)tl.to('#front',{attr:{transform:`translate(${left} 0)`},duration,ease:'none'},previous);
+}
+tl.to('#side',{attr:{transform:'translate(440 0)'},duration:.8,ease:'power1.out'},7.36);
+tl.to(sideDots,{opacity:1,duration:.12,stagger:.025,ease:'none'},7.65);
+tl.to({}, {duration:.01},13.99);
+window.__timelines={'posture-alignment-study':tl};
+</script></body></html>

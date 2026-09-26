@@ -8,7 +8,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["preset_id", "medium_and_rendering", "palette", "lighting", "camera_and_depth", "texture_and_detail", "character_rendering", "environment_rendering", "composition_rules", "forbidden_variations"],
       "properties": {
-        "preset_id": {"type": "string", "enum": ["editorial_illustration", "cinematic_realism", "graphic_explainer"]},
+        "preset_id": {"type": "string", "enum": ["editorial_illustration", "cinematic_realism", "graphic_explainer", "cute_character", "fantasy_anime", "animation_3d", "disney_animation", "dystopian"]},
         "medium_and_rendering": {"type": "string", "minLength": 1},
         "palette": {"type": "array", "minItems": 1, "maxItems": 20, "items": {"type": "string", "minLength": 1}},
         "lighting": {"type": "string", "minLength": 1}, "camera_and_depth": {"type": "string", "minLength": 1},
@@ -29,15 +29,113 @@
         "must_not_copy": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
       }
     },
+    "authoredDesign": {
+      "type": "object", "additionalProperties": false,
+      "required": ["version", "rationale", "background", "foreground", "accent", "caption_background", "caption_foreground", "media_box", "title_box", "caption_box", "image_fit", "media_treatment", "entry_motion", "title_size", "caption_size", "title_weight"],
+      "properties": {
+        "version": {"type": "string", "const": "scene-design-1"},
+        "rationale": {"type": "string", "minLength": 12, "maxLength": 600},
+        "background": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+        "foreground": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+        "accent": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+        "caption_background": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+        "caption_foreground": {"type": "string", "pattern": "^#[0-9A-Fa-f]{6}$"},
+        "media_box": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number", "minimum": 0, "maximum": 1}},
+        "title_box": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number", "minimum": 0, "maximum": 1}},
+        "caption_box": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number", "minimum": 0, "maximum": 1}},
+        "image_fit": {"type": "string", "enum": ["contain", "cover"]},
+        "media_treatment": {"type": "string", "enum": ["none", "line", "matte"]},
+        "entry_motion": {"type": "string", "enum": ["fade", "rise", "push", "scale"]},
+        "title_size": {"type": "number", "minimum": 28, "maximum": 96},
+        "caption_size": {"type": "number", "minimum": 22, "maximum": 56},
+        "title_weight": {"type": "integer", "minimum": 400, "maximum": 900}
+      }
+    },
     "scene": {
       "type": "object", "additionalProperties": false,
-      "required": ["source_unit_count", "role_in_group", "purpose", "viewer_takeaway", "cut_role", "visual_summary", "image_prompt"],
+      "required": ["source_unit_count", "role_in_group", "purpose", "viewer_takeaway", "cut_role", "visual_summary", "image_prompt", "scene_function", "layout", "object_states", "motion", "transition", "rhythm", "renderer_requirements"],
       "properties": {
         "source_unit_count": {"type": "integer", "minimum": 1, "maximum": 300},
         "role_in_group": {"type": "string", "minLength": 1}, "purpose": {"type": "string", "minLength": 1},
         "viewer_takeaway": {"type": "string", "minLength": 1},
         "cut_role": {"type": "string", "enum": ["setup", "derived", "bridge", "evidence", "reaction", "detail", "transition", "payoff"]},
-        "visual_summary": {"type": "string", "minLength": 1}, "image_prompt": {"type": "string", "minLength": 1}
+        "visual_summary": {"type": "string", "minLength": 1}, "image_prompt": {"type": "string", "minLength": 1},
+        "scene_function": {"type": "string", "minLength": 1, "maxLength": 120},
+        "layout": {
+          "type": "object", "additionalProperties": false,
+          "required": ["mode", "focal_order", "safe_area", "camera", "continuity_group", "authored_design", "visual_labels"],
+          "properties": {
+            "mode": {"type": "string", "enum": ["focus", "split", "route", "process", "comparison", "diagram", "reaction", "evidence"]},
+            "focal_order": {"type": "array", "minItems": 1, "maxItems": 8, "items": {"type": "string", "minLength": 1}},
+            "safe_area": {"type": "string", "minLength": 1},
+            "camera": {
+              "anyOf": [
+                {"type": "null"},
+                {"type": "object", "additionalProperties": false,
+                 "required": ["mode", "focus", "strength"],
+                 "properties": {
+                   "mode": {"type": "string", "enum": ["hold", "push", "pull"]},
+                   "focus": {"type": "array", "minItems": 2, "maxItems": 2,
+                             "items": {"type": "number", "minimum": 0, "maximum": 1}},
+                   "strength": {"type": "number", "minimum": 0, "maximum": 0.08}
+                 }}
+              ]
+            },
+            "continuity_group": {"anyOf": [{"type": "null"}, {"type": "string", "minLength": 1, "maxLength": 80}]},
+            "authored_design": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/authoredDesign"}]},
+            "visual_labels": {"type": "array", "maxItems": 8, "items": {
+              "type": "object", "additionalProperties": false, "required": ["text", "x", "y"],
+              "properties": {
+                "text": {"type": "string", "minLength": 1, "maxLength": 120},
+                "x": {"type": "number", "minimum": 0.15, "maximum": 0.85},
+                "y": {"type": "number", "minimum": 0.05, "maximum": 0.85}
+              }
+            }}
+          }
+        },
+        "object_states": {
+          "type": "array", "minItems": 1, "maxItems": 16,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["object_id", "role", "initial", "final", "isolation", "region_hint", "depth_band"],
+            "properties": {
+              "object_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"},
+              "role": {"type": "string", "minLength": 1},
+              "initial": {"type": "string", "minLength": 1},
+              "final": {"type": "string", "minLength": 1},
+              "isolation": {"type": "string", "enum": ["required", "preferred", "not_needed"]},
+              "region_hint": {
+                "anyOf": [
+                  {"type": "null"},
+                  {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number", "minimum": 0, "maximum": 1}}
+                ]
+              },
+              "depth_band": {"type": "string", "enum": ["background", "midground", "foreground"]}
+            }
+          }
+        },
+        "motion": {
+          "type": "array", "minItems": 1, "maxItems": 24,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["object_id", "kind", "phases"],
+            "properties": {
+              "object_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"},
+              "kind": {"type": "string", "enum": ["reveal", "camera_push", "camera_pull", "path_follow", "group_split", "state_change", "reaction", "pulse", "hold"]},
+              "phases": {"type": "array", "minItems": 2, "maxItems": 8, "items": {"type": "string", "minLength": 1}}
+            }
+          }
+        },
+        "transition": {"type": "string", "enum": ["cut", "crossfade", "match", "wipe", "dissolve"]},
+        "rhythm": {"type": "string", "minLength": 1, "maxLength": 160},
+        "renderer_requirements": {
+          "type": "object", "additionalProperties": false,
+          "required": ["preferred", "capabilities"],
+          "properties": {
+            "preferred": {"type": "string", "enum": ["classic-slide", "cinematic-slide", "hyperframes", "remotion"]},
+            "capabilities": {"type": "array", "minItems": 1, "maxItems": 16, "items": {"type": "string", "minLength": 1}}
+          }
+        }
       }
     },
     "group": {

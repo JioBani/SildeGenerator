@@ -23,7 +23,8 @@ def _hash_file(path: Path) -> str:
 
 def _tree_hash(root: Path) -> str:
     digest = hashlib.sha256()
-    for path in sorted(item for item in root.rglob("*") if item.is_file() and "__pycache__" not in item.parts and not path_ignored(item)):
+    files = (item for item in root.rglob("*") if item.is_file() and "__pycache__" not in item.parts and not path_ignored(item))
+    for path in sorted(files, key=lambda item: item.relative_to(root).as_posix()):
         digest.update(path.relative_to(root).as_posix().encode()); digest.update(b"\0"); digest.update(path.read_bytes()); digest.update(b"\0")
     return digest.hexdigest()
 
@@ -52,6 +53,7 @@ class HarnessRegistry:
     def __init__(self, root: Path):
         self.root = root.resolve()
         self._cache: dict[tuple[str, str], LoadedHarness] = {}
+        self._loaded_by_id: dict[str, LoadedHarness] = {}
         if self.root.is_dir():
             for package_root in sorted(self.root.glob("*/src")):
                 if str(package_root) not in sys.path: sys.path.append(str(package_root))
@@ -62,6 +64,11 @@ class HarnessRegistry:
 
     def load(self, harness_id: str) -> LoadedHarness:
         root = _inside(self.root, harness_id)
+        # Harness sources are immutable inside a runner image. Re-hashing every
+        # package on each health request can exceed the container timeout.
+        cached = self._loaded_by_id.get(harness_id)
+        if cached is not None:
+            return cached
         raw = json.loads((root / "harness.yaml").read_text(encoding="utf-8"))
         if raw.get("id") != harness_id or not ID_PATTERN.fullmatch(harness_id): raise ManifestValidationError("invalid harness id")
         if not VERSION_PATTERN.fullmatch(str(raw.get("version", ""))): raise ManifestValidationError("invalid semantic version")
@@ -86,6 +93,7 @@ class HarnessRegistry:
         instance.manifest = manifest
         loaded = LoadedHarness(instance, manifest, snapshot, root, json.loads(config_path.read_text(encoding="utf-8")))
         self._cache[key] = loaded
+        self._loaded_by_id[harness_id] = loaded
         return loaded
 
     def list(self) -> list[dict[str, object]]:

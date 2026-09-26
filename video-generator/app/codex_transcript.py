@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -18,7 +19,7 @@ class CodexTranscript:
     def __init__(
         self,
         work_dir: Path,
-        attempt: int,
+        attempt: int | str,
         request: dict[str, Any],
         *,
         model: str,
@@ -46,6 +47,7 @@ class CodexTranscript:
         self.fast_mode = fast_mode
         self.status = "streaming"
         self.error: str | None = None
+        self._last_summary_write = float("-inf")
         atomic_json(self.request_path, request)
         self.events_path.write_text("", encoding="utf-8")
         self.output_path.write_text("", encoding="utf-8")
@@ -93,7 +95,7 @@ class CodexTranscript:
     def replace_output(self, text: str) -> None:
         self.first_output_at = self.first_output_at or (_now() if text else None)
         self.output_path.write_text(text, encoding="utf-8", newline="")
-        self._write_summary()
+        self._write_summary(force=True)
 
     def complete(self, response: dict[str, Any]) -> None:
         self.status = str(response.get("status") or "completed")
@@ -101,13 +103,13 @@ class CodexTranscript:
         self.request_id = str(response.get("id") or self.request_id or "") or None
         self.actual_service_tier = str(response.get("service_tier") or self.actual_service_tier or "") or None
         atomic_json(self.final_path, response)
-        self._write_summary()
+        self._write_summary(force=True)
 
     def fail(self, error: Exception | str) -> None:
         self.status = "failed"
         self.error = str(error)[:4000]
         self.completed_at = _now()
-        self._write_summary()
+        self._write_summary(force=True)
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -128,8 +130,20 @@ class CodexTranscript:
             "error": self.error,
         }
 
-    def _write_summary(self) -> None:
-        atomic_json(self.summary_path, self.summary())
+    def _write_summary(self, *, force: bool = False) -> None:
+        if not force and time.monotonic() - self._last_summary_write < 0.25:
+            return
+        # Windows readers can briefly hold the destination during atomic replace.
+        # Event/output logs remain append-only; terminal states always flush.
+        for attempt in range(3):
+            try:
+                atomic_json(self.summary_path, self.summary())
+                self._last_summary_write = time.monotonic()
+                return
+            except PermissionError:
+                if attempt == 2:
+                    raise
+                time.sleep(0.025 * (attempt + 1))
 
     def paths(self) -> list[tuple[Path, str]]:
         return [

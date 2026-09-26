@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "purpose": "Evidence-linked model observations; never human or production approval",
+  "observations": [
+    {
+      "id": "posture-guard-not-anatomy-207",
+      "reference_id": "OyK0oE5rwFY",
+      "source_sha256": "47f6a63567ffd86e3d7cac3aeacfa5c8164f8b90ebab2b5c568af7c7f3504dfd",
+      "scene_window": [204,216],
+      "observed_at": 207,
+      "time_precision": "Requested source second; not a measured event boundary",
+      "evidence": [{"file":"posture-scan-source.png","sha256":"b9c27e0b31278ce6b6f72d8c888ac556f18b0fbe7d20b20fe54763f27f17b5af"}],
+      "visible_identity": "Uniformed guard in an arched sentry box",
+      "discriminating_cues": ["Tall dark hat", "Red tunic", "White buttons", "White belt and cuff", "Dark trousers", "Arched shelter"],
+      "rejected_hypothesis": "Internal anatomical scan with vertebrae",
+      "cause": "Interpreting small thumbnail shapes without enlarged object review",
+      "correction": "Use garment and shelter assets, not body-internal overlay",
+      "required_scene_state": "uniformed_guard",
+      "story_function_hypothesis": "Standing posture context; narration interpretation unresolved",
+      "narration_claim": null,
+      "reviewer_type": "model",
+      "review_state": "HUMAN_REVIEW_PENDING",
+      "transfer_limits": "Do not treat all white dots as buttons; object identity and context must be checked again",
+      "result": "Candidate corrected, not human approved"
+    }
+  ]
+}

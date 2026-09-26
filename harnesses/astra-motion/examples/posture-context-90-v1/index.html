@@ -1,0 +1,88 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><style>html,body{margin:0;background:#ffd04e}svg{display:block;width:1920px;height:1080px}</style></head><body><svg viewBox="0 0 640 360"><defs><clipPath id="screen"><rect width="640" height="360"/></clipPath></defs><g id="stage" clip-path="url(#screen)"></g></svg><script>
+const C={yellow:'#ffd04e',green:'#218c6c',pink:'#fa6093',dark:'#004966',purple:'#7862a5',white:'#fff8e7',teal:'#24b39f'},ns='http://www.w3.org/2000/svg',stage=document.querySelector('#stage');
+function el(tag,a,p){const e=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(a))e.setAttribute(k,v);p.append(e);return e}
+function g(id,p,transform=''){return el('g',{id,transform},p)}
+function rect(x,y,width,height,fill,p){return el('rect',{x,y,width,height,fill},p)}
+function line(d,p,color=C.pink,width=12){return el('path',{d,fill:'none',stroke:color,'stroke-width':width,'stroke-linecap':'round','stroke-linejoin':'round'},p)}
+function shape(d,fill,p){return el('path',{d,fill},p)}
+function circle(cx,cy,r,fill,p){return el('circle',{cx,cy,r,fill},p)}
+function scene(id,bg){const s=g(id,stage);rect(0,0,640,360,bg,s);return s}
+function head(id,p,transform){
+ const h=g(id,p,transform);
+ shape('M-25 0Q-39-30-17-39Q1-53 20-32L25 2Z',C.dark,h);
+ shape('M-18-21Q10-36 23-11L24 1L37 10L22 13Q16 38-6 24L-18 8Z',C.pink,h);
+ circle(-19,0,9,C.pink,h);el('ellipse',{cx:11,cy:1,rx:6,ry:9,fill:C.white},h);circle(13,3,4,C.dark,h);
+ line('M2 18Q12 23 19 18',h,C.dark,2);
+ rect(-19,-66,32,28,C.purple,h);for(let i=0;i<3;i++)rect(-14,-62+i*7,27,2,C.white,h);
+ rect(-28,-39,53,7,C.purple,h);return h;
+}
+const transit=scene('transit',C.green);
+rect(144,22,376,286,C.dark,transit);rect(155,223,363,65,C.yellow,transit);rect(156,284,362,11,C.white,transit);
+line('M145 0V360M531 0V360',transit,'#bac5b2',8);
+line('M155 78H520',transit,C.green,10);
+const seated=g('transit-upright',transit);
+shape('M214 127Q237 111 264 137L286 233H205Z',C.green,seated);
+head('transit-upright-head',seated,'translate(250 98) rotate(-12)');
+line('M218 143L181 179L226 181M270 143L319 171L324 112',seated,C.pink,18);
+line('M230 233L229 310M263 237L332 297',seated,C.purple,26);
+rect(320,98,5,24,C.teal,seated);
+const reclined=g('transit-reclined',transit);
+shape('M181 181Q224 167 277 225L311 250L261 267L203 231Z',C.purple,reclined);
+head('transit-reclined-head',reclined,'translate(176 193) rotate(-63) scale(.8)');
+line('M211 218L272 336',reclined,C.pink,13);
+line('M289 246L346 264L384 236',reclined,C.dark,24);
+shape('M375 177Q408 148 450 178L477 239H355Z','#d6326c',transit);
+head('transit-sleeper-head',transit,'translate(413 161) rotate(-60) scale(.75)');
+line('M385 247V360M448 247V360',transit,C.dark,30);
+rect(30,0,64,286,C.dark,transit);line('M47 289V360M77 289V360',transit,C.pink,12);
+rect(586,0,36,360,C.purple,transit);
+
+const comparison=scene('posture-comparison',C.yellow),arrangement=g('arrangement',comparison);
+function standing(id,x,lean){
+ const a=g(id,arrangement,`translate(${x} 0)`);
+ line('M0 189V301M12 189V301',a,C.dark,13);line('M0 306H10M12 306H22',a,C.teal,8);
+ shape(lean?'M-12 197Q-39 148-28 111Q-14 85 4 100L17 125Q-8 144 11 188Z':'M-15 194L-16 115Q-13 90 8 94L21 114L12 194Z',C.purple,a);
+ const h=head(id+'-head',a,lean?'translate(14 103) rotate(65) scale(.65)':'translate(6 74) rotate(24) scale(.65)');
+ line(lean?'M-14 118L-10 215':'M-8 119L-8 215',a,C.pink,8);
+ line(lean?'M5 123Q5 158 24 153L34 127':'M11 115Q33 143 36 116L36 104',a,C.pink,8);
+ rect(lean?30:33,lean?118:91,6,22,C.teal,a);
+ return {a,h};
+}
+const upright=standing('upright',165,false),bent=standing('bent',286,true);
+const laptop=g('laptop-actor',arrangement,'translate(420 0)');
+line('M-37 207V305M-5 207V305M-37 226H-5',laptop,C.dark,5);
+line('M-39 180V211H5',laptop,C.pink,5);rect(-42,210,44,8,C.teal,laptop);
+shape('M-22 212Q-57 163-31 144Q-13 138-4 151Q-19 173 6 196L23 203Z',C.purple,laptop);
+line('M-7 207L29 201L30 294M29 204L73 265',laptop,C.dark,13);
+line('M30 298H46M73 268L82 273L87 267',laptop,C.teal,7);
+head('laptop-head',laptop,'translate(0 143) rotate(46) scale(.65)');
+line('M-18 165Q-30 205 21 197L33 188M-7 159Q3 182 26 177L39 177',laptop,C.pink,8);
+rect(13,191,67,5,C.teal,laptop);line('M51 190H63L73 163',laptop,C.white,4);
+line('M48 198V307M36 309H64',laptop,C.teal,4);
+const fingers=g('typing-fingers',laptop);line('M33 188Q40 176 47 187',fingers,C.pink,5);
+
+const front=scene('front', '#1cb5a4'),person=g('front-person',front,'translate(316 0)');
+shape('M-27 253L-23 360H-3L1 291L12 360H34L32 248Z',C.dark,person);
+shape('M-20 143Q3 126 26 146L31 247L-27 240Z',C.purple,person);
+line('M-23 151Q-66 193-31 228M28 151V245',person,C.pink,10);
+shape('M-22 96Q-43 108-28 125L27 125Q42 108 20 96Z',C.dark,person);
+el('ellipse',{cx:0,cy:119,rx:23,ry:32,fill:C.pink},person);
+for(const x of [-11,11]){el('ellipse',{cx:x,cy:114,rx:10,ry:6,fill:C.white},person);circle(x,114,5,C.dark,person)}
+line('M-10 140Q0 133 10 140',person,C.dark,3);rect(-21,70,42,25,C.purple,person);rect(-15,72,30,20,C.white,person);
+// Define the initial presentation before the first zero-time seek.
+gsap.set(comparison,{x:-640});gsap.set(front,{opacity:0});
+gsap.set(arrangement,{x:-200,y:-75,scale:1.15,transformOrigin:'0 0'});
+gsap.set([upright.a,bent.a],{opacity:0});
+const tl=gsap.timeline({paused:true});
+tl.set(comparison,{x:-640},0).set(front,{opacity:0},0);
+tl.to(comparison,{x:0,duration:.24,ease:'none'},3.635208);
+tl.set(arrangement,{x:-200,y:-75,scale:1.15,transformOrigin:'0 0'},0);
+tl.set([upright.a,bent.a],{opacity:0},0);
+tl.to(fingers,{y:-2,duration:.16,repeat:7,yoyo:true,ease:'sine.inOut'},4.4);
+tl.set([upright.a,bent.a],{opacity:1},9.05);
+tl.to(arrangement,{x:0,y:0,scale:1,duration:.42,ease:'power1.inOut'},9.05);
+tl.set(front,{opacity:1},13.645208);
+tl.to(person,{scale:1.03,transformOrigin:'0px 220px',duration:1.6,ease:'none'},14.1);
+tl.to({},{duration:.1},15.9);
+window.__timelines={'posture-context-study':tl};
+</script></body></html>

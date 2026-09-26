@@ -1,0 +1,19 @@
+{
+  "id": "cinematic-slide",
+  "version": "0.6.0",
+  "engine_api": ">=1.0,<2.0",
+  "entrypoint": "cinematic_slide.plugin:ClassicSlideHarness",
+  "display_name": "실험: cinematic-slide",
+  "description": "정지 이미지, Ken Burns, crossfade, ASS 자막 기반 기본 Harness",
+  "public": false,
+  "prompts_dir": "prompts",
+  "config_dir": "config",
+  "fixtures_dir": "fixtures",
+  "python": {
+    "package": "cinematic-slide-harness",
+    "lockfile": "requirements.lock"
+  },
+  "defaults": {
+    "config": "config/default.yaml"
+  }
+}

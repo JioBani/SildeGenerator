@@ -1,0 +1,23 @@
+{
+  "version": "film-design-0.1",
+  "concept_id": "night-route-editorial",
+  "central_idea": "A missed bus becomes a concrete choice through legible example travel times.",
+  "cinematic_language": "Night street realism, warm practical lamps and cool ambient light; retain Jisu's identity and physical choice without extra drama.",
+  "diagram_language": "Quiet dark field, warm walking and cool cycling marks on one zero-based scale; keep geometry editable and labels neutral.",
+  "source_treatment": "Keep original evidence pixels and complete framing; place honest date and attribution on an opaque shared surface, never recolor the source.",
+  "palette": {
+    "background": "#18201F",
+    "text": "#F2F0E5",
+    "secondary_text": "#C5CEC8",
+    "surface": "#293632",
+    "line": "#84948C",
+    "accents": ["#D49A55", "#7297A7", "#B4B967"]
+  },
+  "typography": {
+    "font": "Noto Sans CJK KR",
+    "title_px": 34,
+    "caption_px": 36,
+    "caption_margin_y": 48
+  },
+  "line_width": 4
+}

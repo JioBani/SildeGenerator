@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "status": "RESEARCH_ONLY",
+  "paid_calls": 0,
+  "production_promotion": false,
+  "references": [
+    {
+      "id": "WhNyURBiJcU",
+      "url": "https://www.youtube.com/watch?v=WhNyURBiJcU",
+      "status": "SAMPLED_VISUAL_AND_CAPTION_REVIEW",
+      "observed_player_seconds": [58, 92, 97, 102],
+      "time_precision": "displayed whole seconds, not measured event boundaries",
+      "next_window": [85, 108],
+      "research_question": "Does a readable single operation before grouped operations improve causal comprehension?",
+      "native_frame_analysis": false,
+      "human_approved": false,
+      "transfer_verified": false
+    },
+    {
+      "id": "rb7TVW77ZCs",
+      "url": "https://www.youtube.com/watch?v=rb7TVW77ZCs",
+      "status": "OFFICIAL_METADATA_ONLY",
+      "research_question": "How is the concrete situation connected to microscopic actors without identity loss?",
+      "playback_note": "Advertising observed; no verified main-video visual samples in this session",
+      "human_approved": false,
+      "transfer_verified": false
+    },
+    {
+      "id": "karen-davis-pain",
+      "url": "https://www.ted.com/talks/karen_d_davis_how_does_your_brain_respond_to_pain",
+      "status": "OFFICIAL_METADATA_ONLY",
+      "research_question": "How are different reactions to the same stimulus made legible?",
+      "human_approved": false,
+      "transfer_verified": false
+    }
+  ]
+}

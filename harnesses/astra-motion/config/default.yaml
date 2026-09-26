@@ -1,0 +1,20 @@
+{
+  "renderer": "hyperframes",
+  "transition": "cut",
+  "crossfade_seconds": 0,
+  "motion_strength": 0.045,
+  "hyperframes_quality": "looks",
+  "hyperframes_workers": 1,
+  "subtitle_font": "Noto Sans CJK KR",
+  "subtitle_size": 54,
+  "subtitle_margin_vertical": 72,
+  "experimental_capabilities": {
+    "actor_reaction": "human_review_required",
+    "limited_mesh": "experiment_only",
+    "grasp_and_retain": "experiment_only",
+    "interaction_ready": "human_review_required",
+    "hyperframes_scene": "human_review_required",
+    "theory_rule": "candidate_only",
+    "generated_image_layer_decomposition": "human_review_required"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "version": 3,
+  "reference": "OyK0oE5rwFY",
+  "source_window": [162, 192],
+  "scene_function": "Explain posture and reach using one continuous seated actor",
+  "design_rules": ["Retain flat yellow/pink/purple/teal palette", "Preserve actor identity", "Fit camera before altering silhouette"],
+  "layout": {"wide_camera": {"scale": 1.183486, "translation": [-347.367, -125.972]}, "measured_source_bbox_at_163_seconds": [300, 48, 1152, 951], "candidate_bbox_after_fit": [300, 48, 1102, 951], "measurement_limits": "Flat-background threshold at a matched stable pose; right edge still differs 50 pixels"},
+  "object_states": ["brief slouch", "upright", "phone disappears", "arm lowers", "legs fold", "desk arrives", "lean", "face closeup", "upright eye line", "hand closeup", "reach adjustment"],
+  "motion": {"opening_straightening": [0, 0.5], "phone_removal": [2.8, 3], "desk_entry": [11, 12], "face_camera": [16.5, 17], "upright_return": [18, 18.5], "hand_camera": [21.5, 22]},
+  "transition": "Separate camera scale/translation from actor world geometry",
+  "rhythm": "Short pose changes followed by explanatory holds",
+  "evidence": ["posture-seating-162/frames/frame-00001.png", "posture-seating-162/frames/frame-00025.png", "posture-seating-layout-stable-v1.json", "posture-seating-layout-stable-v2.json", "posture-seating-timing-v1.png"],
+  "timing_status": "First-frame and one-second visual observations, not fully measured event boundaries",
+  "face_performance": {"states": ["tired", "engaged"], "channels": ["upper eyelid coverage", "mouth curvature"], "tired_hold": [11.4, 18.15], "eye_release": [18.15, 18.45], "mouth_release": [18.35, 18.65], "evidence": "posture-face-source.png: source 178-184s, half-second samples", "timing_confidence": "Observed coarse boundary, interpolated hypothesis, not frame-exact event measurement", "promotion": "REQUIRES_HUMAN_REVIEW"},
+  "human_approved": false,
+  "production_promotion": false,
+  "remaining": ["Exact pose silhouettes and neck proportions", "Human review of expression and native-frame timing", "Source audio", "Complete reference reconstruction", "New-script transfer"]
+}

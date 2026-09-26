@@ -1,0 +1,9 @@
+{
+  "source_video": "OyK0oE5rwFY",
+  "purpose": "Continuous comparison, not approved full reconstruction",
+  "parts": [
+    {"file": "posture-consequences-v3/posture-consequences-v3.mp4", "source_window": [60,90]},
+    {"file": "posture-context-90-v2/posture-context-centered.mp4", "source_window": [90,106]},
+    {"file": "posture-alignment-v7/posture-alignment-v7.mp4", "source_window": [106,120]}
+  ]
+}

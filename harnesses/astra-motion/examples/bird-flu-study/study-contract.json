@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "EXPERIMENTAL_HUMAN_REVIEW_REQUIRED",
+  "reference": {"url": "https://www.youtube.com/watch?v=bHB5iiDDJ-s", "title": "Everything you need to know about bird flu - Benjamin Anderson", "sha256": "957f4678239327abaf5d2079067d7802f178e923d3f67f10c449911d0a0029b6"},
+  "scope": "18-second silent representative study, not full 390-second reconstruction",
+  "windows": [
+    {"id": "entry", "source_start": 121.8, "duration": 6, "decoded_frames": 143, "function": "make entry mechanism visible", "grammar": ["approach", "contact", "enclosure", "payload reveal"], "design": "cyan agent, purple markers, warm organic membrane", "known_gap": "camera and receptor deformation are approximate, not measured mesh reconstruction"},
+    {"id": "reaction", "source_start": 176, "duration": 6, "decoded_frames": 144, "function": "communicate failed entry with a reaction", "grammar": ["approach", "stop", "look", "expression change", "hold"], "known_gap": "opening human-to-interior transition excluded; new facial design"},
+    {"id": "contact", "source_start": 256, "duration": 6, "decoded_frames": 144, "function": "prepare relationship between two agents", "grammar": ["approach", "eyes close", "arms extend", "shared contact", "paired drift"], "known_gap": "this window precedes full segment exchange; it does not validate grasp or genetic-exchange grammar"}
+  ],
+  "asset_contract": {"bodies": "original generated bitmap sprites with alpha", "face": "independent eyes, pupils, brow, mouth", "arms": "paths meeting at a shared endpoint", "background": "original code-authored organic forms", "identity": "color and marker shape stable across scenes"},
+  "verification": {"seek_order": "exact screenshot comparison", "contact": "shared endpoint and shared parent transform", "acting": "human review required", "reference_similarity": "visual A/B, no unsupported similarity percentage"},
+  "promotion": {"automatic": false, "requirements": ["human comparison approval", "second-script transfer test", "no regression on approved design"]},
+  "cost": {"separately_paid_image_api_calls": 0, "generation": "built-in image tool; no promise about subscription quotas"}
+}

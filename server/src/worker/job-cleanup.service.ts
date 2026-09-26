@@ -9,6 +9,7 @@ export class JobCleanupService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
 
   onModuleInit() {
+    if (!config.autoDeleteJobFiles) return;
     void this.cleanup();
     this.timer = setInterval(() => void this.cleanup(), 3_600_000);
   }

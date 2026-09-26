@@ -6,7 +6,11 @@ set -eu
 runtime_home=${CODEX_HOME:-/tmp/codex-home}
 umask 077
 mkdir -p "$runtime_home"
-cp -R /codex-source/. "$runtime_home/"
-chmod -R u=rwX,go= "$runtime_home"
+if [ ! -f /codex-source/auth.json ]; then
+  echo "Missing /codex-source/auth.json" >&2
+  exit 1
+fi
+cp /codex-source/auth.json "$runtime_home/auth.json"
+chmod 600 "$runtime_home/auth.json"
 
 exec "$@"

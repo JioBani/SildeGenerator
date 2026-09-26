@@ -98,13 +98,28 @@ export class MetricsService {
 
   async recordRunnerResult(jobId: string, stages: RunnerStage[], usage: RunnerUsage[], assets: RunnerAsset[], prompts: Array<{ name: string; relative_path: string; sha256: string; content: string }>) {
     await this.db.transaction(async (client) => {
+      // Runner results contain the complete broker ledger, including events from
+      // earlier render attempts. Serialize writes per job and retain each real
+      // provider event once instead of counting reused assets as new calls.
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [`slidegen_usage_${jobId}`]);
       for (const stage of stages) await this.insertStage(client, jobId, stage);
       for (const event of usage) {
         const price = this.cost(event);
         const effort = event.effort ?? (typeof event.raw_usage?.reasoning_effort === "string" ? event.raw_usage.reasoning_effort : null);
         await client.query(`INSERT INTO provider_usage_events
           (job_id,scene_id,stage,provider,model,request_id,input_tokens,cached_input_tokens,output_tokens,reasoning_tokens,characters,images_generated,audio_duration_ms,started_at,finished_at,duration_ms,actual_cost_usd,api_equivalent_cost_usd,exchange_rate_usd_krw,price_snapshot,raw_usage,effort)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+          SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22
+          WHERE NOT EXISTS (
+            SELECT 1 FROM provider_usage_events existing
+            WHERE existing.job_id=$1
+              AND existing.scene_id IS NOT DISTINCT FROM $2
+              AND existing.stage=$3
+              AND existing.provider=$4
+              AND existing.model=$5
+              AND existing.request_id IS NOT DISTINCT FROM $6
+              AND existing.started_at=$14::timestamptz
+              AND existing.raw_usage=$21::jsonb
+          )`,
           [jobId,event.scene_id ?? null,event.stage,event.provider,event.model,event.request_id ?? null,event.input_tokens ?? 0,event.cached_input_tokens ?? 0,event.output_tokens ?? 0,event.reasoning_tokens ?? 0,event.characters ?? 0,event.images_generated ?? 0,event.audio_duration_ms ?? 0,event.started_at,event.finished_at ?? null,event.duration_ms ?? null,price.actual,price.equivalent,config.usdKrwRate,price.snapshot,event.raw_usage ?? {},effort]);
       }
       for (const asset of assets) await client.query(`INSERT INTO generated_assets

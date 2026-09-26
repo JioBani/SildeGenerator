@@ -163,6 +163,8 @@ Ready for local use: yes
 
 ## 개발 구조
 
+> 감독 엔진 개발의 정본은 이 저장소입니다. 이전 Astra 작업 폴더는 연구 자료를 가져오는 읽기 전용 출처이며, 새 계약과 제작 기능은 여기에서만 구현·검증합니다.
+
 | 경로 | 역할 |
 |---|---|
 | `web/` | React 생성·관리자 화면 |
@@ -170,6 +172,7 @@ Ready for local use: yes
 | `video-generator/` | Python planner, 이미지·TTS provider, FFmpeg |
 | `harnesses/classic-slide/prompts/` | 기본 Harness의 기능별 Markdown 프롬프트 |
 | `harnesses/` | 버전 고정 Creative Harness 코드·설정·fixture |
+| `harnesses/astra-motion/` | Scene Production Pack을 HyperFrames + GSAP 모션그래픽으로 렌더하는 Harness |
 
 ## Creative Harness 개발
 

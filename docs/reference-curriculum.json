@@ -1,0 +1,418 @@
+{
+  "version": 1,
+  "purpose": "Whole-reference reconstruction and second-script transfer. A sample is not completion.",
+  "references": [
+    {
+      "id": "bHB5iiDDJ-s",
+      "label": "Bird flu",
+      "source": "bird-flu/sources/bHB5iiDDJ-s.mp4",
+      "overview": "bird-flu/overview/analysis.json",
+      "motion": [
+        "bird-flu/entry/motion.json",
+        "bird-flu/reaction/motion.json",
+        "bird-flu/contact/motion.json",
+        "bird-flu/exchange-262/motion.json",
+        "bird-flu/exchange-282/motion.json"
+      ],
+      "studies": [
+        {
+          "file": "bird-flu/bird-flu-v4.mp4",
+          "source_windows": [
+            [
+              121.8,
+              127.8
+            ],
+            [
+              176,
+              182
+            ],
+            [
+              256,
+              262
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "bird-flu/continuous-exchange-v1.mp4",
+          "source_windows": [
+            [
+              256,
+              275
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        }
+      ],
+      "approved_reviews": [],
+      "transfer_review": null
+    },
+    {
+      "id": "OyK0oE5rwFY",
+      "label": "Posture",
+      "source": "source-videos/OyK0oE5rwFY.mp4",
+      "overview": "analysis-posture/analysis.json",
+      "motion": [
+        "posture-opening-0/motion.json",
+        "posture-30-60/motion.json",
+        "posture-anatomy-60/motion.json",
+        "posture-alignment-90/motion.json",
+        "posture-seating-162/motion.json",
+        "posture-rest-192/motion.json"
+      ],
+      "studies": [
+        {
+          "file": "posture-continuous-60-120-v2/continuous.mp4",
+          "source_windows": [[60,120]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "posture-context-90-v2/posture-context-centered.mp4",
+          "source_windows": [[90,106]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "posture-context-90-v1/posture-context-fixed.mp4",
+          "source_windows": [[90,106]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "posture-alignment-v7/posture-alignment-v7.mp4",
+          "source_windows": [[106,120]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "posture-alignment-v6/posture-alignment-v6.mp4",
+          "source_windows": [[106,120]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "posture-alignment-v5/posture-alignment-v5.mp4",
+          "source_windows": [[106,120]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "posture-alignment-v3/posture-alignment-v3.mp4",
+          "source_windows": [[106,120]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "posture-consequences-v3.mp4",
+          "source_windows": [[60,90]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "posture-consequences-v2.mp4",
+          "source_windows": [[60,90]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "reproduction-posture-v2.mp4",
+          "source_windows": [],
+          "status": "SOURCE_ALIGNMENT_UNVERIFIED"
+        },
+        {
+          "file": "posture-bend-v3.mp4",
+          "source_windows": [
+            [
+              48,
+              60
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "posture-seating-v1.mp4",
+          "source_windows": [
+            [
+              162,
+              192
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "posture-rest-v1.mp4",
+          "source_windows": [[192, 216]],
+          "status": "REJECTED_SEMANTICS"
+        },
+        {
+          "file": "posture-rest-v2.mp4",
+          "source_windows": [[192, 216]],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "posture-seating-v3.mp4",
+          "source_windows": [[162, 192]],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "posture-seating-v2.mp4",
+          "source_windows": [
+            [
+              162,
+              192
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        }
+      ],
+      "approved_reviews": [],
+      "transfer_review": null
+    },
+    {
+      "id": "Ab9OZsDECZw",
+      "label": "Blood pressure",
+      "source": "source-videos/Ab9OZsDECZw.mp4",
+      "overview": "analysis-blood-pressure/analysis.json",
+      "motion": [
+        "blood-opening-0/motion.json",
+        "blood-27-57/motion.json",
+        "blood-intervention-201/motion.json",
+        "blood-pressure-57/motion.json",
+          "blood-factors-87/motion.json",
+          "blood-wall-111/motion.json",
+          "blood-deposit-141/motion.json",
+          "blood-obstruction-165/motion.json"
+      ],
+      "studies": [
+        {
+          "file": "blood-bulge-study-v1/study.mp4",
+          "source_windows": [[116.032583,122.99925]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "context-reveal-blood-v2.mp4",
+          "source_windows": [[183,195]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "blood-wall-study-v2.mp4",
+          "source_windows": [[132,141]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "blood-wall-study-v4.mp4",
+          "source_windows": [[132,141]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "blood-deposit-study-v1.mp4",
+          "source_windows": [[141,165]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "blood-deposit-study-v2.mp4",
+          "source_windows": [[141,165]],
+          "status": "PARTIAL_STUDY_REVISE"
+        },
+        {
+          "file": "reproduction-blood-v2.mp4",
+          "source_windows": [],
+          "status": "SOURCE_ALIGNMENT_UNVERIFIED"
+        },
+        {
+          "file": "blood-opening-v2.mp4",
+          "source_windows": [
+            [
+              6,
+              27
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-opening-v3.mp4",
+          "source_windows": [
+            [
+              6,
+              27
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-continuous-51-v1.mp4",
+          "source_windows": [
+            [
+              6,
+              57
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-intervention-v1.mp4",
+          "source_windows": [
+            [
+              201,
+              231
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-intervention-v2.mp4",
+          "source_windows": [
+            [
+              201,
+              231
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-factors-v3.mp4",
+          "source_windows": [[87, 111]],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-factors-v2.mp4",
+          "source_windows": [[87, 111]],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-factors-v1.mp4",
+          "source_windows": [[87, 111]],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-pressure-v2.mp4",
+          "source_windows": [[57, 87]],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-pressure-v1.mp4",
+          "source_windows": [[57, 87]],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-continuous-81-v1.mp4",
+          "source_windows": [[6, 87]],
+          "status": "PARTIAL_STUDY"
+        },
+        {
+          "file": "blood-intervention-v3.mp4",
+          "source_windows": [
+            [
+              201,
+              231
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        }
+      ],
+      "approved_reviews": [],
+      "transfer_review": null
+    },
+    {
+      "id": "fLu080UX25o",
+      "label": "Extreme heat",
+      "source": "batch-three/sources/fLu080UX25o.mp4",
+      "overview": "batch-three/fLu080UX25o-analysis/analysis.json",
+      "motion": [
+        "batch-three/fLu080UX25o-motion/motion.json"
+      ],
+      "studies": [
+        {
+          "file": "batch-three/three-reference-v3.mp4",
+          "source_windows": [
+            [
+              15,
+              19
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        }
+      ],
+      "approved_reviews": [],
+      "transfer_review": null
+    },
+    {
+      "id": "1GowFTjbUnk",
+      "label": "NVIDIA",
+      "source": "batch-three/sources/1GowFTjbUnk.mp4",
+      "overview": "batch-three/1GowFTjbUnk-analysis/analysis.json",
+      "motion": [
+        "batch-three/1GowFTjbUnk-motion/motion.json"
+      ],
+      "studies": [
+        {
+          "file": "batch-three/three-reference-v3.mp4",
+          "source_windows": [
+            [
+              17,
+              21
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        }
+      ],
+      "approved_reviews": [],
+      "transfer_review": null
+    },
+    {
+      "id": "7SWvDHvWXok",
+      "label": "Questions",
+      "source": "batch-three/sources/7SWvDHvWXok.mp4",
+      "overview": "batch-three/7SWvDHvWXok-analysis/analysis.json",
+      "motion": [
+        "batch-three/7SWvDHvWXok-motion/motion.json"
+      ],
+      "studies": [
+        {
+          "file": "batch-three/three-reference-v3.mp4",
+          "source_windows": [
+            [
+              18,
+              22
+            ]
+          ],
+          "status": "PARTIAL_STUDY"
+        }
+      ],
+      "approved_reviews": [],
+      "transfer_review": null
+    },
+    {
+      "id": "_GI9-J-sE5k",
+      "label": "Earlier reference candidate",
+      "source": null,
+      "overview": null,
+      "motion": [],
+      "studies": [],
+      "approved_reviews": [],
+      "transfer_review": null
+    },
+    {
+      "id": "I8XaYkRW1tA",
+      "label": "Earlier reference candidate",
+      "source": null,
+      "overview": null,
+      "motion": [],
+      "studies": [],
+      "approved_reviews": [],
+      "transfer_review": null
+    },
+    {
+      "id": "asbbhyHBSKU",
+      "label": "Earlier design reference",
+      "source": null,
+      "overview": null,
+      "motion": [],
+      "studies": [],
+      "approved_reviews": [],
+      "transfer_review": null
+    },
+    {
+      "id": "N5vJSNXPEwA",
+      "label": "Earlier design reference",
+      "source": null,
+      "overview": null,
+      "motion": [],
+      "studies": [],
+      "approved_reviews": [],
+      "transfer_review": null
+    }
+  ]
+}

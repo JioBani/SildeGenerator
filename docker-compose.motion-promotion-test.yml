@@ -1,0 +1,8 @@
+# Override for a provider-free Astra motion promotion smoke test.
+# Start only postgres, redis, key-init, api, runner and worker.
+services:
+  api:
+    ports: !override
+      - "127.0.0.1:18773:3000"
+  runner:
+    image: slidegenerator-runner:astra-motion-0.7.0-candidate

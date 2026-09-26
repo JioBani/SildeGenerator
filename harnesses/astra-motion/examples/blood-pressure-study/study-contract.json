@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "reference": "Ab9OZsDECZw",
+  "source_window": [57, 87],
+  "scene_function": "Keep one vessel visible while naming two measurements, then restore whole-body context",
+  "design_rules": ["Burgundy field and warm layered vessel walls", "Cream center labels", "Yellow pressure arrows", "Red/teal branching body diagram on a pale field"],
+  "layout": ["Split heart and vessel", "Full-width vessel", "Centered upper-body schematic"],
+  "object_states": ["heart pulse", "diastolic label", "heart panel leaves", "systolic label", "source numerical range", "diastolic label and range", "combined source reading", "whole-body context"],
+  "motion": {"wall_wave_period_seconds": 2.2, "panel_removal": [5, 5.8], "body_transition": [22, 23], "title_reveal": [24, 24.3]},
+  "transition": "Two panels translate together with no gap or overlap at the boundary",
+  "rhythm": "Stable geometry with serial labels, then change scale of explanation",
+  "renderer_requirements": ["Deterministic path interpolation", "Explicit per-label opacity", "Shared slide transition timing"],
+  "content_policy": {"numeric_labels": "Reference quotation for reproduction study only", "clinical_reuse": "REQUIRES_NEW_FACT_REVIEW", "reason": "Source ranges and 120/80 display must not be automatically promoted as current normal-pressure guidance", "authority": "https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings"},
+  "timing_status": "Manual hypothesis from two-second overview, not measured native-frame events",
+  "human_approved": false,
+  "production_promotion": false,
+  "limitations": ["Audio absent", "Heart and vascular shapes schematic", "Pulse phase at preceding scene boundary not matched", "No clinical validation", "Whole-video reconstruction incomplete"]
+}

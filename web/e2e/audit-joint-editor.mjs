@@ -1,0 +1,45 @@
+import { chromium } from '@playwright/test';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const base = join(root, 'experiments/image-motion-intake/output');
+const browser = await chromium.launch({headless:true, executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'});
+const checks=[];
+function check(value, name) {if(!value) throw Error(name); checks.push(name);}
+try {
+  const page = await browser.newPage({viewport:{width:1280,height:1000},acceptDownloads:true});
+  const errors=[];page.on('pageerror', e=>errors.push(e.message));
+  await page.goto(pathToFileURL(join(base,'f-actor-editor/review.html')).href);
+  await page.selectOption('#joint','left_wrist');
+  const x=Number(await page.locator('#x').inputValue());
+  await page.locator('#x').fill(String(x+4)); await page.locator('#x').press('Tab');
+  await page.locator('#reason').fill('AUTOMATED UI TEST ONLY - not a human coordinate review');
+  const download=page.waitForEvent('download');await page.locator('#export').click();
+  const file=await download;await file.saveAs(join(base,'f-actor-editor/test-edits.json'));
+  const correction=JSON.parse(readFileSync(join(base,'f-actor-editor/test-edits.json'),'utf8'));
+  check(correction.edits[0].xy_px[0]===x+4,'numeric_edit_export');
+  await page.locator('#reset').click();check(Number(await page.locator('#x').inputValue())===x,'reset_original');
+  await page.locator('#file').setInputFiles(join(base,'f-actor-editor/test-edits.json'));
+  await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('불러옴'));
+  check(Number(await page.locator('#x').inputValue())===x+4,'correction_roundtrip');
+  const bad={...correction,analysis_sha256:'0'.repeat(64)};
+  await page.locator('#file').setInputFiles({name:'stale.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(bad))});
+  await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('이전 분석'));
+  check(Number(await page.locator('#x').inputValue())===x+4,'stale_import_does_not_modify_state');
+  await page.locator('#reset').click();
+  const circle=await page.locator('circle[data-joint="left_wrist"]').boundingBox();
+  await page.mouse.move(circle.x+circle.width/2,circle.y+circle.height/2);await page.mouse.down();await page.mouse.move(circle.x+circle.width/2+8,circle.y+circle.height/2-8,{steps:5});await page.mouse.up();
+  check(Number(await page.locator('#x').inputValue())>x,'drag_edit');
+  await page.locator('#reset').click();
+  await page.screenshot({path:join(base,'f-actor-editor/desktop.png'),fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:join(base,'f-actor-editor/mobile.png'),fullPage:true});
+  check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile_no_overflow');
+  await page.goto(pathToFileURL(join(base,'d-rest-editor/review.html')).href);
+  check(await page.locator('#export').isDisabled(),'undetected_actor_cannot_export_edits');
+  check(await page.locator('#joint').isDisabled(),'undetected_actor_requires_new_analysis');
+  check(errors.length===0,'no_page_errors');
+} finally {await browser.close();}
+writeFileSync(join(base,'joint-editor-audit.json'),JSON.stringify({checks,scope:'synthetic interaction only; no human approval'},null,2));
+console.log(JSON.stringify({passed:checks.length,checks}));

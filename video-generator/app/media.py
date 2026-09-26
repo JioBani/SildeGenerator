@@ -54,4 +54,17 @@ async def validate_video(path: Path, settings: Settings) -> dict[str, Any]:
     if abs(actual_fps - settings.fps) > 0.05: raise ValueError(f"rendered video has unexpected fps {actual_fps:.3f}")
     duration = float((info.get("format") or {}).get("duration") or 0)
     if duration <= 0: raise ValueError("rendered video duration is invalid")
-    return {"duration_seconds": duration, "video_codec": video.get("codec_name"), "audio_codec": audio.get("codec_name"), "width": int(video["width"]), "height": int(video["height"]), "fps": actual_fps}
+    sample_brightness = []
+    for fraction in (0.1, 0.5, 0.9):
+        process = await asyncio.create_subprocess_exec(
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-ss", f"{duration * fraction:.3f}",
+            "-i", str(path), "-frames:v", "1", "-vf", "scale=64:36,format=gray",
+            "-f", "rawvideo", "-", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+        )
+        frame, error = await process.communicate()
+        if process.returncode or len(frame) != 64 * 36:
+            raise ValueError(f"rendered video frame is unreadable: {error.decode(errors='replace')[-300:]}")
+        sample_brightness.append(sum(frame) / len(frame))
+    if all(brightness < 3 for brightness in sample_brightness):
+        raise ValueError("rendered video is black at all inspected positions")
+    return {"duration_seconds": duration, "video_codec": video.get("codec_name"), "audio_codec": audio.get("codec_name"), "width": int(video["width"]), "height": int(video["height"]), "fps": actual_fps, "sample_brightness": sample_brightness}

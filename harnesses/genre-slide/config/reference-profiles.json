@@ -1,0 +1,52 @@
+{
+  "version": "astra-reference-profiles-1.0",
+  "common_explanatory_manner": {
+    "story_rules": [
+      "one_explanatory_claim_per_visual beat",
+      "show a concrete action before exposing the hidden mechanism",
+      "preserve one visual anchor across representation changes",
+      "use text as a label, not as the primary explanation",
+      "hold the resolved state long enough to read"
+    ],
+    "transition_families": ["semantic_zoom", "match_position", "occluding_wipe", "state_transform"],
+    "timing": {
+      "typical_beat_seconds": [2.0, 4.5],
+      "minimum_resolve_hold_seconds": 0.6,
+      "maximum_simultaneous_primary_actions": 2
+    }
+  },
+  "geometric_character": {
+    "source_reference": "OyK0oE5rwFY",
+    "status": "benchmark_only",
+    "palette": ["#FCCC4D", "#2DB985", "#1EBAA7", "#E96282", "#785EAE", "#003B5D"],
+    "design": [
+      "flat geometric shapes without texture",
+      "exaggerated limb arcs and asymmetrical poses",
+      "large facial features with minimal detail",
+      "background built from two or three large color fields"
+    ],
+    "motion": [
+      "pose change leads camera change",
+      "limbs travel on readable arcs",
+      "hidden anatomy is revealed through silhouette or panel replacement",
+      "environmental wipes replace decorative transitions"
+    ]
+  },
+  "anatomical_cutaway": {
+    "source_reference": "Ab9OZsDECZw",
+    "status": "benchmark_only",
+    "palette": ["#440101", "#7E0103", "#D9232E", "#FF6B55", "#F7EAD0", "#24A58F"],
+    "design": [
+      "body-wide mechanism represented as a circuit map",
+      "vessel shown as a continuous horizontal cross section",
+      "small particles use a limited symbolic vocabulary",
+      "narrow uppercase labels sit inside the diagram"
+    ],
+    "motion": [
+      "camera moves from body map into the vessel interior",
+      "wall deformation and particle flow explain pressure",
+      "pathology accumulates instead of appearing instantly",
+      "treatment visibly changes geometry before the label resolves"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "status": "EXPERIMENTAL_REQUIRES_REVIEW",
+  "source": {"video_id": "Ab9OZsDECZw", "window": [6, 27]},
+  "time_mapping": {"source_offset_seconds": 6, "output_fps": 30},
+  "information_order": ["vessel_network", "geographic_length", "daily_volume", "recirculating_body_volume"],
+  "scenes": [
+    {"start": 0, "end": 8.2, "function": "anatomical_network", "subject": "human", "design": "dark silhouette with red and teal vessel circuits"},
+    {"start": 8.2, "end": 12.6, "function": "scale_analogy", "subject": "earth", "motion": "line wraps globe", "quantity": "95,000 km"},
+    {"start": 12.6, "end": 18.6, "function": "volume_analogy", "subject": "tank", "motion": "fill then hold", "quantity": "7,500 L"},
+    {"start": 18.6, "end": 21, "function": "recirculation_explanation", "subject": "human_between_tanks", "motion": "horizontal reveal then flow", "quantity": "4-5 L"}
+  ],
+  "camera_reveal": {
+    "start": 18.6,
+    "end": 19.45,
+    "from_translation": [650, 0],
+    "to_translation": [0, 0],
+    "scale": 1,
+    "easing": "power2.inOut",
+    "evidence": "source 24-26 second four-samples-per-second contact sheet",
+    "confidence": "manual initial fit; not an exact measured camera trajectory"
+  },
+  "invariants": [
+    "The single tank and left network tank align at the reveal boundary",
+    "No future-scene child may override a hidden parent after reverse seeking",
+    "Camera reveal precedes complete network flow",
+    "Displayed quantities are source transcriptions, not independently verified medical claims"
+  ],
+  "approval": {"human": false, "production_promotion": false, "audio": "MISSING"},
+  "transfer_hypothesis": "Reveal a familiar quantity first, then pan to its source or recirculation mechanism. Validate on another script before promotion."
+}

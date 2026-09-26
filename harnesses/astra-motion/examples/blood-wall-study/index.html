@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><script src="assets/tracks.js"></script><style>html,body{margin:0;background:#400500}svg{width:1920px;height:1080px}text{font-family:'Arial Narrow',Arial,sans-serif;letter-spacing:0}</style></head><body><svg viewBox="0 0 640 360"><defs><clipPath id="lumen"><path id="lumenPath"/></clipPath></defs><rect width="640" height="360" fill="#400500"/><rect y="48" width="640" height="270" fill="#540600"/><rect y="93" width="640" height="187" fill="#710700"/><path id="fill" fill="#a41400"/><g id="particles" clip-path="url(#lumen)"></g><g id="walls"></g><g id="callout"><text x="313" y="-53" fill="#ffdc54" text-anchor="middle" font-size="17">ELASTIC FIBERS</text><path d="M313 -45V-8" stroke="#ffdc54" stroke-width="3"/><path d="M307 -11L313 0L319 -11Z" fill="#ffdc54"/></g><g id="pressure" opacity="0" fill="#fbd5b4" text-anchor="middle"><text x="320" y="194" font-size="31" font-weight="200">HYPERTENSION</text><text x="320" y="224" font-size="23" font-weight="200">140/90 mm Hg</text></g></svg><script>
+const ns='http://www.w3.org/2000/svg';const make=(tag,attrs,parent)=>{const el=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v));parent.append(el);return el};
+const track=window.studyTracks;const tl=gsap.timeline({paused:true});
+function curve(points,offset){return points.map(([x,y],i)=>(i?'L':'M')+x+' '+(y+offset)).join(' ')}
+const layers=[];
+for(const [side,offset] of [['upper',8],['lower',-8]]){
+ for(const [color,width,dash]of [['#a52c18',24,null],['#ef5c3b',16,null],['#bd301e',9,'3 11']]){
+  const el=make('path',{fill:'none',stroke:color,'stroke-width':width,...(dash?{'stroke-dasharray':dash}:{})},document.querySelector('#walls'));layers.push({el,side,offset});
+ }
+}
+function apply(row){
+ for(const layer of layers)layer.el.setAttribute('d',curve(row[layer.side],layer.offset));
+ const d=curve(row.upper,19)+' '+curve([...row.lower].reverse(),-19).replace(/^M/,'L')+'Z';
+ document.querySelector('#fill').setAttribute('d',d);document.querySelector('#lumenPath').setAttribute('d',d);
+}
+apply(track.walls[0]);
+for(let i=0;i<45;i++){
+ const x=(i*109)%720-40,y=150+(i*37)%92;const group=make('g',{},document.querySelector('#particles'));
+ const color=['#780701','#f6d4a8','#ee4b0b'][i%3];
+ if(i%3===2)make('rect',{x:-8,y:-3,width:16,height:6,rx:3,fill:color},group);else make('circle',{r:i%3?7:9,fill:color},group);
+ group.setAttribute('transform',`translate(${x} ${y})`);
+ tl.to(group,{attr:{transform:`translate(${x+720} ${y})`},duration:9,ease:'none'},0);
+}
+// Absolute track samples remain seekable without depending on prior playback.
+for(const row of track.walls){const t=Math.max(0,row.source_second-132);for(const layer of layers)tl.set(layer.el,{attr:{d:curve(row[layer.side],layer.offset)}},t);
+ const d=curve(row.upper,19)+' '+curve([...row.lower].reverse(),-19).replace(/^M/,'L')+'Z';tl.set('#fill,#lumenPath',{attr:{d}},t);}
+document.querySelector('#callout').setAttribute('transform',`translate(0 ${track.arrow[0].measurement.tip[1]})`);
+for(const row of track.arrow)tl.set('#callout',{attr:{transform:`translate(0 ${row.measurement.tip[1]})`}},Math.max(0,row.source_second-132));
+tl.to('#particles',{opacity:0,duration:.5},3.5).to('#pressure',{opacity:1,duration:.4},5.8).to({},{duration:.1},8.9);
+window.__timelines={'blood-wall-study':tl};
+</script></body></html>

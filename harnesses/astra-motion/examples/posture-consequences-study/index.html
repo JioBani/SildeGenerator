@@ -1,0 +1,99 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><script src="assets/tracks.js"></script><style>html,body{margin:0;background:#ffd04e}svg{display:block;width:1920px;height:1080px}</style></head><body><svg viewBox="0 0 640 360"><defs><clipPath id="screen"><rect width="640" height="360"/></clipPath></defs><g id="stage" clip-path="url(#screen)"></g></svg><script>
+const ns='http://www.w3.org/2000/svg',C={yellow:'#ffd04e',green:'#218c6c',pink:'#fa6093',dark:'#004966',purple:'#7862a5',white:'#fff8e7',teal:'#24b39f'},stage=document.querySelector('#stage');
+function make(tag,attrs,parent){const e=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e}
+function group(id,parent,transform){return make('g',{id,...(transform?{transform}:{})},parent)}
+function rect(x,y,width,height,fill,parent,rx=0){return make('rect',{x,y,width,height,fill,rx},parent)}
+function path(d,fill,parent,stroke,width=0){return make('path',{d,fill,...(stroke?{stroke,'stroke-width':width,'stroke-linecap':'round','stroke-linejoin':'round'}:{})},parent)}
+function circle(cx,cy,r,fill,parent){return make('circle',{cx,cy,r,fill},parent)}
+function scene(id,bg){const g=group(id,stage);rect(0,0,640,360,bg,g);return g}
+function face(id,parent,transform){
+ const g=group(id,parent,transform);
+ path('M-39-15Q-65-45-39-65Q-25-94 0-79Q45-81 45-42L30 5Z',C.dark,g);
+ path('M-31-39Q16-64 39-23L42 7L63 16Q69 29 45 28L37 53Q6 69-22 39Z',C.pink,g);
+ circle(-28,-9,13,C.pink,g);
+ const eye=make('ellipse',{id:id+'Eye',cx:23,cy:4,rx:12,ry:13,fill:C.white},g);circle(27,7,6,C.dark,g);
+ path('M9-16Q23-21 35-14','none',g,C.dark,3);
+ path('M7 39Q22 45 36 37','none',g,C.dark,3).id=id+'Mouth';
+ path('M-3 52Q11 72 23 57Z',C.dark,g);
+ const hat=group(id+'Hat',g);rect(-50,-82,113,13,'#8975b1',hat,5);rect(-34,-134,66,53,C.white,hat);rect(-34,-134,43,53,'#8975b1',hat);
+ for(let i=0;i<3;i++)path(`M-24 ${-126+i*12}H30`,'none',hat,C.white,2);
+ return g;
+}
+function prop(id,parent,x,y){const p=group(id,parent,`translate(${x} ${y})`);rect(-35,-8,70,17,C.dark,p);rect(-35,-8,70,8,C.teal,p);for(let i=0;i<3;i++)path(`M${-28+i*24} -1l13-7h8l-13 7Z`,C.white,p);return p}
+function bent(id,parent){
+ const g=group(id,parent);path('M271 287V375M304 287V375','none',g,C.dark,28);
+ path('M288 109Q211 113 224 228Q227 275 249 291H338Q345 260 303 241Q278 188 315 151Q340 118 288 109Z',C.purple,g);
+ path('M308 137L350 119','none',g,C.pink,20);
+ face(id+'Head',g,'translate(368 117) rotate(63) scale(.78)');
+ path('M278 161L278 349','none',g,C.pink,13).id=id+'BackArm';
+ path('M303 162Q287 242 332 245Q365 244 366 202','none',g,C.pink,15).id=id+'Arm';
+ circle(365,200,12,C.pink,g).id=id+'Hand';prop(id+'Prop',g,375,184);return g;
+}
+const opening=scene('opening',C.green),openingActor=bent('openingActor',opening);
+openingActor.setAttribute('transform','translate(135 38) scale(.75)');
+circle(235,89,68,C.dark,opening);path('M204 112Q206 53 259 48','none',opening,C.pink,12);
+for(let i=0;i<5;i++)circle(216+i*11,115-i*14,10,C.white,opening);
+path('M285 80H493L500 120','none',opening,C.dark,4);
+
+const hospital=scene('hospital',C.yellow),hospitalCam=group('hospitalCam',hospital);
+rect(70,253,490,99,C.green,hospitalCam);rect(65,247,500,17,C.white,hospitalCam);path('M80 260V360M550 260V360','none',hospitalCam,C.white,7);
+path('M43 206V271H592V212','none',hospitalCam,C.white,5);rect(524,251,47,81,C.white,hospitalCam);
+const reclining=group('reclining',hospitalCam);
+path('M124 198Q177 192 258 225L270 247H112Z',C.purple,reclining);
+path('M261 236H490','none',reclining,C.dark,27);path('M491 235H533L551 217','none',reclining,C.pink,12);
+face('patient',reclining,'translate(96 192) rotate(-65) scale(.65)');
+path('M130 203Q188 264 317 245','none',reclining,C.pink,13);
+path('M148 199Q187 154 197 127','none',reclining,C.pink,12);circle(196,124,12,C.pink,reclining);rect(192,93,6,39,'#8a79b2',reclining);
+const monitor=group('monitor',hospitalCam);rect(396,133,8,115,'#aaa8a2',monitor);rect(353,143,97,43,'#a5a29e',monitor);rect(357,149,35,20,C.purple,monitor);circle(431,155,7,C.purple,monitor);
+rect(355,30,103,103,'#b3b4ad',monitor,8);rect(364,40,78,81,C.dark,monitor);rect(445,44,6,70,C.teal,monitor);
+const lungs=group('lungs',monitor);path('M400 60Q378 55 377 99Q387 112 399 98Z',C.teal,lungs);path('M404 60Q425 55 430 98Q421 112 405 98Z',C.teal,lungs);
+path('M351 77Q338 76 338 90V195Q321 213 321 191V84','none',monitor,C.purple,7);
+
+const game=scene('game',C.dark);rect(0,0,126,360,'#4e4169',game);rect(20,157,620,203,C.green,game,28);
+rect(0,219,140,141,'#00334d',game);rect(175,134,32,74,C.white,game);path('M177 163H205M177 172H205','none',game,C.pink,5);
+path('M228 250L215 360M392 250L416 360','none',game,C.dark,45);
+path('M289 106Q237 99 225 160L242 277Q300 310 359 278L381 160Q354 108 326 108Z','#63508c',game);
+face('gamer',game,'translate(300 66) scale(.85)');
+path('M232 168L191 226L268 199M371 169L427 229L333 199','none',game,C.pink,22);
+rect(270,183,67,30,C.dark,game,12);circle(273,207,16,C.dark,game);circle(332,207,16,C.dark,game);circle(264,191,19,C.pink,game);circle(339,191,19,C.pink,game);
+
+const discomfort=scene('discomfort',C.yellow);bent('bent',discomfort);
+const battery=scene('battery',C.green);rect(266,83,131,226,'#715e98',battery);rect(308,64,44,25,'#715e98',battery);path('M266 281L397 258V309H266Z','#df5a89',battery).id='charge';
+const close=scene('close',C.yellow),closeActor=bent('closeActor',close);closeActor.setAttribute('transform','translate(-450 -100) scale(1.8)');
+document.querySelector('#closeActorProp').setAttribute('opacity',0);
+document.querySelector('#closeActorArm').setAttribute('opacity',0);
+document.querySelector('#closeActorHand').setAttribute('opacity',0);
+// The close-shot hand and prop share a grip coordinate before release.
+const closeArm=path('M70 170Q120 351 204 326Q239 308 246 278','none',close,C.pink,24);closeArm.id='closeArm';
+const closeHand=group('closeHand',close,'translate(246 278)');circle(0,0,15,C.pink,closeHand);
+const closeProp=prop('closeProp',close,246,263);
+const accent=group('accent',close);for(let i=0;i<5;i++)circle(355+i*21,66+(i%3)*36,4,C.white,accent);
+
+const transit=scene('transit',C.green);rect(144,0,416,360,C.dark,transit,25);rect(161,210,382,65,C.yellow,transit);path('M169 0V360M544 0V360','none',transit,'#c6c4b3',8);
+path('M212 250L228 356M287 250L337 356','none',transit,C.purple,27);path('M204 159Q230 119 272 154L295 247H195Z',C.pink,transit);face('traveler',transit,'translate(244 122) scale(.5)');
+path('M385 196Q398 171 432 187L489 257H350Z','#d6326c',transit);path('M374 267L374 359M461 267L461 359','none',transit,C.dark,28);face('sleeper',transit,'translate(416 177) rotate(-28) scale(.6)');
+rect(0,0,89,360,C.dark,transit);rect(27,207,33,153,C.pink,transit);rect(583,0,43,360,C.purple,transit);
+const tl=gsap.timeline({paused:true});
+const cuts=[[hospital,2.687625],[game,9.194125],[discomfort,12.238833],[battery,17.5775],[close,19.788042],[transit,27.2]];
+for(const[s,t]of cuts){s.setAttribute('opacity','0');tl.set(s,{opacity:0},0).set(s,{opacity:1},t)}
+tl.to(reclining,{rotation:-22,transformOrigin:'270px 247px',duration:1.4,ease:'power1.inOut'},3.0);
+tl.to(lungs,{scaleY:.78,transformOrigin:'403px 101px',duration:.55,repeat:3,yoyo:true,ease:'sine.inOut'},4.0);
+tl.to(hospitalCam,{scale:2.05,x:-520,y:20,transformOrigin:'0px 0px',duration:.7,ease:'power1.inOut'},6.35);
+tl.to('#gamerEye',{attr:{ry:5},duration:.15,repeat:1,yoyo:true},10.0);
+tl.to('#bentBackArm',{attr:{d:'M278 161Q120 142 149 190L221 254'},duration:.6,ease:'power1.inOut'},14.1);
+tl.to('#charge',{y:8,duration:1.9,ease:'none'},17.6);
+tl.to('#closeActorHeadEye',{attr:{ry:19,rx:14},duration:.25},20.8);
+function grip(t,x,y,angle=0){tl.to(closeHand,{attr:{transform:`translate(${x} ${y+15})`},duration:.22},t);tl.to(closeProp,{attr:{transform:`translate(${x} ${y}) rotate(${angle})`},duration:.22},t);tl.to(closeArm,{attr:{d:`M70 170Q122 310 ${x-40} ${y+40}Q${x-10} ${y+25} ${x} ${y+15}`},duration:.22},t)}
+grip(21.5,40,58,-42);grip(22.12,379,129,-44);
+tl.to(closeHand,{attr:{transform:'translate(303 185)'},duration:.32},22.37);
+tl.to(closeArm,{attr:{d:'M70 170Q181 337 254 267Q285 237 303 185'},duration:.32},22.37);
+// Only the accepted final fragment is measured; earlier flight remains a hypothesis.
+tl.to(closeProp,{attr:{transform:'translate(431 12)'},duration:.45,ease:'none'},22.37);
+for(const row of window.propTrack){tl.set(closeProp,{attr:{transform:`translate(${row.resolved.center[0]} ${row.resolved.center[1]})`}},row.source_second-60)}
+tl.set(closeProp,{visibility:'hidden'},23.125);
+tl.to('#closeActorHead',{attr:{transform:'translate(368 117) rotate(-8) scale(.78)'},duration:.3},23.4);
+tl.to('#closeActorHeadMouth',{attr:{d:'M2 30Q-10 75 44 54Q16 41 2 30Z'},duration:.3},23.8);
+tl.set(accent,{opacity:0},0).to(accent,{opacity:1,duration:.2},24.0);
+tl.set(transit,{x:640},0).to(transit,{x:0,duration:.32,ease:'power1.inOut'},27.2);
+tl.to({},{duration:.1},29.9);window.__timelines={'posture-consequences-study':tl};
+</script></body></html>

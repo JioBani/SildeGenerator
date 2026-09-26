@@ -1,0 +1,65 @@
+{
+  "version": "astra-actor-candidate-0.1",
+  "actor_id": "actor-d-nightlight",
+  "asset_version": "research-d-1",
+  "style_id": "light-pollution-d",
+  "status": "RESEARCH_CANDIDATE",
+  "production_ready": false,
+  "video": {
+    "path": "experiments/light-pollution-story-asset-v1/D/comparison.mp4",
+    "sha256": "6c23e28251ed235d6038f0f8ca636f211b42a36b485be1db7130d7ea4bd37029"
+  },
+  "human_review": {
+    "path": "experiments/light-pollution-story-asset-v1/D/human-review-naturalness.json",
+    "sha256": "61cf3cf34461341e676c6bb24f9461d096ac10a767ae6f13456e98f6844c1b24"
+  },
+  "program": {
+    "path": "experiments/light-pollution-story-asset-v1/D/project/index.html",
+    "sha256": "a0a022218bbff6acf19b35f6e2043adc1b334c8982cc0bcdd05dfe99822695e2"
+  },
+  "approved_axes": ["performance_naturalness_vs_C", "neck_clothing_join"],
+  "source_assembly": {
+    "canvas_px": [1920, 1080],
+    "torso_bounds_px": [1150, 235, 630, 840],
+    "head_bounds_px": [1280, 320, 420, 431],
+    "head_pivot_local_px": [56, 246],
+    "draw_order": ["torso", "neck_underlay", "head_faces", "collar_front"],
+    "occlusion_constraints": [
+      {"behind": "neck_underlay", "in_front": "collar_front"},
+      {"behind": "head_faces", "in_front": "collar_front"}
+    ],
+    "head_rotation_observed_deg": 1.8,
+    "scope": "D source scene only; not a retargetable skeletal rig"
+  },
+  "layers": {
+    "torso": {
+      "path": "experiments/light-pollution-story-asset-v1/D/project/assets/person-body.png",
+      "sha256": "a3d75f733ae648eeb12dadcebf973511c00d80d66bd0c657b9ec759698d715a8"
+    },
+    "head_neutral": {
+      "path": "experiments/light-pollution-story-asset-v1/D/project/assets/person-head-neutral.png",
+      "sha256": "08baeacb8501cee78e94cc3fabd67da2f95b14bfce0e096fe2ccdb84a32aeab9"
+    },
+    "head_notice": {
+      "path": "experiments/light-pollution-story-asset-v1/D/project/assets/person-head-notice.png",
+      "sha256": "454afab176d4a9b1d629cf97b86d23a1f6627b7e0d5a7d9b3d026a5c31305696"
+    },
+    "head_squint": {
+      "path": "experiments/light-pollution-story-asset-v1/D/project/assets/person-head-squint-v3.png",
+      "sha256": "3017102bf78d1ffdb839be1021fd9179b8646f2f0d859e17fa83dfd07acac053"
+    },
+    "neck_underlay": {
+      "path": "experiments/light-pollution-story-asset-v1/D/project/assets/person-neck-overlap-v4b.png",
+      "sha256": "5ba9d6f1f10fb34bc3996bdcc2460328595b746c05337d9dfb01157c477af116"
+    }
+  },
+  "abilities": {
+    "look_at_light": "VISUAL_EVIDENCE_ONLY",
+    "facial_squint": "VISUAL_EVIDENCE_ONLY",
+    "head_settle": "VISUAL_EVIDENCE_ONLY",
+    "reach": "NOT_BUILT",
+    "grasp": "NOT_BUILT",
+    "pull_curtain": "NOT_BUILT"
+  },
+  "missing": ["independent_arm_and_hand_rig", "curtain_contact_points", "other_script_transfer", "full_actor_approval"]
+}

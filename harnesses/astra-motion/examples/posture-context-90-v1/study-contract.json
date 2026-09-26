@@ -1,0 +1,22 @@
+{
+  "status": "PARTIAL_STUDY_REVISE",
+  "human_approved": false,
+  "production_enabled": false,
+  "source_video": "OyK0oE5rwFY",
+  "source_window": [90, 106],
+  "source_sha256": "47f6a63567ffd86e3d7cac3aeacfa5c8164f8b90ebab2b5c568af7c7f3504dfd",
+  "scene_function": "Everyday context, one example, comparative examples, then frontal inspection",
+  "design": {"medium": "independently authored flat SVG actors", "palette_roles": ["yellow comparison field", "teal frontal field", "pink skin", "purple clothing", "dark supports"]},
+  "layout": ["transit ensemble", "single seated laptop user", "three posture examples", "front-facing individual"],
+  "object_states": ["seated", "typing", "upright and bent comparison", "front view"],
+  "motion": {"typing": "authored hypothesis; not measured source kinematics", "actor_rigs": "limited parts; not interaction-ready"},
+  "transition": [
+    {"source_second": 93.635208, "evidence": "inspected native frame at incoming field edge", "duration_hypothesis": 0.24},
+    {"source_second": 99.265833, "evidence": "inspected native frame with three actors", "authoring_start_hypothesis": 99.05},
+    {"source_second": 103.645208, "evidence": "inspected first high-change frontal frame", "type": "cut"}
+  ],
+  "rhythm": "source structural windows retained; silent test, no narration timing approval",
+  "known_failures": ["head and limb proportions", "head angle and gaze", "single-actor placement", "transit ensemble fidelity", "unmeasured arrangement transition", "no continuous join to neighboring studies"],
+  "technical_checks": ["480 output frames", "16 sampled out-of-order seeks", "native-PTS comparison"],
+  "promotion_requires": ["design revision", "continuous-motion review", "adjacent sequence integration", "human approval", "different-script transfer"]
+}

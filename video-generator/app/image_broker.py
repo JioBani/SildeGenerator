@@ -98,10 +98,13 @@ class ImageTaskBroker:
         self._effective_concurrency = settings.image_task_concurrency
         self._healthy_attempts = 0
         self._cancelled_jobs: set[str] = set()
+        self._dependencies: set[asyncio.Task] = set()
+        self._pending: dict[str, ImageTaskHandle] = {}
 
     async def start(self) -> None:
         if self._workers:
             return
+        self._closing = False
         self.pool = await asyncpg.create_pool(self.settings.database_url, min_size=1, max_size=4)
         self.redis = redis.from_url(self.settings.redis_url, decode_responses=True)
         await self.redis.ping()
@@ -112,20 +115,44 @@ class ImageTaskBroker:
         else:
             raise RuntimeError("image task tables are not ready")
         self._workers = [
-            asyncio.create_task(self._worker(index + 1), name=f"image-slot-{index + 1}")
+            self._spawn_worker(index + 1)
             for index in range(self.settings.image_task_concurrency)
         ]
+
+    def _spawn_worker(self, slot: int) -> asyncio.Task:
+        task = asyncio.create_task(self._worker(slot), name=f"image-slot-{slot}")
+        def replace(finished: asyncio.Task) -> None:
+            if not finished.cancelled():
+                finished.exception()
+            if not self._closing and finished in self._workers:
+                self._workers[self._workers.index(finished)] = self._spawn_worker(slot)
+        task.add_done_callback(replace)
+        return task
 
     async def close(self) -> None:
         self._closing = True
         async with self._condition:
             self._condition.notify_all()
-        if self._workers:
-            await asyncio.gather(*self._workers, return_exceptions=True)
+        tasks = [*self._workers, *self._dependencies]
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            _, pending = await asyncio.wait(tasks, timeout=5)
+            if pending:
+                raise RuntimeError("image workers did not acknowledge shutdown within 5 seconds")
+        for handle in self._pending.values():
+            if not handle.future.done():
+                handle.future.set_exception(ImageTaskCancelled("image broker stopped; explicit resubmission required"))
+        self._pending.clear()
+        self._queues.clear()
+        self._job_order.clear()
         if self.redis:
-            await self.redis.aclose()
+            await asyncio.wait_for(self.redis.aclose(), timeout=5)
         if self.pool:
-            await self.pool.close()
+            try:
+                await asyncio.wait_for(self.pool.close(), timeout=5)
+            except TimeoutError:
+                self.pool.terminate()
         self._workers.clear()
 
     @staticmethod
@@ -138,20 +165,29 @@ class ImageTaskBroker:
         operation: Callable[[Path, list[Path], int], Awaitable[dict[str, Any] | None]],
         dependencies: list[ImageTaskHandle] | None = None,
     ) -> ImageTaskHandle:
-        if not self.pool or not self._workers:
+        if self._closing or not self.pool or not self._workers:
             raise RuntimeError("image task broker is not started")
+        existing = self._pending.get(spec.image_task_id)
+        if existing and not existing.future.done():
+            return existing
         loop = asyncio.get_running_loop()
         handle = ImageTaskHandle(spec, loop.create_future())
         submitted_at = _now()
         await self._persist_submission(spec, submitted_at)
-        cached = await self._completed_artifact(spec)
-        if cached:
-            handle.future.set_result(cached)
-            return handle
-        asyncio.create_task(
-            self._wait_dependencies(handle, operation, dependencies or [], submitted_at),
+        dependency_handles = dependencies or []
+        if not dependency_handles:
+            cached = await self._completed_artifact(spec, [])
+            if cached:
+                handle.future.set_result(cached)
+                return handle
+        self._pending[spec.image_task_id] = handle
+        handle.future.add_done_callback(lambda future: self._pending.pop(spec.image_task_id, None))
+        task = asyncio.create_task(
+            self._wait_dependencies(handle, operation, dependency_handles, submitted_at),
             name=f"image-dependencies-{spec.image_task_id}",
         )
+        self._dependencies.add(task)
+        task.add_done_callback(self._dependencies.discard)
         return handle
 
     async def cancel_job(self, job_id: str) -> None:
@@ -182,9 +218,15 @@ class ImageTaskBroker:
         submitted_at: datetime,
     ) -> None:
         try:
-            references = await asyncio.gather(*(dependency.future for dependency in dependencies))
+            references = await asyncio.gather(*(asyncio.shield(dependency.future) for dependency in dependencies))
             if handle.spec.job_id in self._cancelled_jobs:
                 raise ImageTaskCancelled("image task cancelled")
+            if dependencies:
+                cached = await self._completed_artifact(handle.spec, list(references))
+                if cached:
+                    if not handle.future.done():
+                        handle.future.set_result(cached)
+                    return
             ready_at = _now()
             queued_at = _now()
             await self._set_ready(handle.spec, references, ready_at, queued_at)
@@ -195,6 +237,10 @@ class ImageTaskBroker:
                 if handle.spec.job_id not in self._job_order:
                     self._job_order.append(handle.spec.job_id)
                 self._condition.notify_all()
+        except asyncio.CancelledError:
+            if not handle.future.done():
+                handle.future.set_exception(ImageTaskCancelled("image dependency wait stopped"))
+            raise
         except ImageTaskCancelled as error:
             await self._mark_cancelled(handle.spec)
             if not handle.future.done():
@@ -234,6 +280,12 @@ class ImageTaskBroker:
                 result = await self._execute(item, slot_index)
                 if not item.handle.future.done():
                     item.handle.future.set_result(result)
+            except asyncio.CancelledError:
+                error = ImageTaskCancelled("image worker stopped; provider outcome may be unknown; explicit resubmission required")
+                if not item.handle.future.done():
+                    item.handle.future.set_exception(error)
+                await asyncio.wait_for(self._mark_task_failed(item.handle.spec, "WORKER_INTERRUPTED", error), timeout=2)
+                raise
             except Exception as error:
                 if not item.handle.future.done():
                     item.handle.future.set_exception(error)
@@ -251,9 +303,10 @@ class ImageTaskBroker:
             attempt_dir.mkdir(parents=True, exist_ok=True)
             temporary = attempt_dir / f"attempt-{attempt}.png"
             queue_depth = sum(len(queue) for queue in self._queues.values())
-            active_calls = await self._active_leases()
-            await self._mark_running(spec, attempt, slot_index, lease_started, started_at)
+            active_calls = 0
             try:
+                active_calls = await self._active_leases()
+                await self._mark_running(spec, attempt, slot_index, lease_started, started_at)
                 usage = await item.operation(temporary, item.references, attempt) or {}
                 response_at = _now()
                 if spec.job_id in self._cancelled_jobs:
@@ -280,6 +333,9 @@ class ImageTaskBroker:
                     async with self._condition:
                         self._condition.notify_all()
                 return spec.output_path
+            except asyncio.CancelledError:
+                temporary.unlink(missing_ok=True)
+                raise
             except ImageTaskCancelled:
                 temporary.unlink(missing_ok=True)
                 await self._mark_cancelled(spec)
@@ -361,7 +417,7 @@ class ImageTaskBroker:
         for row in rows:
             raw = _decode_json(row["usage"])
             image_usage = raw.get("image") or {}
-            provider = "mock" if row["provider"] == "mock" else "chatgpt_oauth_image"
+            provider = row["provider"] if row["provider"] in {"mock", "local_graphic", "local_illustration"} else "chatgpt_oauth_image"
             events.append({
                 "provider": provider,
                 "model": row["model"],
@@ -396,7 +452,28 @@ class ImageTaskBroker:
         await self.pool.execute("""
           INSERT INTO image_tasks(image_task_id,job_id,task_type,scene_id,asset_id,status,provider,model,quality,size,input_fidelity,prompt_path,prompt_sha256,prompt_bundle,reference_asset_ids,dependency_task_ids,output_path,submitted_at,priority,parent_keycut_task_id,reference_kinds,image_style)
           VALUES($1,$2,$3,$4,$5,'waiting_dependencies',$6,$7,$8,$9,$10,$11,$12,$13::jsonb,$14::jsonb,$15::jsonb,$16,$17,$18,$19,$20::jsonb,$21)
-          ON CONFLICT(image_task_id) DO UPDATE SET updated_at=now(),prompt_path=excluded.prompt_path,prompt_sha256=excluded.prompt_sha256,prompt_bundle=excluded.prompt_bundle
+          ON CONFLICT(image_task_id) DO UPDATE SET
+            status=CASE WHEN
+              image_tasks.provider=excluded.provider AND image_tasks.model=excluded.model AND
+              image_tasks.quality=excluded.quality AND image_tasks.size=excluded.size AND
+              image_tasks.input_fidelity IS NOT DISTINCT FROM excluded.input_fidelity AND
+              image_tasks.prompt_sha256=excluded.prompt_sha256 AND
+              image_tasks.prompt_bundle=excluded.prompt_bundle AND
+              image_tasks.reference_asset_ids=excluded.reference_asset_ids AND
+              image_tasks.dependency_task_ids=excluded.dependency_task_ids AND
+              image_tasks.parent_keycut_task_id IS NOT DISTINCT FROM excluded.parent_keycut_task_id AND
+              image_tasks.reference_kinds=excluded.reference_kinds AND
+              image_tasks.image_style IS NOT DISTINCT FROM excluded.image_style
+            THEN image_tasks.status ELSE 'waiting_dependencies' END,
+            provider=excluded.provider,model=excluded.model,quality=excluded.quality,size=excluded.size,
+            input_fidelity=excluded.input_fidelity,prompt_path=excluded.prompt_path,
+            prompt_sha256=excluded.prompt_sha256,prompt_bundle=excluded.prompt_bundle,
+            reference_asset_ids=excluded.reference_asset_ids,dependency_task_ids=excluded.dependency_task_ids,
+            priority=excluded.priority,parent_keycut_task_id=excluded.parent_keycut_task_id,
+            reference_kinds=excluded.reference_kinds,image_style=excluded.image_style,
+            output_sha256=CASE WHEN image_tasks.provider=excluded.provider AND image_tasks.model=excluded.model AND image_tasks.prompt_sha256=excluded.prompt_sha256 THEN image_tasks.output_sha256 ELSE NULL END,
+            output_bytes=CASE WHEN image_tasks.provider=excluded.provider AND image_tasks.model=excluded.model AND image_tasks.prompt_sha256=excluded.prompt_sha256 THEN image_tasks.output_bytes ELSE NULL END,
+            error_code=NULL,error_message=NULL,finished_at=NULL,updated_at=now()
         """, uuid.UUID(spec.image_task_id), uuid.UUID(spec.job_id), spec.task_type, spec.scene_id, spec.asset_id,
             spec.provider, spec.model, spec.quality, spec.size, spec.input_fidelity,
             str(spec.prompt_path), spec.prompt_sha256, _json(spec.prompt_bundle),
@@ -404,10 +481,45 @@ class ImageTaskBroker:
             spec.priority, uuid.UUID(spec.parent_keycut_task_id) if spec.parent_keycut_task_id else None,
             _json(spec.reference_kinds), spec.image_style)
 
-    async def _completed_artifact(self, spec: ImageTaskSpec) -> Path | None:
+    async def _completed_artifact(self, spec: ImageTaskSpec, references: list[Path]) -> Path | None:
         assert self.pool
-        row = await self.pool.fetchrow("SELECT status,output_path,output_sha256 FROM image_tasks WHERE image_task_id=$1", uuid.UUID(spec.image_task_id))
+        row = await self.pool.fetchrow("""
+          SELECT status,output_path,output_sha256,provider,model,quality,size,input_fidelity,
+                 prompt_sha256,prompt_bundle,reference_asset_ids,dependency_task_ids,
+                 parent_keycut_task_id,reference_kinds,image_style,reference_files
+          FROM image_tasks WHERE image_task_id=$1
+        """, uuid.UUID(spec.image_task_id))
         if not row or row["status"] != "succeeded" or not row["output_path"]:
+            return None
+        expected_references = [{
+            "reference_id": reference_id,
+            "sha256": _sha256(path),
+        } for reference_id, path in zip(spec.reference_asset_ids, references)]
+        stored_references = _decode_json(row["reference_files"], [])
+        actual_references = [{
+            "reference_id": item.get("reference_id"),
+            "sha256": item.get("sha256"),
+        } for item in stored_references]
+        signature_matches = all((
+            row["provider"] == spec.provider,
+            row["model"] == spec.model,
+            row["quality"] == spec.quality,
+            row["size"] == spec.size,
+            row["input_fidelity"] == spec.input_fidelity,
+            row["prompt_sha256"] == spec.prompt_sha256,
+            _decode_json(row["prompt_bundle"], {}) == spec.prompt_bundle,
+            _decode_json(row["reference_asset_ids"], []) == spec.reference_asset_ids,
+            _decode_json(row["dependency_task_ids"], []) == spec.dependency_task_ids,
+            (str(row["parent_keycut_task_id"]) if row["parent_keycut_task_id"] else None) == spec.parent_keycut_task_id,
+            _decode_json(row["reference_kinds"], []) == spec.reference_kinds,
+            row["image_style"] == spec.image_style,
+            actual_references == expected_references,
+        ))
+        if not signature_matches:
+            await self.pool.execute(
+                "UPDATE image_tasks SET status='waiting_dependencies',output_sha256=NULL,output_bytes=NULL,error_code='CACHE_SIGNATURE_CHANGED',updated_at=now() WHERE image_task_id=$1",
+                uuid.UUID(spec.image_task_id),
+            )
             return None
         path = Path(row["output_path"])
         if path.is_file() and _sha256(path) == row["output_sha256"]:

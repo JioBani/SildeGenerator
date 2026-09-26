@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><script src="assets/tracks.js"></script><style>html,body{margin:0;background:#400500}svg{width:1920px;height:1080px}text{font-family:'Arial Narrow',Arial,sans-serif;letter-spacing:0}</style></head><body><svg viewBox="0 0 640 360"><rect width="640" height="360" fill="#400500"/><rect y="48" width="640" height="270" fill="#540600"/><rect y="93" width="640" height="187" fill="#710700"/><path id="fill" fill="#a41400"/><g id="walls"></g><g id="deposit" opacity="0"><path id="depositShape" fill="#ffdb00"/><g id="divisions" opacity="0"></g></g><g id="particles"></g><g id="intro" fill="#fbd5b4" text-anchor="middle"><text x="320" y="184" font-size="30">HYPERTENSION</text><text x="320" y="216" font-size="23">140/90 mm Hg</text><text x="313" y="52" fill="#ffdc54" font-size="17">ELASTIC FIBERS</text><path d="M313 62V101M307 98L313 109L319 98Z" stroke="#ffdc54" fill="#ffdc54" stroke-width="2"/></g></svg><script>
+const ns='http://www.w3.org/2000/svg',track=window.studyTracks;
+function make(tag,attrs,parent){const el=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))el.setAttribute(k,v);parent.append(el);return el}
+const tl=gsap.timeline({paused:true});
+function curve(points,offset){return points.map(([x,y],i)=>(i?'L':'M')+x+' '+(y+offset)).join(' ')}
+const layers=[];
+for(const[side,offset]of[['upper',8],['lower',-8]])for(const[color,width,dash,delta,cap]of[['#a52c18',24,null,0,'butt'],['#ef5c3b',14,'1 14',side==='upper'?8:-8,'round'],['#bf321c',14,null,0,'butt'],['#ef603b',6,'9 5',0,'butt']]){
+ if(side==='lower'&&cap==='round')continue;
+ const el=make('path',{fill:'none',stroke:color,'stroke-width':width,'stroke-linecap':cap,...(dash?{'stroke-dasharray':dash}:{})},document.querySelector('#walls'));layers.push({el,side,offset:offset+delta});
+}
+for(const row of track.walls){const t=Math.max(0,row.source_second-141);
+ for(const layer of layers){const d=curve(row[layer.side],layer.offset);if(row===track.walls[0])layer.el.setAttribute('d',d);tl.set(layer.el,{attr:{d}},t)}
+ const d=curve(row.upper,19)+' '+curve([...row.lower].reverse(),-19).replace(/^M/,'L')+'Z';if(row===track.walls[0])document.querySelector('#fill').setAttribute('d',d);tl.set('#fill',{attr:{d}},t);
+}
+const inner=make('path',{fill:'none',stroke:'#ef5c3b','stroke-width':14,'stroke-dasharray':'1 14','stroke-linecap':'round'},document.querySelector('#walls'));
+const cells=[];for(let i=0;i<Math.max(...track.structure.map(row=>row.columns.length));i++)cells.push(make('rect',{fill:'#b68a08',stroke:'#ffdb00','stroke-width':2,opacity:0},document.querySelector('#divisions')));
+for(const row of track.structure){const t=Math.max(0,row.source_second-141),d=curve(row.inner,7);if(row===track.structure[0])inner.setAttribute('d',d);tl.set(inner,{attr:{d}},t);
+ tl.set('#depositShape',{opacity:row.columns.length?0:1},t);
+ for(let i=0;i<cells.length;i++){const cell=row.columns[i];tl.set(cells[i],cell?{opacity:1,attr:cell}:{opacity:0},t)}
+}
+for(const row of track.growth){if(!row.envelope)continue;const[x0,y0,x1,y1]=row.envelope.bounds,w=x1-x0,h=y1-y0,cx=(x0+x1)/2,cy=(y0+y1)/2;
+ const d=`M${x0} ${cy}Q${cx} ${y0-h*.3} ${x1} ${cy}Q${cx} ${y1+h*.3} ${x0} ${cy}Z`,t=row.source_second-141;
+ tl.set('#deposit',{opacity:1},t).set('#depositShape',{attr:{d}},t);
+}
+const visualPool=Array.from({length:Math.max(...track.visible.map(row=>row.shapes.length))},()=>make('circle',{opacity:0,'data-identity':'unresolved'},document.querySelector('#particles')));
+for(const row of track.visible){const t=row.source_second-141;
+ for(let i=0;i<visualPool.length;i++){const shape=row.shapes[i];tl.set(visualPool[i],shape?{opacity:1,attr:{cx:shape.x,cy:shape.y,r:shape.radius,fill:shape.fill}}:{opacity:0},t)}
+}
+document.querySelector('#divisions').setAttribute('opacity','1');
+tl.to('#intro',{opacity:0,duration:.3},1.5).to({},{duration:.1},23.9);
+window.__timelines={'blood-deposit-study':tl};
+</script></body></html>

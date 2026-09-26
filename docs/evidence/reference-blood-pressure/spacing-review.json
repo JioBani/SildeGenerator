@@ -1,0 +1,12 @@
+{
+  "frames": 209,
+  "particles": 36,
+  "rx": 12,
+  "ry": 10.5,
+  "checkedPairs": 131670,
+  "collisions": 0,
+  "minNormalizedDistance": 2.1248406221202627,
+  "maxYStep": 1.193328857421875,
+  "pass": true,
+  "scope": "Pairwise equal-ellipse overlap at rendered frame times, including offscreen centers. Not wall clearance, source fidelity, or human motion approval."
+}

@@ -21,3 +21,11 @@ server/private/
 **/dist/
 .pytest_cache/
 web/.test-dist/
+web/test-results/
+web/playwright-report/
+
+# Generated research and render outputs. Curated test fixtures are added explicitly.
+/output/
+/tmp/
+/release-archives/
+/experiments/

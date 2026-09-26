@@ -1,0 +1,8 @@
+[project]
+name = "astra-motion-harness"
+version = "0.7.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["src", "../../video-generator"]

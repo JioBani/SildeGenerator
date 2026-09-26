@@ -116,11 +116,14 @@ class VoiceTaskBroker:
           INSERT INTO voice_tasks(voice_task_id,job_id,scene_id,status,provider,model,settings_hash,settings_snapshot,narration_sha256,output_path,submitted_at)
           VALUES($1,$2,$3,'queued',$4,$5,$6,$7::jsonb,$8,$9,$10)
           ON CONFLICT(voice_task_id) DO UPDATE SET
-            status=CASE WHEN voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 THEN voice_tasks.status ELSE 'queued' END,
-            output_sha256=CASE WHEN voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 THEN voice_tasks.output_sha256 ELSE NULL END,
-            output_bytes=CASE WHEN voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 THEN voice_tasks.output_bytes ELSE NULL END,
-            qc=CASE WHEN voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 THEN voice_tasks.qc ELSE '{}'::jsonb END,
-            updated_at=now(),settings_hash=excluded.settings_hash,settings_snapshot=excluded.settings_snapshot,narration_sha256=excluded.narration_sha256
+            status=CASE WHEN voice_tasks.provider=excluded.provider AND voice_tasks.model=excluded.model AND voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 AND voice_tasks.status='succeeded' THEN 'succeeded' ELSE 'queued' END,
+            output_sha256=CASE WHEN voice_tasks.provider=excluded.provider AND voice_tasks.model=excluded.model AND voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 THEN voice_tasks.output_sha256 ELSE NULL END,
+            output_bytes=CASE WHEN voice_tasks.provider=excluded.provider AND voice_tasks.model=excluded.model AND voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 THEN voice_tasks.output_bytes ELSE NULL END,
+            qc=CASE WHEN voice_tasks.provider=excluded.provider AND voice_tasks.model=excluded.model AND voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 THEN voice_tasks.qc ELSE '{}'::jsonb END,
+            error_code=CASE WHEN voice_tasks.provider=excluded.provider AND voice_tasks.model=excluded.model AND voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 AND voice_tasks.status='succeeded' THEN voice_tasks.error_code ELSE NULL END,
+            error_message=CASE WHEN voice_tasks.provider=excluded.provider AND voice_tasks.model=excluded.model AND voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 AND voice_tasks.status='succeeded' THEN voice_tasks.error_message ELSE NULL END,
+            finished_at=CASE WHEN voice_tasks.provider=excluded.provider AND voice_tasks.model=excluded.model AND voice_tasks.settings_hash=excluded.settings_hash AND voice_tasks.narration_sha256=excluded.narration_sha256 AND voice_tasks.status='succeeded' THEN voice_tasks.finished_at ELSE NULL END,
+            updated_at=now(),provider=excluded.provider,model=excluded.model,settings_hash=excluded.settings_hash,settings_snapshot=excluded.settings_snapshot,narration_sha256=excluded.narration_sha256,output_path=excluded.output_path
         """, uuid.UUID(spec.voice_task_id), uuid.UUID(spec.job_id), spec.scene_id, spec.provider, spec.model,
             spec.settings_hash, json.dumps(spec.settings_snapshot, ensure_ascii=False), spec.narration_sha256, str(spec.output_path), submitted)
         cached = await self._completed(spec)
@@ -137,13 +140,15 @@ class VoiceTaskBroker:
 
     async def _completed(self, spec: VoiceTaskSpec) -> tuple[Path, dict[str, Any]] | None:
         assert self.pool
-        row = await self.pool.fetchrow("SELECT status,output_path,output_sha256,qc,settings_hash FROM voice_tasks WHERE voice_task_id=$1", uuid.UUID(spec.voice_task_id))
-        if not row or row["status"] != "succeeded" or row["settings_hash"] != spec.settings_hash:
+        row = await self.pool.fetchrow("SELECT status,provider,model,output_path,output_sha256,qc,settings_hash FROM voice_tasks WHERE voice_task_id=$1", uuid.UUID(spec.voice_task_id))
+        if not row or row["status"] != "succeeded" or row["provider"] != spec.provider or row["model"] != spec.model or row["settings_hash"] != spec.settings_hash:
             return None
         path = Path(row["output_path"])
         if path.is_file() and _sha256(path) == row["output_sha256"]:
             qc = row["qc"] if isinstance(row["qc"], dict) else json.loads(row["qc"] or "{}")
-            return path, {"duration": float(qc.get("duration_seconds") or 0), "qc": qc, "reused": True}
+            previous = await self.pool.fetchval("SELECT usage FROM voice_task_attempts WHERE voice_task_id=$1 AND status='succeeded' ORDER BY attempt DESC LIMIT 1", uuid.UUID(spec.voice_task_id))
+            saved = previous if isinstance(previous, dict) else json.loads(previous or "{}")
+            return path, {"duration": float(qc.get("duration_seconds") or 0), "qc": qc, "alignment": saved.get("alignment"), "reused": True}
         await self.pool.execute("UPDATE voice_tasks SET status='queued',error_code='ARTIFACT_INVALID',updated_at=now() WHERE voice_task_id=$1", uuid.UUID(spec.voice_task_id))
         return None
 
@@ -171,13 +176,25 @@ class VoiceTaskBroker:
                 result = await self._execute(item, slot)
                 if not item.handle.future.done():
                     item.handle.future.set_result(result)
+            except asyncio.CancelledError:
+                # A cancelled production invalidates only this item. The broker
+                # workers are process-scoped and must remain alive for retries
+                # and later jobs.
+                if not item.handle.future.done():
+                    item.handle.future.cancel()
+                continue
             except Exception as error:
                 if not item.handle.future.done():
                     item.handle.future.set_exception(error)
 
     async def _execute(self, item: _ReadyTask, slot: int) -> tuple[Path, dict[str, Any]]:
         spec = item.handle.spec
-        for attempt in range(1, 4):
+        previous_attempts = int(await self.pool.fetchval(
+            "SELECT coalesce(max(attempt),0) FROM voice_task_attempts WHERE voice_task_id=$1",
+            uuid.UUID(spec.voice_task_id),
+        ) or 0)
+        for retry_index in range(1, 4):
+            attempt = previous_attempts + retry_index
             token = f"{spec.voice_task_id}:{attempt}:{uuid.uuid4()}"
             await self._acquire(token)
             started_at = _now()
@@ -213,14 +230,14 @@ class VoiceTaskBroker:
             except Exception as error:
                 temporary.unlink(missing_ok=True)
                 retryable, status, code = self._classify(error)
-                backoff = 0 if not retryable or attempt == 3 else round((2 ** (attempt - 1) + random.random()) * 1000)
+                backoff = 0 if not retryable or retry_index == 3 else round((2 ** (retry_index - 1) + random.random()) * 1000)
                 await self.pool.execute("""
                   INSERT INTO voice_task_attempts(voice_task_id,attempt,status,slot_id,active_calls,configured_concurrency,queue_wait_ms,provider_duration_ms,total_duration_ms,http_status,error_code,error_message,retry_backoff_ms,potential_duplicate_cost,submitted_at,queued_at,leased_at,provider_started_at,response_received_at)
                   VALUES($1,$2,'failed',$3,$4,$5,$6,$7,$7,$8,$9,$10,$11,$12,$13,$14,now(),$15,now()) ON CONFLICT(voice_task_id,attempt) DO NOTHING
                 """, uuid.UUID(spec.voice_task_id), attempt, f"voice-slot-{slot}", active, self.settings.voice_task_concurrency,
                     max(0, round((started_at - item.queued_at).total_seconds() * 1000)), round((time.perf_counter() - started) * 1000), status, code, str(error)[:1000], backoff,
                     isinstance(error, (httpx.TimeoutException, httpx.TransportError)), item.submitted_at, item.queued_at, started_at)
-                if not retryable or attempt == 3:
+                if not retryable or retry_index == 3:
                     await self.pool.execute("UPDATE voice_tasks SET status='failed',error_code=$2,error_message=$3,finished_at=now(),updated_at=now() WHERE voice_task_id=$1", uuid.UUID(spec.voice_task_id), code, str(error)[:1000])
                     raise
                 await self.pool.execute("UPDATE voice_tasks SET status='retry_wait',updated_at=now() WHERE voice_task_id=$1", uuid.UUID(spec.voice_task_id))
@@ -233,6 +250,8 @@ class VoiceTaskBroker:
     def _classify(error: Exception) -> tuple[bool, int | None, str]:
         text = str(error)
         status = next((value for value in (429, 500, 502, 503, 504) if str(value) in text), None)
+        if getattr(error, "retryable", False):
+            return True, status, "NETWORK_ERROR"
         if isinstance(error, (httpx.TimeoutException, httpx.TransportError)):
             return True, status, "NETWORK_ERROR"
         if status == 429:

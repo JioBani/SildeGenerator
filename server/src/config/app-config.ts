@@ -14,7 +14,7 @@ const bool = (value: string | undefined, fallback = false) => value === undefine
   ? fallback
   : ["1", "true", "yes", "on"].includes(value.toLowerCase());
 
-const codexModel = process.env.CODEX_MODEL ?? "gpt-5.6-luna";
+const codexModel = process.env.CODEX_MODEL ?? "gpt-5.6-terra";
 
 export const config = {
   port: num(process.env.PORT, 3000),
@@ -30,16 +30,24 @@ export const config = {
   globalPending: num(process.env.GLOBAL_PENDING, 20),
   corsOrigins: (process.env.CORS_ORIGIN ?? "").split(",").map((o) => o.trim()).filter(Boolean),
   jobTimeoutMs: num(process.env.JOB_TIMEOUT_MINUTES, 60) * 60_000,
+  longFormJobTimeoutMs: num(process.env.LONG_FORM_JOB_TIMEOUT_MINUTES, 360) * 60_000,
+  timeWalletEnabled: bool(process.env.TIME_WALLET_ENABLED),
   videoJobGlobalConcurrency: Math.min(1, Math.floor(num(process.env.VIDEO_JOB_GLOBAL_CONCURRENCY, 1))),
   concurrency: Math.min(1, Math.floor(num(process.env.WORKER_CONCURRENCY, 1))),
   retentionMs: num(process.env.JOB_RETENTION_HOURS, 72) * 3_600_000,
+  autoDeleteJobFiles: bool(process.env.AUTO_DELETE_JOB_FILES),
   maxScenarioChars: 20_000,
   usdKrwRate: num(process.env.USD_KRW_RATE, 1388.1),
   codexModel,
-  codexReasoningEffort: (process.env.CODEX_REASONING_EFFORT ?? "max").toLowerCase(),
+  codexReasoningEffort: (process.env.CODEX_REASONING_EFFORT ?? "low").toLowerCase(),
   codexFastMode: bool(process.env.CODEX_FAST_MODE),
   videoFps: Math.floor(num(process.env.VIDEO_FPS, 24)),
   imageConcurrency: Math.min(16, Math.floor(num(process.env.IMAGE_TASK_CONCURRENCY, 12))),
+  imageProvider: (process.env.IMAGE_PROVIDER ?? "mock").toLowerCase(),
+  imageGenerationPausedUntilUnix: nonNegative(process.env.IMAGE_GENERATION_PAUSED_UNTIL, 0),
+  motionLocalProduction: bool(process.env.MOTION_LOCAL_PRODUCTION),
+  runnerMode: (process.env.RUNNER_MODE ?? "mock").toLowerCase(),
+  slideV05LocalImages: bool(process.env.SLIDE_V05_LOCAL_IMAGES),
   voiceConcurrency: Math.floor(num(process.env.VOICE_TASK_CONCURRENCY, 2)),
   voiceProvider: (process.env.VOICE_PROVIDER ?? "mock").toLowerCase(),
   microsoftEdgeVoice: process.env.MICROSOFT_EDGE_VOICE ?? "ko-KR-InJoonNeural",

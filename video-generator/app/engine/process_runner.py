@@ -15,7 +15,7 @@ class ProcessRunner:
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         )
         try:
-            _, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
         except (asyncio.CancelledError, TimeoutError):
             process.terminate()
             try:
@@ -24,5 +24,6 @@ class ProcessRunner:
                 process.kill(); await process.wait()
             raise
         if process.returncode:
-            tail = stderr.decode("utf-8", errors="replace")[-2500:]
+            diagnostic = b"\n".join(part for part in (stdout, stderr) if part)
+            tail = diagnostic.decode("utf-8", errors="replace")[-2500:]
             raise RuntimeError(f"command failed ({arguments[0]}): {tail}")

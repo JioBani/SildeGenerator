@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "REVISE",
+  "source_video": "OyK0oE5rwFY",
+  "scope": [60,120],
+  "latest_static_handoff_review": {
+    "artifact": "posture-continuous-60-120-v2/continuous.mp4",
+    "evidence": "posture-continuous-60-120-v2/joins-review.json",
+    "result": "STATIC_HANDOFF_TECHNICAL_PASS",
+    "scope": "90s and 106s static poses only; no source-fidelity or general state-transfer approval"
+  },
+  "technical_assembly_is_delivery_approval": false,
+  "boundaries": [
+    {
+      "source_second": 90,
+      "left": "posture-consequences-v3",
+      "right": "posture-context-90-v2",
+      "expected": "same transit shot continues",
+      "observed": "different passenger count, costume, pose and carriage layout",
+      "result": "REVISE",
+      "repair": "share independently authored transit ensemble asset and camera; transfer end pose rather than restarting a separate scene"
+    },
+    {
+      "source_second": 106,
+      "left": "posture-context-90-v2",
+      "right": "posture-alignment-v7",
+      "expected": "front-facing actor continues toward abstraction",
+      "observed": "face, arm pose, proportions, camera scale and vertical crop jump",
+      "result": "REVISE",
+      "repair": "share front actor rig and carry face state, transform and camera across boundary; measure source zoom before selecting interpolation"
+    }
+  ],
+  "handoff_fields": ["actor_asset_hash", "semantic_actor_id", "pose_state", "face_state", "prop_attachment", "world_transform", "camera_transform", "source_time"],
+  "review_requirements": [
+    "Inspect source frames immediately before and after the boundary before deciding whether continuity is required",
+    "Compare matching identities only; do not require equal pixel values across deliberate cuts",
+    "Do not use a crossfade to conceal an unplanned identity or pose change",
+    "Save technical assembly receipt separately from human continuity and design review"
+  ],
+  "human_approved": false,
+  "production_enabled": false
+}

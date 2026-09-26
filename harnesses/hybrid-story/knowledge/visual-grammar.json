@@ -1,0 +1,90 @@
+{
+  "version": "hybrid-grammar-ledger-0.4",
+  "scope": "Reusable explanation hypotheses, not proof of TED-Ed quality or a complete reconstruction",
+  "reference": {
+    "source_url": "https://ed.ted.com/lessons/how-blood-pressure-works-wilfred-manzano",
+    "video_id": "Ab9OZsDECZw",
+    "observation_ledger": "docs/reference-director-atlas.json",
+    "observation_sha256": "e9eb2029fec4e7f450ecb7755495f129fd77d12b8c77fdbdf66b62d6ad8f309d",
+    "observation_status": "PARTIAL_SAMPLED_OBSERVATIONS_AUDIO_AND_NATIVE_BOUNDARIES_PENDING",
+    "rights_boundary": "Reference analysis only. No source frames, medical numbers, characters or publisher branding are included in generated films."
+  },
+  "recipes": [
+    {
+      "id": "map_spatial",
+      "origin": "Engineering hypothesis; not an observed source-video reproduction",
+      "reference_range_seconds": null,
+      "use_when": ["Named places have explicit relative cardinal directions or membership in named regions"],
+      "do_not_use_when": ["Distances, surveyed coordinates, complex boundaries or routes must be preserved", "The scene must prove actual geography with registered evidence"],
+      "runtime_requires": ["north_up_relative_coordinates", "grounded_relation_quotes", "nonoverlapping_labels", "retained_reference_places", "not_to_scale_disclosure"],
+      "implementation_limit": "2-6 fixed places, 0-2 disjoint rectangular regions. North/south/east/west, inside/outside. No geography silhouettes, roads, movement or metric distance.",
+      "quality_status": "TRANSFER_EFFECTIVENESS_UNPROVEN"
+    },
+    {
+      "id": "before_after",
+      "origin": "Engineering hypothesis; not observed in the cited reference",
+      "reference_range_seconds": null,
+      "use_when": ["One explicitly named entity and metric has two ordered measured snapshots in a shared unit"],
+      "do_not_use_when": ["Different entities or units", "Qualitative acting or geometry changes", "Signed values", "Intermediate values or causality would be invented"],
+      "runtime_requires": ["snapshot_pair", "exact_ordered_quotes", "common_zero_scale", "retained_before_state", "reading_hold"],
+      "implementation_limit": "Two nonnegative numeric snapshots, increases and decreases. Not arbitrary time series, morphing or causal inference.",
+      "quality_status": "TRANSFER_EFFECTIVENESS_UNPROVEN"
+    },
+    {
+      "id": "cumulative_change",
+      "origin": "Engineering hypothesis; not an observation of the cited reference",
+      "reference_range_seconds": null,
+      "use_when": ["The script gives chronological nonnegative increments in one unit"],
+      "do_not_use_when": ["Values are running totals already", "Quantities are invented or use incompatible units", "Losses or negative increments require unsupported signed accumulation"],
+      "runtime_requires": ["grounded_increment_quotes", "ordered_events", "computed_running_totals", "zero_baseline", "reading_hold"],
+      "implementation_limit": "Two to four increments. No arbitrary time series or negative balances.",
+      "quality_status": "TRANSFER_EFFECTIVENESS_UNPROVEN"
+    },
+    {
+      "id": "step_sequence",
+      "origin": "Engineering hypothesis; not an observation of the cited reference",
+      "reference_range_seconds": null,
+      "use_when": ["A procedure has an explicitly stated order"],
+      "do_not_use_when": ["Categories have no ordering", "A chain would invent a causal claim", "A branching process is required"],
+      "runtime_requires": ["ordered_chain", "separate_completion_times", "reading_hold"],
+      "implementation_limit": "Two to four linear steps, not a branching workflow or acting rig.",
+      "quality_status": "TRANSFER_EFFECTIVENESS_UNPROVEN"
+    },
+    {
+      "id": "cause_change_result",
+      "reference_range_seconds": [43.5, 63],
+      "observed": "Existing atlas records heart contraction and traveling vessel-wall response in a split view.",
+      "inferred_principle": "Make the cause visible before the receiving object changes; retain both referents long enough to connect them.",
+      "use_when": ["The script establishes a causal mechanism with identifiable cause and affected target", "The target has distinct before and after states"],
+      "do_not_use_when": ["The script states correlation, uncertainty or a list without causation", "The proposed link adds a factual claim absent from script or verified evidence"],
+      "runtime_requires": ["stable_node_ids", "ordered_edge_arrival", "target_state_change", "reading_hold"],
+      "implementation_limit": "Current runtime uses editable nodes and connecting paths, not pulsating vessel geometry or fluid physics.",
+      "test_subjects": ["Blocked route delays transport", "A switch closes an electrical circuit"],
+      "quality_status": "TRANSFER_EFFECTIVENESS_UNPROVEN"
+    },
+    {
+      "id": "quantitative_comparison",
+      "reference_range_seconds": [63, 75],
+      "observed": "Existing atlas records persistent vessel geometry with two pressure states and numeric readouts.",
+      "inferred_principle": "Preserve the referent and a common measurement scale so the difference, rather than a new picture, carries meaning.",
+      "use_when": ["Two or more verified quantities measure the same property in the same unit", "Magnitude difference is the explanation task"],
+      "do_not_use_when": ["Numbers are illustrative guesses", "Measures have incompatible units", "A categorical distinction is mistaken for a magnitude"],
+      "runtime_requires": ["zero_baseline", "shared_positive_scale", "quantity_and_unit_labels"],
+      "implementation_limit": "The current bar comparison is our transfer hypothesis, not a claim that the source used this exact chart.",
+      "test_subjects": ["Equal-distance travel durations", "Same-unit storage capacities"],
+      "quality_status": "TRANSFER_EFFECTIVENESS_UNPROVEN"
+    },
+    {
+      "id": "transport_track",
+      "reference_range_seconds": [27, 43.5],
+      "observed": "Existing atlas records constituents flowing through a vessel before emphasis changes to wall pressure.",
+      "inferred_principle": "Keep a recognizable object on a continuous route from origin to destination, then hold the arrival.",
+      "use_when": ["Where something goes is essential to understanding the script", "Origin, destination and moving token can be named"],
+      "do_not_use_when": ["Movement is only decorative", "The explanation requires branching fluid, collisions, retention or deformation unsupported by this renderer"],
+      "runtime_requires": ["visible_endpoints", "continuous_token_position", "declared_start_and_arrival", "reading_hold"],
+      "implementation_limit": "Single straight endpoint transfer; no claim of general particle flow, obstacle physics or articulated contact.",
+      "test_subjects": ["A message traveling between devices", "A parcel passing between stations"],
+      "quality_status": "TRANSFER_EFFECTIVENESS_UNPROVEN"
+    }
+  ]
+}

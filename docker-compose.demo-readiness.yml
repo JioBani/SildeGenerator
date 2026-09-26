@@ -1,0 +1,6 @@
+services:
+  runner:
+    volumes: !override
+      - job-data:/data
+      - ./harnesses:/app/harnesses:ro
+      - ./infra/demo-runner-empty.env:/run/secrets/slidegen.env:ro

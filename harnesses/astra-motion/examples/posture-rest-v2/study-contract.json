@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "reference": "OyK0oE5rwFY",
+  "source_window": [192,216],
+  "scene_function": "Support and footwear examples followed by a uniformed standing figure",
+  "design_rules": ["Flat green, yellow, pink, purple and dark teal", "Separate uniform details from anatomical symbols"],
+  "layout": ["overhead bed", "footwear comparison", "standing actor", "guard and sentry box"],
+  "object_states": ["reclined", "pillow introduced", "footwear contrast", "everyday actor", "uniformed guard"],
+  "motion": {"pillow":1,"footwear":4,"comparison":5.5,"standing":8,"guard_context":10},
+  "transition": "Everyday context to uniformed standing figure; not an X-ray overlay",
+  "rhythm": "Short examples followed by extended standing hold",
+  "renderer_requirements": ["Paused timeline", "Semantic prop identity"],
+  "evidence": "posture-scan-source.png: enlarged source 207s",
+  "rejected_interpretation": "Spine/scan window; white circles are uniform buttons",
+  "meaning_status": "Visible object identity corrected; narration meaning still unverified",
+  "timing_status": "Coarse source observations, not measured boundaries",
+  "human_approved": false,
+  "production_promotion": false,
+  "limitations": ["Audio absent", "Body and footwear proportions differ", "Source exact timing not established"]
+}

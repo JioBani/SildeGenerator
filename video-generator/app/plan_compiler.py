@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+from .actor_scene import validate_actor_scene_objects
+
 from .models import (
     ContinuityAsset,
     KeycutDNA,
@@ -14,6 +16,28 @@ from .models import (
     SourceUnit,
     StyleBible,
 )
+
+
+STRUCTURAL_REPAIR_FIELDS = (
+    "scene_proposals_dropped",
+    "source_unit_counts_adjusted",
+    "keycut_positions_clamped",
+    "master_keycut_position_clamped",
+    "continuity_assets_dropped",
+    "asset_scene_numbers_ignored",
+)
+
+
+def structural_repair_findings(repairs: dict[str, Any] | None) -> list[str]:
+    """Turn lossy director-output repairs into production-blocking evidence."""
+    if not isinstance(repairs, dict):
+        return []
+    findings: list[str] = []
+    for field in STRUCTURAL_REPAIR_FIELDS:
+        value = repairs.get(field, 0)
+        if type(value) is int and value > 0:
+            findings.append(f"director_structural_repair:{field}:{value}")
+    return findings
 
 
 def _unique_valid_scene_numbers(values: list[int], scene_count: int) -> tuple[list[int], int]:
@@ -95,7 +119,17 @@ def compile_scene_plan(
             narration="".join(unit.text for unit in selected_units),
             visual_summary=semantic["visual_summary"],
             image_prompt=semantic["image_prompt"],
+            scene_function=semantic["scene_function"],
+            layout=semantic["layout"],
+            object_states=semantic["object_states"],
+            motion=semantic["motion"],
+            transition=semantic["transition"],
+            rhythm=semantic["rhythm"],
+            actor_performance=semantic.get("actor_performance"),
+            renderer_requirements=semantic["renderer_requirements"],
         ))
+        if compiled_scenes[-1].actor_performance is not None:
+            validate_actor_scene_objects(compiled_scenes[-1].actor_performance, semantic["object_states"])
 
     compiled_groups: list[SceneGroup] = []
     for sequence_index, group_index in retained_groups:

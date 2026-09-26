@@ -1,0 +1,71 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><style>html,body{margin:0;background:#400000}#master{width:1920px;height:1080px;overflow:hidden}svg{width:100%;height:100%}text{font-family:'Arial Narrow',Arial,sans-serif;letter-spacing:0;fill:#fff0cf}</style></head><body>
+<div id="master" data-composition-id="blood-flow-study" data-width="1920" data-height="1080" data-duration="30" data-fps="30"><svg viewBox="0 0 1920 1080">
+<defs>
+<radialGradient id="wine"><stop stop-color="#7b002a"/><stop offset="1" stop-color="#410018"/></radialGradient>
+<g id="oxygen"><circle r="100" fill="#ff6245"/><path d="M70-70A100 100 0 0 1-70 70Z" fill="#c44143"/><circle cx="-135" r="34" fill="#fff4c5"/><circle cx="135" r="34" fill="#ffb4a0"/></g>
+<g id="cell"><circle r="86" fill="#f5d8b8" stroke="#f5d8b8" stroke-width="14" stroke-dasharray="3 13"/><circle r="72" fill="#65b397"/><circle r="47" fill="none" stroke="#a9d0a6" stroke-width="21" stroke-dasharray="10 15"/><ellipse rx="25" ry="36" transform="rotate(40)" fill="#e6c89e"/></g>
+<g id="glucose" stroke="#e8e1b0" stroke-width="16"><path d="M-60-40L0-78 60-40 60 40 0 78-60 40Z M-60-40L60 40M60-40L-60 40" fill="none"/><g fill="#78aa83"><circle cx="-60" cy="-40" r="20"/><circle cy="-78" r="20"/><circle cx="60" cy="-40" r="20"/><circle cx="60" cy="40" r="20"/><circle cy="78" r="20"/><circle cx="-60" cy="40" r="20"/></g></g>
+<g id="amino"><path d="M-45 0L0-40 45 0" stroke="#f1e6bf" stroke-width="30" stroke-linecap="round"/><circle cy="-40" r="26" fill="#ff7862"/><circle cy="-40" r="15" fill="#f3dca7"/></g>
+<g id="capsule"><rect x="-32" y="-82" width="64" height="164" rx="32" fill="#ddd7b2" stroke="#a3c9a2" stroke-width="20" stroke-dasharray="6 12"/><rect x="-19" y="-68" width="38" height="137" rx="19" fill="#79b397"/><path d="M-14 0H14" stroke="#f5cfb0" stroke-width="8"/></g>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse"><path d="M0 0L8 4 0 8Z" fill="#ffd95e"/></marker>
+<clipPath id="lumenClip"><rect x="-500" y="345" width="3000" height="385"/></clipPath>
+</defs>
+<image id="bridge" href="assets/bridge.png" width="1920" height="1080"/>
+<g id="gallery" opacity="0"><rect width="1920" height="1080" fill="url(#wine)"/><g id="galleryItems"></g><g id="featured" transform="translate(960 520)"><use href="#oxygen"/><text text-anchor="middle" y="200" font-size="52">OXYGEN</text></g><text id="glucoseLabel" x="290" y="1010" text-anchor="middle" font-size="36" opacity="0">GLUCOSE</text><text id="aminoLabel" x="1250" y="290" text-anchor="middle" font-size="36" opacity="0">AMINO ACIDS</text></g>
+<g id="vessel" opacity="0"><rect width="1920" height="1080" fill="#360000"/><rect y="135" width="1920" height="810" fill="#540000"/><rect y="250" width="1920" height="585" fill="#690000"/><g id="vesselCamera"><g id="walls"></g><g id="particles" clip-path="url(#lumenClip)"></g><g id="pressure" opacity="0"></g><text id="pressureLabel" x="960" y="575" text-anchor="middle" font-size="82" opacity="0">BLOOD PRESSURE</text></g></g>
+<g id="heartPanel" transform="translate(-730 0)"><rect width="720" height="1080" fill="#410000"/><g id="circuits"></g><g id="heart" transform="translate(370 580)"><path d="M-45-190V-310Q-45-385 40-385Q105-385 105-310V-255" fill="none" stroke="#f4483e" stroke-width="45"/><path d="M-25-218H-135V-120" fill="none" stroke="#e53931" stroke-width="42"/><path id="heartBody" d="M-120-200Q-10-265 95-180L150-25Q190 200 80 230Q-10 230-85 100Q-155-30-120-200Z" fill="#aa0907"/><path d="M-120-200Q-30-240 20-210L30 130Q-75 75-95-30Z" fill="#d62018"/><path d="M30-190H120V-70" stroke="#fb5645" stroke-width="27" fill="none"/></g><rect x="707" width="13" height="1080" fill="#fff0d0"/></g>
+</svg></div><script>
+gsap.config({force3D:false});const ns='http://www.w3.org/2000/svg';
+function add(tag,attrs,parent){const e=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e}
+const tl=gsap.timeline({paused:true});
+const types=['cell','capsule','cell','amino','glucose','glucose','oxygen','amino','capsule','cell','amino','cell','glucose','oxygen','amino','capsule','cell','glucose'];
+const defs=document.querySelector('defs');
+const dimer=add('g',{id:'dimer'},defs);add('path',{d:'M-50 0H50',stroke:'#e9d4aa','stroke-width':28},dimer);
+for(const x of [-50,50]){add('circle',{cx:x,r:33,fill:'#c4d8ac'},dimer);add('circle',{cx:x,r:22,fill:'#65a286'},dimer)}
+const branch=add('g',{id:'branch'},defs);add('path',{d:'M-60-60L0 0 60-60M0 0L-60 60M0 0L60 60',stroke:'#edc1a0','stroke-width':20,fill:'none'},branch);
+for(const[x,y]of [[-60,-60],[0,0],[60,-60],[-60,60],[60,60]]){add('circle',{cx:x,cy:y,r:26,fill:'#f06d55'},branch);add('circle',{cx:x,cy:y,r:15,fill:'#f5d7ab'},branch)}
+const galleryLayout=[['cell',290,195,1.5],['capsule',650,195,1.12],['cell',970,195,1.12],['amino',1250,140,.8],['branch',1590,250,1.35],['cell',600,495,1.1],['dimer',1290,390,1.0],['glucose',1320,635,.95],['cell',1680,610,1.15],['glucose',290,820,1.35],['cell',650,820,.7],['amino',945,810,.9],['amino',1240,865,.9],['capsule',1500,870,.65],['cell',1740,880,.9],['amino',620,645,.8],['dimer',950,655,.65]];
+galleryLayout.forEach(([type,x,y,scale],i)=>{const e=add('g',{transform:`translate(${x} ${y}) scale(${scale})`,opacity:0},document.querySelector('#galleryItems'));add('use',{href:'#'+type},e);tl.to(e,{opacity:1,duration:.3},2.2+i*.06)});
+for(let i=0;i<10;i++)add('circle',{cx:180+i*158,cy:430+(i%2)*210,r:14+(i%3)*4,fill:i%2?'#76b29c':'#e2bda5'},document.querySelector('#galleryItems'));
+document.querySelector('#heartPanel').setAttribute('transform','translate(-970 0)');
+document.querySelector('#heartPanel > rect').setAttribute('width','960');
+document.querySelector('#heartPanel > rect:last-child').setAttribute('x','947');
+document.querySelector('#heart').setAttribute('transform','translate(480 580)');
+const vectors=add('g',{id:'cardiacVectors',opacity:0},document.querySelector('#heartPanel'));
+for(const y of [495,635])add('path',{d:`M750 ${y}H870`,stroke:'#ffd95e','stroke-width':7,'marker-end':'url(#arrow)'},vectors);
+const wallGroups=[];
+for(const [base,sign] of [[345,-1],[730,1]]){
+ const g=add('g',{},document.querySelector('#walls'));wallGroups.push(g);
+ const d=phase=>{let s='';for(let x=-400;x<=2320;x+=40){const y=base+sign*65*Math.pow(Math.max(0,Math.cos(x/200-phase)),4);s+=(x===-400?'M':'L')+x+' '+y.toFixed(2)}return s};
+ for(const [stroke,width,dash]of [['#a22220',88,null],['#ff7c65',54,null],['#ffab88',36,'1 26'],['#ffe8c2',13,'10 15']]){
+  const p=add('path',{d:d(0),fill:'none',stroke,'stroke-width':width,...(dash?{'stroke-dasharray':dash,'stroke-linecap':width===36?'round':'butt'}:{})},g);
+  const wave=gsap.timeline({repeat:11});
+  for(let step=1;step<=4;step++)wave.to(p,{attr:{d:d(step*Math.PI/2)},duration:.525,ease:'none'});
+  tl.add(wave,6.3);
+ }
+}
+for(let i=0;i<55;i++){
+ const e=add('g',{transform:`translate(${(i*157)%2320-200} ${440+(i%4)*65}) scale(${.13+(i%3)*.035})`},document.querySelector('#particles'));add('use',{href:'#'+types[i%types.length]},e);
+ tl.to(e,{x:'+=450',duration:3.8+(i%5)*.2,ease:'none',repeat:7},6.3);
+}
+for(let i=0;i<18;i++){const x=40+i*112;for(const [a,b]of [[470,390],[610,683]])add('path',{d:`M${x} ${a}V${b}`,stroke:'#ffd95e','stroke-width':5,'marker-end':'url(#arrow)'},document.querySelector('#pressure'))}
+for(let i=0;i<88;i++){const x=(i%11)*90,y=Math.floor(i/11)*145;add('path',{d:`M${x} ${y}h45v60h-20v55h40`,stroke:i%3?'#a82020':'#d8322e','stroke-width':16,fill:'none','stroke-linejoin':'round'},document.querySelector('#circuits'))}
+tl.set('#bridge',{opacity:0},.7).set('#gallery',{opacity:1},.7)
+.to('#featured',{attr:{transform:'translate(960 520) scale(.85)'},duration:.65,ease:'power2.inOut'},2.1)
+.to('#featured text',{opacity:0,duration:.2},2.1)
+.to('#glucoseLabel',{opacity:1,duration:.2},4.2).to('#aminoLabel',{opacity:1,duration:.2},5)
+.set('#gallery',{opacity:0},6.3).set('#vessel',{opacity:1},6.3)
+.to('#particles',{opacity:0,duration:.7},8.9).to('#pressure',{opacity:1,duration:.7},8.9)
+.to('#pressureLabel',{opacity:1,duration:.7},13.3)
+.to('#heartPanel',{attr:{transform:'translate(0 0)'},duration:.8,ease:'power2.inOut'},16.5)
+.to('#vesselCamera',{x:480,duration:.8,ease:'power2.inOut'},16.5)
+.to('#cardiacVectors',{opacity:1,duration:.2},17.3)
+.to('#cardiacVectors',{opacity:0,duration:.2},20.5)
+.to('#pressure',{opacity:0,duration:.3},20.5)
+.set('#pressureLabel',{textContent:'SYSTOLE'},20.5)
+.to('#heart',{attr:{transform:'translate(480 580) scale(.94)'},duration:.28,repeat:14,yoyo:true,ease:'sine.inOut'},18)
+.to('#heartBody',{fill:'#e4a88b',duration:.35},26.5)
+.set('#pressureLabel',{textContent:'SYSTOLIC PRESSURE'},26.5)
+.to({}, {duration:.1},29.9);
+window.__timelines={'blood-flow-study':tl};
+</script></body></html>

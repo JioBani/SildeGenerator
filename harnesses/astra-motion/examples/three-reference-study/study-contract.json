@@ -1,0 +1,22 @@
+{
+  "status": "experimental_not_gold",
+  "output_seconds": 18,
+  "audio": "silent_motion_review",
+  "source_analysis": "whole-video 1fps overview plus all decoded frames in selected windows",
+  "separate_paid_image_api_calls": 0,
+  "builtin_image_tool_calls": 4,
+  "studies": [
+    {"reference": "https://www.youtube.com/watch?v=fLu080UX25o", "window": [15,19], "source_frames":96, "grammar":"contrast still exhausted adult with orbiting energetic children", "asset_contract":["opaque actor interior", "transparent exterior", "registered swap poses", "seat contact anchor"], "motion_contract":["closed trajectory", "foreground/background ordering", "pose hold"], "remaining":"source has richer drawing changes; generated runner poses are too similar"},
+    {"reference":"https://www.youtube.com/watch?v=1GowFTjbUnk", "window":[17,21], "source_frames":120, "grammar":"primary chip scales to create room; related icons enter sequentially", "asset_contract":["separate chip and icon layers", "accurate world map"], "motion_contract":["stable primary anchor", "ordered reveals", "settle before next reveal"], "remaining":"boardroom lead-in and character acting not reproduced"},
+    {"reference":"https://www.youtube.com/watch?v=7SWvDHvWXok", "window":[18,22], "source_frames":96, "grammar":"match circular silhouette and center; sun dissolves to rotating clock", "asset_contract":["independent sun", "clock face", "separate clock hands"], "motion_contract":["same center", "overlapping dissolve", "continuous hand rotation"], "remaining":"fine surface turbulence and hand blur not reproduced"}
+  ],
+  "reuse_rules": [
+    "Measure source time using decoded PTS, not rounded second labels.",
+    "Use all source frames in motion windows; do not infer trajectories from global frame differences.",
+    "Do not accept a transparent-image prompt as evidence of alpha: inspect pixels and rendered occlusion.",
+    "Use timeline properties instead of callbacks for seekable motion.",
+    "Validate forward/backward/random seek before render.",
+    "Record revisions and compare against best version; technical render success is not style approval."
+  ],
+  "open_assets":[{"name":"Natural Earth 110m land", "license":"public domain", "source":"https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_land.geojson", "terms":"https://www.naturalearthdata.com/about/terms-of-use/"}]
+}

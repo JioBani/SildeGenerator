@@ -1,0 +1,9 @@
+{
+  "source_video": "OyK0oE5rwFY",
+  "purpose": "Shared-asset continuity revision; still requires design and source-motion review",
+  "parts": [
+    {"file": "posture-consequences-v4/study.mp4", "source_window": [60,90]},
+    {"file": "posture-context-90-v3/study.mp4", "source_window": [90,106]},
+    {"file": "posture-alignment-v7/posture-alignment-v7.mp4", "source_window": [106,120]}
+  ]
+}

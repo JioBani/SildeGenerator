@@ -1,0 +1,19 @@
+{
+  "id": "astra-motion",
+  "version": "0.9.1",
+  "engine_api": ">=1.0,<2.0",
+  "entrypoint": "astra_motion.plugin:AstraMotionHarness",
+  "display_name": "모션그래픽",
+  "description": "장면 기능에 따라 정보 구조·오브젝트 상태·움직임·전환·리듬을 설계하는 단일 모션그래픽 엔진",
+  "public": true,
+  "prompts_dir": "prompts",
+  "config_dir": "config",
+  "fixtures_dir": "fixtures",
+  "python": {
+    "package": "astra-motion-harness",
+    "lockfile": "requirements.lock"
+  },
+  "defaults": {
+    "config": "config/default.yaml"
+  }
+}

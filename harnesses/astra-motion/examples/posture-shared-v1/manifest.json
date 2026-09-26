@@ -1,0 +1,18 @@
+{
+  "status": "EXPERIMENTAL_INDEPENDENT_ART",
+  "human_approved": false,
+  "records": [
+    {
+      "name": "transit.svg",
+      "source": ".runtime\\reference-study\\posture-context-90-v2",
+      "selector": "#transit",
+      "sha256": "917e9c4e34c2c8b718c4d029b90325caa0f7dabe20b4bb13e4be3acb0a6f28e9"
+    },
+    {
+      "name": "front.svg",
+      "source": ".runtime\\reference-study\\posture-alignment-v7",
+      "selector": "#front",
+      "sha256": "244a3076f354fecc3f519d84bb0ff94495348b1b95bfb508a7a91fd6eca54b8f"
+    }
+  ]
+}

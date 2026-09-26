@@ -32,9 +32,16 @@ PROMPT_FILES = (
 def load_prompts(root: Path) -> tuple[dict[str, str], list[dict[str, str]]]:
     values: dict[str, str] = {}
     snapshots: list[dict[str, str]] = []
-    for relative in PROMPT_FILES:
-        path = (root / relative).resolve()
-        if root.resolve() not in path.parents or not path.is_file():
+    shared = Path(__file__).parent / "style_presets"
+    extra = (
+        "style/presets/cute-character.md", "style/presets/fantasy-anime.md",
+        "style/presets/animation-3d.md", "style/presets/disney-animation.md",
+        "style/presets/dystopian.md",
+    )
+    for relative in (*PROMPT_FILES, *extra):
+        base = shared if relative in extra else root
+        path = (base / Path(relative).name if relative in extra else base / relative).resolve()
+        if base.resolve() not in path.parents or not path.is_file():
             raise RuntimeError(f"required prompt is missing: {relative}")
         content = path.read_text(encoding="utf-8")
         values[relative] = content

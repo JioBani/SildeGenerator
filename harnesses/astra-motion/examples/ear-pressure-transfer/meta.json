@@ -1,0 +1,7 @@
+{
+  "name": "ear-pressure-transfer",
+  "description": "Transfer test for geometric character and anatomical cutaway grammar",
+  "duration": 24,
+  "resolution": {"width": 1920, "height": 1080},
+  "fps": 30
+}

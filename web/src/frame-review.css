@@ -1,0 +1,10 @@
+.frame-review{max-width:1600px;margin:auto;padding:24px;color:#20242a;background:#fff;min-height:100vh;font-family:Arial,sans-serif}
+.frame-review header,.review-files,.frame-review nav{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.frame-review header{justify-content:space-between}.frame-review h1{font-size:24px}
+.review-files label{display:grid;gap:8px;min-width:0}.review-files input{max-width:100%}
+.frame-review nav{margin-top:24px;flex-direction:row;flex-wrap:nowrap;gap:8px}.frame-review button,.frame-review select{min-height:44px;min-width:44px;font-size:16px;max-width:100%}
+.frame-review nav button{width:44px;flex:0 0 44px;padding:8px;border:1px solid #b8bec5;background:#f4f6f8;color:#20242a}.frame-review nav button:disabled{opacity:.45}.frame-review nav select{flex:1;min-width:0;width:auto}
+.review-panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.review-panels figure{margin:0;min-width:0}.review-panels figcaption{padding:8px 0;font-weight:bold}
+.review-panels img,.review-panels canvas{display:block;width:100%;aspect-ratio:16/9;object-fit:contain;background:#eee}
+@media(max-width:720px){.review-panels{grid-template-columns:1fr}.frame-review{padding:16px}}

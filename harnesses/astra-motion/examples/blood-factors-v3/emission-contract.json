@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "extends": "study-contract.json",
+  "scope": "Fixture emitter attachment and title layer ownership",
+  "overlay": {"title": "bodyTitle", "moves_with": "viewport", "body_moves_independently": true},
+  "emitter": {"object": "shaker", "anchors": [[-65,180],[0,180],[65,180]], "count": 16, "first_event": 13.3, "interval": 0.08},
+  "flight": {"duration": 0.7, "curve": "sampled accelerating descent", "landing_contact_validated": false},
+  "technical_review": "emission-review.json",
+  "source_trajectory_matched": false,
+  "human_approved": false,
+  "production_promotion": false
+}

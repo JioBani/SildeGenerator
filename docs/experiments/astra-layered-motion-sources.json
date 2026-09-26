@@ -1,0 +1,69 @@
+{
+  "version": "astra-layered-motion-sources-1.0",
+  "policy": "Research only. Code, model checkpoints, training data, and generated output rights are reviewed separately before redistribution or production use.",
+  "sources": [
+    {
+      "priority": "P0",
+      "name": "SAM 2",
+      "url": "https://github.com/facebookresearch/sam2",
+      "role": ["promptable image masks", "video mask tracking"],
+      "candidate": "sam2.1_hiera_small",
+      "license_note": "Official repository states Apache-2.0 for checkpoints and main project components; bundled third-party notices remain applicable."
+    },
+    {
+      "priority": "P1",
+      "name": "Grounded SAM 2",
+      "url": "https://github.com/IDEA-Research/Grounded-SAM-2",
+      "role": ["text-grounded object discovery", "box proposals"],
+      "license_note": "Review the repository and every integrated detector/checkpoint before redistribution."
+    },
+    {
+      "priority": "P0",
+      "name": "Depth Anything V2",
+      "url": "https://github.com/DepthAnything/Depth-Anything-V2",
+      "role": ["relative depth", "occlusion evidence", "parallax planning"],
+      "candidate": "Depth-Anything-V2-Small",
+      "license_note": "The official repository states Small is Apache-2.0; Base, Large, and Giant are CC-BY-NC-4.0 and are excluded from a commercial product path."
+    },
+    {
+      "priority": "P0",
+      "name": "LaMa",
+      "url": "https://github.com/advimman/lama",
+      "role": ["small-hole inpainting baseline"],
+      "license_note": "Treat pretrained weights and training-data terms as a separate review item."
+    },
+    {
+      "priority": "P1",
+      "name": "LayerDiffuse",
+      "url": "https://github.com/lllyasviel/LayerDiffuse",
+      "role": ["transparent foreground generation", "joint foreground-background benchmark"],
+      "license_note": "Source is Apache-2.0; the selected base model and checkpoints require separate license review."
+    },
+    {
+      "priority": "P1",
+      "name": "BiRefNet",
+      "url": "https://github.com/ZhengPeng7/BiRefNet",
+      "role": ["high-resolution foreground matting comparison"],
+      "license_note": "Do not bundle until source and weight redistribution terms are recorded."
+    },
+    {
+      "priority": "P0",
+      "name": "OpenToonz Plastic",
+      "url": "https://opentoonz.readthedocs.io/en/latest/create_animations_using_plastic_tool.html",
+      "role": ["Gold cutout rig", "mesh rigidity", "stacking order"]
+    },
+    {
+      "priority": "P0",
+      "name": "Blender Grease Pencil",
+      "url": "https://docs.blender.org/manual/en/latest/grease_pencil/",
+      "role": ["Gold actor rig", "layer masks", "armature", "2.5D camera"]
+    },
+    {
+      "priority": "P1",
+      "name": "Rive",
+      "url": "https://rive.app/docs/auth",
+      "role": ["reusable actor states", "constraints", "state-machine benchmark"],
+      "license_note": "Runtimes are available as open-source libraries; do not classify the complete editor workflow as fully open source."
+    }
+  ]
+}

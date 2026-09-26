@@ -1,0 +1,9 @@
+{
+  "script": "밤늦게, 한 사람이 컴퓨터 앞에 앉아 있습니다.\n화면에는 우주복을 입은 고양이의 이미지가 보입니다.",
+  "image_style": "fantasy_anime",
+  "crossfade_seconds": 0,
+  "shots": [
+    {"image": "fantasy-anime-v1.png", "visual_summary": "컴퓨터 앞 인물과 모니터를 함께 보여준다", "camera": {"mode": "hold"}},
+    {"image": "fantasy-anime-v1.png", "visual_summary": "같은 화면에서 모니터의 결과 이미지로 주의를 유도한다", "camera": {"mode": "push", "strength": 0.025, "focus": [0.75, 0.4]}}
+  ]
+}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -51,7 +52,9 @@ class ImageBrokerSchedulingTests(unittest.IsolatedAsyncioTestCase):
         self.broker._closing = True
         async with self.broker._condition:
             self.broker._condition.notify_all()
-        await asyncio.gather(*self.broker._workers)
+        for task in self.broker._workers:
+            task.cancel()
+        await asyncio.wait_for(asyncio.gather(*self.broker._workers, return_exceptions=True), 3)
         self.temp.cleanup()
 
     def spec(self, job_id: str, entity: str, dependencies: list[str] | None = None) -> ImageTaskSpec:
@@ -128,6 +131,72 @@ class ImageBrokerSchedulingTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.broker._classify(RuntimeError("provider returned 429"))[0])
         self.assertFalse(self.broker._classify(ValueError("invalid dimensions"))[0])
 
+    async def test_worker_termination_resolves_handle_and_releases_lease(self) -> None:
+        entered = asyncio.Event()
+
+        async def operation(path, references, attempt):
+            entered.set()
+            await asyncio.Event().wait()
+
+        handle = await self.broker.submit(self.spec(str(uuid4()), "interrupted"), operation)
+        await asyncio.wait_for(entered.wait(), 1)
+        for worker in self.broker._workers:
+            worker.cancel()
+        with self.assertRaisesRegex(RuntimeError, "worker stopped"):
+            await asyncio.wait_for(handle.future, 3)
+        await asyncio.gather(*self.broker._workers, return_exceptions=True)
+        self.assertEqual(self.active, 0)
+        self.broker._mark_task_failed.assert_awaited_once()
+        self.assertFalse(handle.spec.output_path.exists())
+
+    async def test_close_resolves_running_and_dependency_waiters(self) -> None:
+        self.broker.pool = AsyncMock()
+        entered = asyncio.Event()
+
+        async def operation(path, references, attempt):
+            entered.set()
+            await asyncio.Event().wait()
+
+        first = await self.broker.submit(self.spec(str(uuid4()), "first"), operation)
+        second = await self.broker.submit(self.spec(str(uuid4()), "second"), operation, [first])
+        await asyncio.wait_for(entered.wait(), 1)
+        await asyncio.wait_for(self.broker.close(), 3)
+        results = await asyncio.gather(first.future, second.future, return_exceptions=True)
+        self.assertTrue(all(isinstance(result, RuntimeError) for result in results))
+        self.assertEqual(self.active, 0)
+        with self.assertRaises(RuntimeError):
+            await self.broker.submit(self.spec(str(uuid4()), "late"), operation)
+
+    async def test_replacement_slot_runs_new_task_without_retrying_interrupted_call(self) -> None:
+        for task in self.broker._workers:
+            task.cancel()
+        await asyncio.gather(*self.broker._workers, return_exceptions=True)
+        self.broker._workers = [self.broker._spawn_worker(1)]
+        entered = asyncio.Event()
+        calls = []
+
+        async def stuck(path, references, attempt):
+            calls.append(attempt)
+            entered.set()
+            await asyncio.Event().wait()
+
+        handle = await self.broker.submit(self.spec(str(uuid4()), "stuck"), stuck)
+        await asyncio.wait_for(entered.wait(), 1)
+        worker = self.broker._workers[0]
+        worker.cancel()
+        with self.assertRaises(RuntimeError):
+            await asyncio.wait_for(handle.future, 3)
+        await asyncio.gather(worker, return_exceptions=True)
+        await asyncio.sleep(0)
+
+        async def healthy(path, references, attempt):
+            Image.new("RGB", (16, 16), "blue").save(path)
+
+        next_handle = await self.broker.submit(self.spec(str(uuid4()), "new"), healthy)
+        result = await asyncio.wait_for(next_handle.future, 2)
+        self.assertTrue(result.exists())
+        self.assertEqual(calls, [1])
+
     async def test_cancelled_running_task_discards_provider_result(self) -> None:
         job_id = str(uuid4())
         entered = asyncio.Event()
@@ -149,6 +218,40 @@ class ImageBrokerSchedulingTests(unittest.IsolatedAsyncioTestCase):
             await handle.future
         self.assertFalse(handle.spec.output_path.exists())
         self.broker._mark_cancelled.assert_awaited_once()
+
+
+class ImageBrokerCacheTests(unittest.IsolatedAsyncioTestCase):
+    async def test_provider_change_invalidates_completed_mock_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "scene.png"
+            Image.new("RGB", (16, 16), "blue").save(path)
+            spec = ImageTaskSpec(
+                image_task_id=str(uuid4()), job_id=str(uuid4()), task_type="scene",
+                scene_id="scene-001", output_path=path,
+                prompt_path=Path(directory) / "prompt.txt", prompt_sha256="a" * 64,
+                provider="oauth", model="gpt-image-2.5-sunburst",
+                quality="medium", size="1536x1024", image_style="cute_character",
+            )
+            row = {
+                "status": "succeeded", "output_path": str(path),
+                "output_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "provider": "mock", "model": "mock-image-v1",
+                "quality": spec.quality, "size": spec.size,
+                "input_fidelity": None, "prompt_sha256": spec.prompt_sha256,
+                "prompt_bundle": {}, "reference_asset_ids": [],
+                "dependency_task_ids": [], "parent_keycut_task_id": None,
+                "reference_kinds": [], "image_style": spec.image_style,
+                "reference_files": [],
+            }
+            broker = ImageTaskBroker(settings)
+            broker.pool = AsyncMock()
+            broker.pool.fetchrow = AsyncMock(return_value=row)
+
+            cached = await broker._completed_artifact(spec, [])
+
+            self.assertIsNone(cached)
+            broker.pool.execute.assert_awaited_once()
+            self.assertIn("CACHE_SIGNATURE_CHANGED", broker.pool.execute.await_args.args[0])
 
 
 if __name__ == "__main__":

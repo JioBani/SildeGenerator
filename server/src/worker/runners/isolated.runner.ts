@@ -4,16 +4,23 @@ import { Injectable } from '@nestjs/common';
 import type { RunContext, RunnerResult, VideoRunner } from './video-runner';
 @Injectable()
 export class IsolatedRunner implements VideoRunner {
-  async run({ paths, signal, codexModel, codexReasoningEffort, codexFastMode, imageModel, continuityEnabled, imageStyle, voiceSettings, harnessId, harnessSnapshot }: RunContext): Promise<RunnerResult> {
+  async run({ paths, visualCues, signal, codexModel, codexReasoningEffort, codexFastMode, imageModel, continuityEnabled, imageStyle, motionStyle, slideVisualProfile, musicSelection, voiceSettings, harnessId, harnessSnapshot, durationProfile, aspectRatio, subtitlesEnabled, genreId, genreVersion }: RunContext): Promise<RunnerResult> {
     const { readFile } = await import('node:fs/promises');
     const payload = JSON.stringify({
+      production_job: true,
       scenario: await readFile(paths.scenario, 'utf8'),
+      visual_cues: visualCues ?? [],
       codex_model: codexModel,
       codex_reasoning_effort: codexReasoningEffort,
       codex_fast_mode: codexFastMode,
       image_model: imageModel,
       continuity_enabled: continuityEnabled,
       image_style: imageStyle,
+      motion_style: motionStyle,
+      slide_visual_profile: slideVisualProfile,
+      music_selection: musicSelection,
+      genre_id: genreId,
+      genre_version: genreVersion,
       voice_settings: {
         provider: voiceSettings.provider, model: voiceSettings.model,
         voice_id: voiceSettings.voiceId, voice_name: voiceSettings.voiceName,
@@ -23,6 +30,9 @@ export class IsolatedRunner implements VideoRunner {
       },
       harness_id: harnessId,
       harness_snapshot: harnessSnapshot,
+      duration_profile: durationProfile,
+      aspect_ratio: aspectRatio,
+      subtitles_enabled: subtitlesEnabled,
     });
     const data = await new Promise<Buffer>((resolve, reject) => {
       const req = request({ socketPath: '/broker/broker.sock', path: '/render', method: 'POST', signal,

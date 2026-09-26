@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const {reconstruct}=require('../harnesses/astra-motion/examples/blood-bulge-study-v5/contour-reconstruction.js');
+const flat=Array.from({length:9},(_,i)=>[i*10,100,140]);
+assert.deepEqual(reconstruct(flat).points,flat);
+const bad=flat.map(p=>[...p]);bad[4]=[40,125,130];
+assert.deepEqual(reconstruct(bad).points[4],[40,100,140]);
+assert.deepEqual(bad[4],[40,125,130]);
+const wide=flat.map((p,i)=>i>=2&&i<=6?[p[0],110,130]:p);
+assert.deepEqual(reconstruct(wide).points[4],[40,110,130]);
+console.log('PASS flat, isolated occlusion, source immutability, broad narrowing');

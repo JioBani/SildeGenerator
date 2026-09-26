@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from .actor_scene import ActorScenePerformance
 
 
 class VoiceSettings(BaseModel):
@@ -25,18 +27,61 @@ class VoiceSampleRequest(BaseModel):
 
 
 class RenderRequest(BaseModel):
+    production_job: bool = False
+    genre_id: Literal["motion_graphic"] | None = None
+    genre_version: str | None = None
     job_id: str = Field(pattern=r"^[0-9a-fA-F-]{36}$")
     attempt: int = Field(default=1, ge=1, le=10)
     scenario: str = Field(min_length=1, max_length=20_000)
+    visual_cues: list[dict[str, str]] = Field(default_factory=list, max_length=100)
     codex_model: str | None = Field(default=None, min_length=1, max_length=100)
     codex_reasoning_effort: str | None = Field(default=None, pattern=r"^(low|medium|high|xhigh|max)$")
     codex_fast_mode: bool | None = None
     image_model: Literal["gpt-image-2", "gpt-image-2.5-sunburst", "gpt-image-2.5-flare"] | None = None
     continuity_enabled: bool = False
-    image_style: Literal["editorial_illustration", "cinematic_realism", "graphic_explainer"] = "editorial_illustration"
+    image_style: Literal["editorial_illustration", "cinematic_realism", "graphic_explainer", "cute_character", "fantasy_anime", "animation_3d", "disney_animation", "dystopian"] = "editorial_illustration"
+    motion_style: dict[str, Any] | None = None
+    slide_visual_profile: dict[str, Any] | None = None
+    music_selection: dict[str, Any] = Field(default_factory=lambda: {"mode": "none"})
     voice_settings: VoiceSettings | None = None
     harness_id: str = Field(default="classic-slide", pattern=r"^[a-z][a-z0-9-]{1,63}$")
     harness_snapshot: dict[str, Any] | None = None
+    duration_profile: Literal["episode_60", "single_30m"] = "episode_60"
+    aspect_ratio: Literal["16:9", "9:16"] = "16:9"
+    subtitles_enabled: bool = True
+
+    @model_validator(mode="after")
+    def validate_genre_renderer(self):
+        if self.production_job:
+            from .narration_input import require_narration_only
+            require_narration_only(self.scenario)
+        if self.genre_id is not None and self.harness_id != "astra-motion":
+            raise ValueError("The unified motion-graphics format requires astra-motion")
+        if self.genre_id is None and self.genre_version is not None:
+            raise ValueError("Format version requires the motion-graphics format")
+        if self.motion_style is not None:
+            from .motion_style import STYLE_IDS, STYLE_VERSION
+            if self.harness_id != "astra-motion" or self.motion_style.get("id") not in STYLE_IDS or self.motion_style.get("version") != STYLE_VERSION:
+                raise ValueError("Unsupported motion style or renderer")
+            if self.image_style != self.motion_style.get("imagePreset"):
+                raise ValueError("Motion style image preset mismatch")
+        if self.slide_visual_profile is not None:
+            profile = self.slide_visual_profile
+            if (self.harness_id != "classic-slide" or self.motion_style is not None
+                    or profile.get("id") != "local_illustration" or profile.get("version") != "0.5.0"
+                    or profile.get("imageStyle") != self.image_style
+                    or self.image_style not in {"cute_character", "fantasy_anime"}
+                    or self.continuity_enabled):
+                raise ValueError("Invalid local illustration snapshot")
+        if self.music_selection.get("mode") not in {"none", "auto", "upload"}:
+            raise ValueError("Invalid music mode")
+        if self.music_selection.get("mode") != "none" and self.harness_id != "classic-slide":
+            raise ValueError("Music pilot supports classic-slide only")
+        if self.music_selection.get("mode") == "upload" and not all(
+            self.music_selection.get(key) for key in ("uploadId", "path", "sha256", "mimeType")
+        ):
+            raise ValueError("Uploaded music snapshot is incomplete")
+        return self
 
     @field_validator("scenario")
     @classmethod
@@ -48,7 +93,7 @@ class RenderRequest(BaseModel):
 
 
 AssetCategory = Literal["character", "object", "location", "vehicle", "graphic", "phenomenon"]
-ImageStyle = Literal["editorial_illustration", "cinematic_realism", "graphic_explainer"]
+ImageStyle = Literal["editorial_illustration", "cinematic_realism", "graphic_explainer", "cute_character", "fantasy_anime", "animation_3d", "disney_animation", "dystopian"]
 
 
 class SourceUnit(BaseModel):
@@ -148,9 +193,25 @@ class Scene(BaseModel):
     duration_seconds: float = 0
     image_path: str = ""
     audio_path: str = ""
+    scene_function: str = Field(default="explain", min_length=1, max_length=120)
+    layout: dict[str, Any] = Field(default_factory=lambda: {
+        "mode": "focus",
+        "focal_order": ["subject", "evidence", "caption"],
+        "safe_area": "title_top_caption_bottom",
+    })
+    object_states: list[dict[str, Any]] = Field(default_factory=list, max_length=16)
+    motion: list[dict[str, Any]] = Field(default_factory=list, max_length=24)
+    transition: str = Field(default="cut", min_length=1, max_length=80)
+    rhythm: str = Field(default="read_then_move_then_hold", min_length=1, max_length=160)
+    actor_performance: ActorScenePerformance | None = None
+    renderer_requirements: dict[str, Any] = Field(default_factory=lambda: {
+        "preferred": "classic-slide",
+        "capabilities": ["image", "text", "camera_push"],
+    })
 
 
 class ScenePlan(BaseModel):
+    genre_contract: dict[str, Any] | None = None
     title: str
     core_question: str = Field(min_length=1, max_length=1000)
     thesis: str = Field(min_length=1, max_length=2000)
@@ -176,3 +237,5 @@ class RunnerResult(BaseModel):
     prompts: list[dict[str, Any]] = Field(default_factory=list)
     narrative_blueprint: dict[str, Any] | None = None
     harness_snapshot: dict[str, Any] | None = None
+    production_pack: dict[str, Any] | None = None
+    quality_gate_report: dict[str, Any] | None = None

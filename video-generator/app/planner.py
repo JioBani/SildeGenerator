@@ -11,11 +11,15 @@ import httpx
 
 from .config import Settings
 from .codex_transcript import CodexTranscript
+from .director_learning import (
+    learning_prompt, record_learning_application, record_learning_selection, select_director_rules,
+)
+from .director_research import record_research_brief, research_prompt, select_research_candidates
 from .models import (
     ContinuityAsset, KeycutDNA, NarrativeSequence, Scene, SceneGroup,
     ScenePlan, SourceUnit, StyleBible,
 )
-from .plan_compiler import compile_scene_plan
+from .plan_compiler import compile_scene_plan, structural_repair_findings
 from .tracking import Tracker
 
 
@@ -261,7 +265,15 @@ def compile_source_units(scenario: str) -> list[SourceUnit]:
     boundaries: list[int] = []
     start = 0
     for index, char in enumerate(scenario):
-        boundary = char in ".!?。！？\r\n" or (char in ",，" and index + 1 - start >= 90)
+        fractional_end = index + 1
+        while fractional_end < len(scenario) and scenario[fractional_end].isdigit():
+            fractional_end += 1
+        decimal_point = (
+            char == "." and index > 0 and index + 1 < len(scenario)
+            and scenario[index - 1].isdigit() and scenario[index + 1].isdigit()
+            and (fractional_end == len(scenario) or scenario[fractional_end] != ".")
+        )
+        boundary = (char in ".!?。！？\r\n" and not decimal_point) or (char in ",，" and index + 1 - start >= 90)
         if not boundary:
             continue
         end = index + 1
@@ -289,11 +301,31 @@ def compile_source_units(scenario: str) -> list[SourceUnit]:
     return units
 
 
+def compile_storyboard_units(scenario: str, visual_cues: list[dict[str, str]]) -> list[SourceUnit]:
+    """Preserve each explicitly timed narration block as one contiguous source unit."""
+    spoken = [str(cue.get("narration") or "").strip() for cue in visual_cues]
+    if not spoken or any(not line for line in spoken) or scenario != "\n".join(spoken):
+        raise ValueError("Storyboard narration does not match the production script")
+    units: list[SourceUnit] = []
+    start = 0
+    for index, line in enumerate(spoken):
+        end = start + len(line) + (1 if index < len(spoken) - 1 else 0)
+        units.append(SourceUnit(id=f"unit-{index + 1:03d}", start_offset=start,
+                                end_offset=end, text=scenario[start:end]))
+        start = end
+    return units
+
+
 def _default_style_bible(image_style: str) -> StyleBible:
     descriptions = {
         "editorial_illustration": "정교한 에디토리얼 일러스트레이션, 절제된 상징과 명료한 서사",
         "cinematic_realism": "영화 스틸 같은 사실적 인물·공간·조명과 자연스러운 렌즈 깊이",
         "graphic_explainer": "정보 구조와 인과를 도형·공간 관계로 명료하게 설명하는 그래픽",
+        "cute_character": "Original rounded 2D character, readable silhouette, consistent ink contour, flat pastel colors with distinct coral and jade accents, restrained paper grain.",
+        "fantasy_anime": "Original Japanese fantasy animation aesthetic: hand-painted backgrounds, crisp cel-shaded characters, controlled atmospheric depth, no photorealism or imitation of named franchises.",
+        "animation_3d": "Original dimensional animated-film stills: sculpted silhouettes, readable facial planes, tactile materials, soft area lighting, coherent modeled environments; not live action.",
+        "disney_animation": "Disney-inspired hand-drawn animated storytelling with original characters, expressive silhouettes, controlled linework, painted backgrounds and legible emotional posing; no existing franchise characters or logos.",
+        "dystopian": "Dystopian cinematic realism: oppressive spatial scale, worn infrastructure, restrained color with a story-driven accent, practical directional lighting and grounded human vulnerability; readable subjects, not arbitrary darkness.",
     }
     return StyleBible(
         preset_id=image_style, medium_and_rendering=descriptions[image_style],
@@ -346,6 +378,19 @@ def deterministic_plan(scenario: str, style_guide: str, image_style: str = "edit
                 ) if is_keycut else None,
                 narration=unit.text, visual_summary=summary,
                 image_prompt=f"{summary}. 16:9, 자막 안전 영역, 이미지 안 글자와 로고 없음.\n{style_guide}",
+                scene_function="establish" if is_keycut else "explain",
+                layout={"mode": "focus", "focal_order": ["subject", "evidence", "caption"], "safe_area": "title_top_caption_bottom"},
+                object_states=[
+                    {"object_id": "scene-image", "role": "subject", "initial": "context", "final": "emphasized"},
+                    {"object_id": "evidence-card", "role": "evidence", "initial": "hidden", "final": "visible"},
+                ],
+                motion=[
+                    {"object_id": "scene-image", "kind": "camera_push", "phases": ["read", "move", "settle"]},
+                    {"object_id": "evidence-card", "kind": "reveal", "phases": ["anticipate", "reveal", "hold"]},
+                ],
+                transition="cut" if is_keycut else "crossfade",
+                rhythm="read_then_move_then_hold",
+                renderer_requirements={"preferred": "hyperframes", "capabilities": ["image", "text", "multi_phase_timeline", "settle"]},
             ))
     return ScenePlan(
         title=scenes[0].visual_summary[:80] or "슬라이드 영상", core_question="이 대본이 전달하는 핵심은 무엇인가?",
@@ -441,7 +486,19 @@ def validate_plan(plan: ScenePlan, scenario: str) -> None:
             raise ValueError(f"scene {scene.id} must reference its sequence keycut")
 
 
-def _compose_prompt(prompts: dict[str, str], scenario: str, source_units: list[SourceUnit], continuity_enabled: bool, image_style: str) -> str:
+def _compose_prompt(
+    prompts: dict[str, str],
+    scenario: str,
+    source_units: list[SourceUnit],
+    continuity_enabled: bool,
+    image_style: str,
+    repair_feedback: str | None = None,
+    director_learning_context: str = "",
+    director_research_context: str = "",
+    harness_planning_contract: dict[str, Any] | None = None,
+    visual_cues: list[dict[str, str]] | None = None,
+    local_graphic: bool = False,
+) -> str:
     names = [
         "director/system.md", "narrative/story-intent.md", "narrative/analyze-sequences.md",
         "narrative/analyze-scene-groups.md", "narrative/analyze-scenes.md",
@@ -455,7 +512,112 @@ def _compose_prompt(prompts: dict[str, str], scenario: str, source_units: list[S
         value = prompts[name].replace("{{SCENARIO}}", scenario).replace("{{SOURCE_UNITS}}", source_json)
         value = value.replace("{{IMAGE_STYLE}}", image_style).replace("{{SCENE_JSON}}", "source_unit_ids와 시각 설계")
         sections.append(f"\n--- {name} ---\n{value}")
+    sections.append(
+        "\n--- runtime/semantic-contract.md ---\n"
+        f"- 입력 source unit은 정확히 {len(source_units)}개다. "
+        "모든 scene의 source_unit_count 합은 반드시 이 개수와 같아야 한다.\n"
+        "- master_keycut_sequence_number는 실제 sequences 개수 안의 1부터 시작하는 번호다.\n"
+        "- keycut_scene_number는 해당 sequence에 실제로 작성한 scene 개수 안의 1부터 시작하는 번호다.\n"
+        "- continuity asset의 scene number는 전체로 실제 작성한 scene 개수 안에서만 선택한다.\n"
+        "- motion.object_id는 같은 scene의 object_states.object_id 중 하나여야 한다. "
+        "단, 전체 카메라 또는 정지 연출은 object_id=scene을 쓸 수 있고 "
+        "kind은 camera_push, camera_pull, hold 중 하나여야 한다.\n"
+        "- phases에는 자연어 동작 단계만 적고 transition, rhythm, renderer_requirements 같은 "
+        "스키마 필드명을 넣지 않는다.\n"
+        "- 범위를 벗어난 번호나 누락된 대상을 런타임이 보정하도록 의도적으로 남겨두지 않는다.\n"
+    )
+    if repair_feedback:
+        sections.append(
+            "\n--- runtime/director-repair.md ---\n"
+            "이전 감독안은 결정론적 컴파일러의 구조 검수에서 탈락했다. "
+            "이전 장면 수나 배분을 답습하지 말고 대본 전체를 다시 설계한다.\n"
+            f"{repair_feedback}\n"
+            "모든 source unit을 정확히 한 번씩, 원래 순서대로 장면에 배정한다. "
+            "scene별 source_unit_count의 합은 입력 source unit 총수와 정확히 같아야 한다.\n"
+        )
+    if director_learning_context:
+        sections.append(director_learning_context)
+    if director_research_context:
+        sections.append(director_research_context)
+    if harness_planning_contract:
+        sections.append(
+            "\n--- runtime/harness-planning-contract.json ---\n"
+            "장면의 의미는 감독이 결정한다. 다음 계약은 선택된 렌더러의 실제 지원 범위와 자산 준비 요건이다. "
+            "지원하지 않는 행동을 다른 효과로 조용히 대체하지 말고, 필요한 자산·능력을 계획에 드러낸다. "
+            "자산 제작 계획이나 모델의 승인 문구는 사람 검수 통과가 아니다.\n"
+            + json.dumps(harness_planning_contract, ensure_ascii=False, sort_keys=True)
+        )
+    if visual_cues:
+        sections.append(
+            "\n--- runtime/storyboard-visual-cues.json ---\n"
+            "These user-supplied time ranges and visual directions are design references only. "
+            "The scenario and source units above are the complete spoken narration; never place cue headings, "
+            "screen directions, or timing markup in narration, subtitles, or on-screen labels. "
+            "Use original illustrative examples instead of unlicensed film frames. "
+            "Match each visual direction to its narration by meaning, adjusting timing to measured speech.\n"
+            + json.dumps(visual_cues, ensure_ascii=False)
+        )
+        sections.append(
+            "\n--- runtime/storyboard-scene-allocation.md ---\n"
+            f"This timed storyboard has exactly {len(visual_cues)} narration units. "
+            "Create exactly one scene for each unit in original order, and set every "
+            "scene.source_unit_count to 1. Within a scene, use object motion phases for "
+            "the user's requested visual changes; do not invent additional spoken lines."
+        )
+    if local_graphic:
+        sections.append(
+            "\n--- runtime/local-graphic-vocabulary.md ---\n"
+            "This renderer draws editable local objects, not AI images or arbitrary film clips. "
+            "Choose only objects that explain this script, never reuse a previous video's story. "
+            "Supported geography and distance objects: ocean, land, location-marker, "
+            "space-station, orbit, vertical-distance, distance-link, people. "
+            "Supported diagram objects: travel-path, attention-dots, speech-wave, warning-mark, "
+            "uncertainty-cloud, lock-pin. For film composition ONLY, these objects are available: "
+            "frame-set (three original example frames), frame (single film frame), "
+            "balanced-panel, offset-panel, tilting-frame, eye-symbol, eye-line, "
+            "frame-grid, upper-third-guide, lock-pin, figure-frame, travel-path, "
+            "attention-dots, speech-wave, warning-mark, phone-frame, uncertainty-cloud. "
+            "Give each object a descriptive role, initial and final state, and matching "
+            "motion object_id. Narrative scenes must mark one object's role as subject; "
+            "keep that subject's ID stable across scenes. Use at most eight objects per scene. "
+            "Object motion kinds are reveal, path_follow, state_change, group_split, pulse, hold. "
+            "Do not request facial acting, arbitrary illustrations or unsupported assets. "
+            "Each scene needs at least one executable object motion and "
+            "a short visual label. Use original diagrammatic reconstruction, not copyrighted frames."
+        )
     return "\n".join(sections)
+
+
+def _repair_feedback(repairs: dict[str, Any], proposal: dict[str, Any], source_unit_count: int) -> str:
+    sequences = proposal.get("sequences") if isinstance(proposal, dict) else None
+    requested_counts: list[Any] = []
+    keycut_diagnostics: list[str] = []
+    for sequence_index, sequence in enumerate(sequences or [], 1):
+        if not isinstance(sequence, dict):
+            continue
+        sequence_scenes = [
+            scene
+            for group in sequence.get("scene_groups") or []
+            if isinstance(group, dict)
+            for scene in group.get("scenes") or []
+            if isinstance(scene, dict)
+        ]
+        requested_counts.extend(scene.get("source_unit_count") for scene in sequence_scenes)
+        keycut_diagnostics.append(
+            f"sequence {sequence_index}: scene {len(sequence_scenes)}개, "
+            f"keycut_scene_number={sequence.get('keycut_scene_number')}"
+        )
+    requested_total = sum(value for value in requested_counts if type(value) is int)
+    return (
+        f"검수 결과: {', '.join(structural_repair_findings(repairs))}. "
+        f"입력 source unit은 {source_unit_count}개인데 이전 장면 배분은 "
+        f"{requested_counts} (합계 {requested_total})였다. "
+        f"핵심 컷 진단은 [{'; '.join(keycut_diagnostics)}], "
+        f"master_keycut_sequence_number={proposal.get('master_keycut_sequence_number')}이다. "
+        "모든 검수 항목을 각각 수정한다. keycut 번호는 해당 sequence의 실제 scene 개수 안에 두고, "
+        "master keycut 번호는 실제 sequence 개수 안에 둔다. 의미가 다른 후반 내용을 마지막 장면에 "
+        "몰아넣지 말고, 필요한 장면을 추가해 각각 시각적으로 설계한다."
+    )
 
 
 async def plan_with_codex(
@@ -470,11 +632,114 @@ async def plan_with_codex(
     codex_fast_mode: bool | None = None,
     continuity_enabled: bool = False,
     image_style: str = "editorial_illustration",
+    learning_selection: dict[str, Any] | None = None,
+    research_brief: dict[str, Any] | None = None,
+    harness_planning_contract: dict[str, Any] | None = None,
+    source_units_override: list[SourceUnit] | None = None,
+    semantic_analysis_result: Any | None = None,
+    selected_concept: Any | None = None,
+    visual_cues: list[dict[str, str]] | None = None,
+    local_graphic: bool = False,
+    _repair_limit: int = 2,
+    _previous_failures: frozenset[str] | None = None,
+    _repair_pass: int = 0,
+    _repair_note: str | None = None,
 ) -> ScenePlan:
-    schema = settings.schemas_dir / "scene-plan.schema.json"
-    output = work_dir / "scene-plan.codex.json"
-    source_units = compile_source_units(scenario)
-    prompt = _compose_prompt(prompts, scenario, source_units, continuity_enabled, image_style)
+    from .actor_scene import scene_output_schema, validate_actor_proposal
+    from .harness_sdk.direction import direction_enabled, direction_output_schema, evaluate_direction
+    from .harness_sdk.hybrid import hybrid_enabled, hybrid_output_schema, evaluate_hybrid
+    from .harness_sdk.semantic_beats import semantic_enabled
+    from .harness_sdk.concept_design import concept_enabled, bind_selected_concept
+    from .harness_sdk.locked_scene_design import locked_scene_enabled, locked_scene_schema, expand_locked_scene_proposal
+    locked_design = locked_scene_enabled(harness_planning_contract)
+    if semantic_enabled(harness_planning_contract) and semantic_analysis_result is None:
+        raise ValueError("semantic_analysis_must_precede_scene_design")
+    if concept_enabled(harness_planning_contract) and selected_concept is None:
+        raise ValueError("independent_concept_selection_must_precede_scene_design")
+    from .semantic_gate import require_acceptance
+    semantic_acceptance = require_acceptance(work_dir, semantic_analysis_result, scenario, harness_planning_contract,
+                                            codex_model or settings.codex_model)
+    from .harness_sdk.preproduction import preproduction_enabled
+    preproduction_brief = None
+    if preproduction_enabled(harness_planning_contract):
+        from .preproduction_brief import compile_preproduction_brief, require_matching_concept_brief
+        preproduction_brief = compile_preproduction_brief(semantic_analysis_result, harness_planning_contract)
+        if selected_concept is not None:
+            selection_path = work_dir / "concept-selection.json"
+            if not selection_path.exists():
+                raise ValueError("preproduction_concept_record_missing")
+            selection = json.loads(selection_path.read_text(encoding="utf-8"))
+            require_matching_concept_brief(selection, preproduction_brief)
+        brief_path = work_dir / "preproduction-brief.json"
+        if brief_path.exists():
+            if json.loads(brief_path.read_text(encoding="utf-8")) != preproduction_brief:
+                raise ValueError("preproduction_brief_changed_during_repair")
+        else:
+            brief_path.write_text(json.dumps(preproduction_brief, ensure_ascii=False, indent=2), encoding="utf-8")
+            tracker.add_asset(brief_path, "preproduction_brief")
+
+    schema = scene_output_schema(
+        json.loads((settings.schemas_dir / "scene-plan.schema.json").read_text(encoding="utf-8")),
+        harness_planning_contract,
+    )
+    schema = direction_output_schema(schema, harness_planning_contract)
+    schema = hybrid_output_schema(schema, harness_planning_contract)
+    stream_guard = None
+    if semantic_enabled(harness_planning_contract):
+        from .planning_stream_guard import bounded_phase_schema, PlanningStreamGuard
+        schema = bounded_phase_schema(schema)
+        stream_guard = PlanningStreamGuard()
+    if locked_design:
+        schema = locked_scene_schema(schema, semantic_analysis_result)
+    suffix = "" if _repair_pass == 0 else f".repair-{_repair_pass}"
+    output = work_dir / f"scene-plan.codex{suffix}.json"
+    source_units = source_units_override if source_units_override is not None else compile_source_units(scenario)
+    prompt = _compose_prompt(
+        prompts,
+        scenario,
+        source_units,
+        continuity_enabled,
+        image_style,
+        repair_feedback=_repair_note,
+        director_learning_context=learning_prompt(learning_selection) if learning_selection else "",
+        director_research_context=research_prompt(research_brief) if research_brief else "",
+        harness_planning_contract=harness_planning_contract,
+        visual_cues=visual_cues,
+        local_graphic=local_graphic,
+    )
+    if semantic_analysis_result is not None:
+        prompt += ("\n--- runtime/accepted-meaning-analysis.json ---\n"
+            "These exact semantic spans are the source units. Design one scene per beat, source_unit_count=1. "
+            "Preserve the analyzed purpose, route, grammar, source claims and narration. Do not merge distinct viewer changes. "
+            "Typed context/sequence relations are not event causes. Cross-scene cause_scene_number may only refer to an event_cause or motivation relation. "
+            "A character story without a supplied dilemma needs no invented choices or consequences. "
+            "Analysis is structurally checked, not independent factual or aesthetic approval.\n"
+            "Motion phases are short labels (at most 240 characters each), not prose or repeated instructions.\n"
+            + semantic_analysis_result.model_dump_json())
+    if preproduction_brief is not None:
+        prompt += ("\n--- runtime/preproduction-brief.json ---\n"
+            "For each beat, stage its required visual events with the registered grammar. "
+            "Respect its implementation limit and source boundary. A title alone is not an explanation. "
+            "The brief is a structural production constraint, not independent meaning or image approval.\n"
+            + json.dumps(preproduction_brief, ensure_ascii=False))
+    if selected_concept is not None:
+        prompt += ("\n--- runtime/selected-film-concept.json ---\n"
+            "This concept passed independent pre-render comparison, not rendered quality approval. "
+            "Copy its design exactly into every layout.hybrid.design. Use its route treatments and shared motifs in shots. "
+            "Do not invent or substitute colors, text sizes, facts, events or camera capabilities. "
+            "The generic style_bible must agree with this selected concept, not override it.\n" + selected_concept.model_dump_json())
+    if locked_design:
+        prompt += ("\n--- runtime/locked-scene-design-0.1 ---\n"
+            "This wire format supersedes earlier instructions to emit full scenes or copy design tokens. "
+            "Emit beat_designs with every exact beat-001, beat-002, etc. key required by the schema. "
+            "Sequences/groups list beat_ids exactly once in source order, not embedded scenes. "
+            "Core binds source_unit_count=1, route, grammar, source, transition=cut and selected design; OMIT those owned fields. "
+            "Do not generate authored_design or visual_labels. Local diagrams/sources have Core-owned hold camera. "
+            "Only diagram beats contain layout.hybrid with diagram and, for transport, optional composition. "
+            "Cumulative nodes are increments, common unit/scale, NO edges; comparison also has NO edges. "
+            "A simple intention or resolve is setup/action, not a choice with invented alternatives. "
+            "A single still depicts one legible instant, not simultaneous stages of an action. "
+            "Core ownership is not permission to omit objects, quantities, timing or shot design.\n")
     model = codex_model or settings.codex_model
     effort = codex_reasoning_effort or settings.codex_reasoning_effort
     fast_mode = settings.codex_fast_mode if codex_fast_mode is None else codex_fast_mode
@@ -495,7 +760,7 @@ async def plan_with_codex(
                 "type": "json_schema",
                 "name": "scene_plan",
                 "strict": True,
-                "schema": json.loads(schema.read_text(encoding="utf-8")),
+                "schema": schema,
             },
         },
     }
@@ -506,7 +771,7 @@ async def plan_with_codex(
         request["service_tier"] = "priority"
     transcript = CodexTranscript(
         work_dir,
-        tracker.attempt,
+        tracker.attempt if _repair_pass == 0 else f"{tracker.attempt}-repair-{_repair_pass}",
         request,
         model=model,
         effort=effort,
@@ -550,6 +815,8 @@ async def plan_with_codex(
                         if isinstance(delta, str):
                             output_parts.append(delta)
                             transcript.append_output(delta)
+                            if stream_guard is not None:
+                                stream_guard.feed(delta)
                     elif event_type == "response.completed":
                         value = payload.get("response")
                         if isinstance(value, dict):
@@ -565,6 +832,10 @@ async def plan_with_codex(
         text = _extract_output_text(completed) or "".join(output_parts)
         if not text:
             raise RuntimeError("Codex subscription response did not contain a scene plan")
+        if stream_guard is not None:
+            # Some providers deliver text only in the completion object.
+            final_guard = PlanningStreamGuard()
+            final_guard.feed(text)
         transcript.replace_output(text)
         output.write_text(text, encoding="utf-8")
 
@@ -594,12 +865,21 @@ async def plan_with_codex(
                 "service_tier_requested": "priority" if fast_mode else "default",
                 "service_tier_actual": completed.get("service_tier"),
                 "streaming": True,
-                "transcript": "work/codex/attempt-%d" % tracker.attempt,
+                "transcript": "work/codex/attempt-%s" % (
+                    tracker.attempt if _repair_pass == 0 else f"{tracker.attempt}-repair-{_repair_pass}"
+                ),
                 "timing": transcript.summary(),
             },
         )
         usage_recorded = True
         proposal = json.loads(text)
+        if locked_design:
+            proposal = expand_locked_scene_proposal(proposal, semantic_analysis_result, selected_concept,
+                hybrid_version=harness_planning_contract['hybrid_direction']['version'])
+            expanded_path = work_dir / f"scene-plan.expanded{suffix}.json"
+            expanded_path.write_text(json.dumps(proposal, ensure_ascii=False, indent=2), encoding="utf-8")
+            tracker.add_asset(expanded_path, "locked_scene_expansion", repair_pass=_repair_pass)
+        validate_actor_proposal(proposal, harness_planning_contract)
         plan, repairs = compile_scene_plan(
             proposal,
             scenario,
@@ -622,6 +902,120 @@ async def plan_with_codex(
             validate_plan(plan, scenario)
             repairs["continuity_disabled_assets_removed"] = removed_assets
         tracker.usage[-1]["raw_usage"]["deterministic_repairs"] = repairs
+        blocking_repairs = structural_repair_findings(repairs)
+        direction_findings: list[str] = []
+        from .harness_sdk.engine_mode import evaluate_engine_mode
+        boundary_findings = evaluate_engine_mode(plan.scenes, harness_planning_contract)
+        blocking_repairs += boundary_findings
+        if direction_enabled(harness_planning_contract):
+            review = evaluate_direction(plan.scenes, expected_version=harness_planning_contract["narrative_direction"]["version"])
+            review_path = work_dir / f"direction-review{suffix}.json"
+            review_path.write_text(json.dumps(review, ensure_ascii=False, indent=2), encoding="utf-8")
+            tracker.add_asset(review_path, "direction_review", repair_pass=_repair_pass)
+            direction_findings = list(review["findings"])
+            blocking_repairs += direction_findings
+        direction_findings += boundary_findings
+        if semantic_analysis_result is not None:
+            from .harness_sdk.semantic_beats import bind_and_check_beats, analysis_sha256
+            from .semantic_review import digest
+            semantic_findings = bind_and_check_beats(plan.scenes, semantic_analysis_result)
+            if preproduction_brief is not None:
+                from .preproduction_brief import scene_brief_findings
+                semantic_findings += scene_brief_findings(plan.scenes, preproduction_brief)
+            if semantic_acceptance:
+                for scene in plan.scenes:
+                    scene.layout["semantic_sufficiency"] = dict(semantic_acceptance)
+            binding_path = work_dir / f"semantic-binding{suffix}.json"
+            binding_path.write_text(json.dumps({"status": "REVISE" if semantic_findings else "STRUCTURAL_PASS",
+                "findings": semantic_findings, "selections": [s.layout.get("semantic_beat") for s in plan.scenes],
+                "analysis_sha256": analysis_sha256(semantic_analysis_result),
+                "preproduction_brief_sha256": digest(preproduction_brief) if preproduction_brief is not None else None,
+                "independent_review": semantic_acceptance,
+                "human_approval": None, "not_evaluated": ["rendered_quality", "factual_truth", "audience_response"] if semantic_acceptance else ["independent_semantics", "rendered_quality"]}, ensure_ascii=False, indent=2), encoding="utf-8")
+            tracker.add_asset(binding_path, "semantic_binding", repair_pass=_repair_pass)
+            direction_findings += semantic_findings
+            blocking_repairs += semantic_findings
+        if hybrid_enabled(harness_planning_contract):
+            hybrid_findings = evaluate_hybrid(plan.scenes,
+                {item["id"] for item in (harness_planning_contract or {}).get("trusted_source_catalog", [])},
+                {item["id"] for item in (harness_planning_contract or {}).get("trusted_illustration_catalog", [])},
+                expected_version=harness_planning_contract["hybrid_direction"]["version"])
+            if selected_concept is not None:
+                hybrid_findings += bind_selected_concept(plan.scenes, selected_concept)
+            hybrid_review_path = work_dir / f"hybrid-review{suffix}.json"
+            hybrid_review_path.write_text(json.dumps({
+                "status": "REVISE" if hybrid_findings else "CONTRACT_PASS",
+                "findings": hybrid_findings, "human_approval": None,
+                "grammar_library_sha256": (harness_planning_contract or {}).get("visual_grammar_library", {}).get("sha256"),
+                "selections": [{"scene_id": s.id,
+                    "route": (s.layout.get("hybrid") or {}).get("route"),
+                    "grammar": ((s.layout.get("hybrid") or {}).get("diagram") or {}).get("grammar"),
+                    "reason": (s.layout.get("hybrid") or {}).get("reason"),
+                } for s in plan.scenes],
+                "not_evaluated": ["factual_accuracy", "rendered_semantics", "emotion"],
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
+            tracker.add_asset(hybrid_review_path, "hybrid_review", repair_pass=_repair_pass)
+            direction_findings += hybrid_findings
+            blocking_repairs += hybrid_findings
+        failure_causes = frozenset(f.split(":", 1)[-1] for f in blocking_repairs)
+        repeated_causes = failure_causes.intersection(_previous_failures or ())
+        if semantic_analysis_result is not None and repeated_causes:
+            stop_path = work_dir / f"planning-stop{suffix}.json"
+            stop_path.write_text(json.dumps({
+                "policy_version": "planning-repeat-stop-0.2",
+                "status": "ENGINE_WORK_REQUIRED",
+                "repair_pass": _repair_pass,
+                "repeated_causes": sorted(repeated_causes),
+                "findings": blocking_repairs,
+                "human_approval": None,
+            }, ensure_ascii=False, indent=2), encoding="utf-8")
+            tracker.add_asset(stop_path, "planning_stop", repair_pass=_repair_pass)
+            raise ValueError("Repeated planning failure requires engine work: " + ", ".join(sorted(repeated_causes)))
+        if blocking_repairs and _repair_pass < _repair_limit:
+            note = _repair_feedback(repairs, proposal, len(source_units))
+            if direction_findings:
+                note += "\nRepair shot intent while preserving narration and source order:\n" + "\n".join(direction_findings)
+            next_repair_pass = _repair_pass + 1
+            repair_request = {
+                "repair_pass": next_repair_pass,
+                "reason": "director_structural_repair",
+                "findings": blocking_repairs,
+                "feedback": note,
+                "original_proposal": output.name,
+            }
+            (work_dir / f"director-repair-request-{next_repair_pass}.json").write_text(
+                json.dumps(repair_request, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            return await plan_with_codex(
+                scenario,
+                prompts,
+                settings,
+                tracker,
+                work_dir,
+                codex_model=codex_model,
+                codex_reasoning_effort=codex_reasoning_effort,
+                codex_fast_mode=codex_fast_mode,
+                continuity_enabled=continuity_enabled,
+                image_style=image_style,
+                learning_selection=learning_selection,
+                research_brief=research_brief,
+                harness_planning_contract=harness_planning_contract,
+                source_units_override=source_units_override,
+                semantic_analysis_result=semantic_analysis_result,
+                selected_concept=selected_concept,
+                visual_cues=visual_cues,
+                local_graphic=local_graphic,
+                _repair_limit=_repair_limit,
+                _previous_failures=failure_causes,
+                _repair_pass=next_repair_pass,
+                _repair_note=note,
+            )
+        if direction_findings:
+            raise ValueError("Narrative direction needs repair: " + ", ".join(direction_findings))
+        from .visible_text_review import ensure_visible_text
+        plan = await ensure_visible_text(plan, harness_planning_contract, settings, tracker, work_dir,
+            generator_model=model, repair_budget=max(0, _repair_limit-_repair_pass), attempt=_repair_pass)
         return plan
     except Exception as error:
         mapped = error
@@ -632,7 +1026,8 @@ async def plan_with_codex(
             )
         elif isinstance(error, (json.JSONDecodeError, ValueError)):
             mapped = RuntimeError(f"codex returned an invalid scene plan: {error}")
-        transcript.fail(mapped)
+        if transcript.status not in {"completed", "succeeded"}:
+            transcript.fail(mapped)
         if not usage_recorded:
             finished_at = _now()
             tracker.add_usage(
@@ -645,12 +1040,15 @@ async def plan_with_codex(
                 effort=effort,
                 raw_usage={
                     "status": "failed",
+                    "tokens_unknown": True,
                     "reasoning_effort": effort,
                     "fast_mode_requested": fast_mode,
                     "service_tier_requested": "priority" if fast_mode else "default",
                     "service_tier_actual": transcript.actual_service_tier,
                     "streaming": True,
-                    "transcript": "work/codex/attempt-%d" % tracker.attempt,
+                    "transcript": "work/codex/attempt-%s" % (
+                        tracker.attempt if _repair_pass == 0 else f"{tracker.attempt}-repair-{_repair_pass}"
+                    ),
                     "timing": transcript.summary(),
                     "error": str(mapped)[:1000],
                 },
@@ -685,20 +1083,104 @@ async def create_plan(
     codex_fast_mode: bool | None = None,
     continuity_enabled: bool = False,
     image_style: str = "editorial_illustration",
+    genre_id: str | None = None,
+    harness_id: str = "classic-slide",
+    duration_profile: str = "episode_60",
+    harness_planning_contract: dict[str, Any] | None = None,
+    motion_style: dict[str, Any] | None = None,
+    visual_cues: list[dict[str, str]] | None = None,
 ) -> ScenePlan:
+    from .genre_profiles import bind_plan, planning_instruction
+    from .harness_sdk.semantic_beats import semantic_enabled
+    if semantic_enabled(harness_planning_contract) and settings.runner_mode != "live":
+        raise ValueError("semantic_analysis_requires_director_or_explicit_mock_transport; no deterministic fallback")
+    if semantic_enabled(harness_planning_contract) and duration_profile != "episode_60":
+        raise ValueError("semantic_analysis_long_form_not_supported; use the episode_60 contract")
+    if genre_id is not None:
+        prompts = dict(prompts)
+        prompts["image/style-guide.md"] = prompts["image/style-guide.md"] + "\n\n" + planning_instruction(genre_id, image_style)
+    if motion_style is not None:
+        from .motion_style import style_instruction
+        prompts = dict(prompts)
+        prompts["image/style-guide.md"] += "\n\n" + style_instruction(motion_style)
+    selection = select_director_rules(scenario, harness_id)
+    record_learning_selection(work_dir, selection)
+    research_mode = getattr(settings, "director_research_mode", "off")
+    if research_mode not in {"off", "pilot"}:
+        raise ValueError("Invalid director research mode")
+    brief = select_research_candidates(scenario, harness_id, planning_contract=harness_planning_contract)
+    record_research_brief(work_dir, brief, mode=research_mode,
+                          used_in_prompt=research_mode == "pilot" and settings.runner_mode == "live")
+    if tracker is not None and hasattr(tracker, "add_asset"):
+        tracker.add_asset(work_dir / "director-research-brief.json", "director_research_brief",
+                          harness_id=harness_id, research_mode=research_mode,
+                          research_status=brief["status"])
     if settings.runner_mode == "live":
-        return await plan_with_codex(
-            scenario,
-            prompts,
-            settings,
-            tracker,
-            work_dir,
-            codex_model=codex_model,
-            codex_reasoning_effort=codex_reasoning_effort,
-            codex_fast_mode=codex_fast_mode,
-            continuity_enabled=continuity_enabled,
-            image_style=image_style,
-        )
+        from .long_form_plan import combine_plans, local_source_units, script_ranges
+
+        global_units = compile_storyboard_units(scenario, visual_cues) if visual_cues else compile_source_units(scenario)
+        ranges = script_ranges(scenario, global_units) if duration_profile == "single_30m" else [(0, len(scenario))]
+        directed = []
+        for index, (start, end) in enumerate(ranges, 1):
+            part_work = work_dir if len(ranges) == 1 else work_dir / f"director-part-{index:03d}"
+            part_work.mkdir(parents=True, exist_ok=True)
+            part_prompts = dict(prompts)
+            if directed:
+                part_prompts["image/style-guide.md"] += (
+                    "\n\nKeep this previously directed video's design system consistent:\n"
+                    + directed[0][1].style_bible.model_dump_json()
+                )
+            usage_start = len(tracker.usage)
+            part_brief = select_research_candidates(
+                scenario[start:end], harness_id, planning_contract=harness_planning_contract
+            ) if research_mode == "pilot" else None
+            if part_work != work_dir and part_brief is not None:
+                record_research_brief(part_work, part_brief, mode=research_mode, used_in_prompt=True)
+            from .harness_sdk.semantic_beats import semantic_enabled
+            analysis = None
+            analysis_repairs = 0
+            selected_concept = None
+            part_units = local_source_units(global_units, start, end)
+            if semantic_enabled(harness_planning_contract):
+                from .semantic_planning import analyze_script, analysis_units
+                analysis, analysis_repairs = await analyze_script(scenario[start:end], settings, tracker, part_work,
+                    harness_planning_contract, model=codex_model, effort=codex_reasoning_effort, fast_mode=codex_fast_mode)
+                part_units = analysis_units(analysis)
+            from .harness_sdk.concept_design import concept_enabled
+            if concept_enabled(harness_planning_contract):
+                if analysis is None:
+                    raise ValueError("concept_selection_requires_meaning_analysis")
+                from .concept_planning import select_concept
+                selected_concept = await select_concept(scenario[start:end], analysis, harness_planning_contract,
+                    settings, tracker, part_work, model=codex_model, image_style=image_style)
+            part = await plan_with_codex(
+                scenario[start:end], part_prompts, settings, tracker, part_work,
+                codex_model=codex_model, codex_reasoning_effort=codex_reasoning_effort,
+                codex_fast_mode=codex_fast_mode, continuity_enabled=continuity_enabled,
+                image_style=image_style, learning_selection=selection,
+                research_brief=part_brief,
+                harness_planning_contract=harness_planning_contract,
+                source_units_override=part_units,
+                semantic_analysis_result=analysis,
+                selected_concept=selected_concept,
+                visual_cues=[cue for cue in (visual_cues or []) if cue.get("narration", "") in scenario[start:end]],
+                local_graphic=bool(motion_style and motion_style.get("productionRoute") == "local_graphic"),
+                _repair_limit=3-analysis_repairs if analysis is not None else 2,
+            )
+            # Earlier repair passes are evidence, not defects in the returned plan.
+            new_usage = tracker.usage[usage_start:]
+            if new_usage:
+                repairs = (new_usage[-1].get("raw_usage") or {}).get("deterministic_repairs")
+                findings = structural_repair_findings(repairs)
+                if findings:
+                    raise ValueError("Director plan needs repair before asset work: " + ", ".join(findings))
+            directed.append((start, part))
+        plan = combine_plans(scenario, directed) if len(directed) > 1 else directed[0][1]
+        plan = bind_plan(plan, genre_id) if genre_id is not None else plan
+        record_learning_application(work_dir, selection, plan)
+        return plan
     plan = deterministic_plan(scenario, prompts["image/style-guide.md"], image_style)
     validate_plan(plan, scenario)
+    plan = bind_plan(plan, genre_id) if genre_id is not None else plan
+    record_learning_application(work_dir, selection, plan)
     return plan

@@ -1,0 +1,10 @@
+{
+  "script": "밤늦게, 한 사람이 컴퓨터 앞에 앉아 있습니다.\n화면에는 우주복을 입은 고양이의 이미지가 보입니다.",
+  "genre_id": "documentary",
+  "image_style": "fantasy_anime",
+  "crossfade_seconds": 0,
+  "shots": [
+    {"image": "fantasy-anime-v1.png", "asset_origin": "generated", "visual_summary": "컴퓨터 앞 인물을 보여주는 AI 재현 삽화", "camera": {"mode": "hold"}},
+    {"image": "fantasy-anime-v1.png", "asset_origin": "generated", "visual_summary": "모니터의 이미지를 보여주는 AI 재현 삽화", "camera": {"mode": "push", "strength": 0.025, "focus": [0.75, 0.4]}}
+  ]
+}

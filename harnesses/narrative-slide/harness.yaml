@@ -1,0 +1,19 @@
+{
+  "id": "narrative-slide",
+  "version": "0.1.0",
+  "engine_api": ">=1.0,<2.0",
+  "entrypoint": "narrative_slide.plugin:ClassicSlideHarness",
+  "display_name": "내러티브 슬라이드 · 개발판",
+  "description": "딜레마·선택·결과와 컷의 정보 변화를 검증하는 영화형 슬라이드",
+  "public": false,
+  "prompts_dir": "prompts",
+  "config_dir": "config",
+  "fixtures_dir": "fixtures",
+  "python": {
+    "package": "narrative-slide-harness",
+    "lockfile": "requirements.lock"
+  },
+  "defaults": {
+    "config": "config/default.yaml"
+  }
+}

@@ -1,0 +1,56 @@
+<!doctype html><html><head><meta charset="utf-8"><script src="assets/gsap.min.js"></script><style>html,body{margin:0;background:#510100}#master{width:1920px;height:1080px;overflow:hidden}svg{width:100%;height:100%}text{font-family:'Arial Narrow',Arial,sans-serif;fill:#fff1cd;letter-spacing:0}</style></head><body>
+<div id="master" data-composition-id="blood-intervention-study" data-width="1920" data-height="1080" data-duration="30" data-fps="30"><svg viewBox="0 0 1920 1080">
+<defs><linearGradient id="lumen"><stop stop-color="#ed8065"/><stop offset=".5" stop-color="#ffb99a"/><stop offset="1" stop-color="#f78868"/></linearGradient><clipPath id="channel"><rect y="330" width="1920" height="420"/></clipPath><g id="redCell"><ellipse rx="55" ry="66" fill="#de5139"/><path d="M-37 48L37-48" stroke="#f9805b" stroke-width="25"/></g></defs>
+<rect width="1920" height="1080" fill="#510100"/><rect y="150" width="1920" height="780" fill="#731407"/><rect y="240" width="1920" height="600" fill="#a82819"/><rect y="330" width="1920" height="420" fill="url(#lumen)"/>
+<text id="title" x="960" y="155" text-anchor="middle" font-size="100" textLength="680" lengthAdjust="spacingAndGlyphs" opacity="0">ANGIOPLASTY</text>
+<g clip-path="url(#channel)"><g id="particles"></g></g>
+<path id="upperDeposit" d="M710 330Q960 180 1210 330Q960 570 710 330Z" fill="#fff3cd"/>
+<path id="lowerDeposit" d="M710 750Q960 900 1210 750Q960 510 710 750Z" fill="#fff3cd"/>
+<g clip-path="url(#channel)">
+<g id="firstDevice" transform="translate(-1450 0)"><path d="M-1800 540H1150" stroke="#6c0700" stroke-width="46"/><g id="balloon" transform="translate(-490 540)" opacity="0"><ellipse id="balloonShape" rx="160" ry="54" fill="#d32215"/></g></g>
+<g id="secondDevice" transform="translate(-1450 0)"><path d="M-1800 540H1140" stroke="#6c0700" stroke-width="42"/><ellipse id="secondBalloon" cx="960" cy="540" rx="165" ry="55" fill="#cd2717"/></g>
+<g id="implant" transform="translate(-490 540) scale(1 .28)" opacity="0" fill="none" stroke="#7e1609" stroke-width="17"><ellipse cx="-105" rx="35" ry="172"/><ellipse cx="105" rx="35" ry="172"/><path d="M-105-172H105M-105 172H105M-140 0H140"/></g>
+</g><g id="walls"></g><g id="innerLining"></g>
+</svg></div><script>
+gsap.config({force3D:false});const ns='http://www.w3.org/2000/svg';
+function add(tag,attrs,parent){const e=document.createElementNS(ns,tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e}
+const tl=gsap.timeline({paused:true});
+for(const y of [330,750]){const d=`M-100 ${y}H700Q960 ${y+(y===330?-150:150)} 1220 ${y}H2020`;for(const [color,width,dash] of [['#821309',90,null],['#f37150',62,null],['#b8311b',30,'32 14']])add('path',{d,stroke:color,'stroke-width':width,fill:'none',...(dash?{'stroke-dasharray':dash}:{})},document.querySelector('#walls'))}
+// Each lining cell follows the same quadratic profile as the deposit boundary.
+for(const y of [330,750])for(let x=-10;x<=1930;x+=44){const u=(x-710)/500,w=u>0&&u<1?4*u*(1-u):0,sign=y===330?1:-1;
+ const e=add('circle',{cx:x,cy:y+sign*(120*w-22*w),r:22,fill:'#a72a16'},document.querySelector('#innerLining'));
+ tl.to(e,{attr:{cy:y+sign*(34.5*w-22*w)},duration:.167,ease:'none'},14.506958);
+}
+for(let i=0;i<90;i++){const type=i%5,x=(i*197)%6600-4700,y=425+(i%4)*76,e=add('g',{transform:`translate(${x} ${y})`},document.querySelector('#particles'));
+ if(type<3)add('use',{href:'#redCell',transform:`scale(${.75+(i%3)*.16})`},e);
+ else if(type===3){add('rect',{x:-28,y:-10,width:56,height:20,rx:10,fill:'#f9764e'},e);add('path',{d:'M-22-5H22',stroke:'#efad76','stroke-width':6},e)}
+ else {add('path',{d:'M-18 12Q-12-20 20-14L-18 12Z',fill:'#fff1c9'},e);add('path',{d:'M-18 12L20-14Q17 20-18 12Z',fill:'#d5b68a'},e)}
+ tl.to(e,{x:'+=4400',duration:30,ease:'none'},0);
+}
+const openUpper='M710 330Q960 180 1210 330Q960 399 710 330Z',openLower='M710 750Q960 900 1210 750Q960 681 710 750Z';
+// Native-source central-strip heights at original PTS; 640px analysis to 1920px canvas.
+const measured=[[14.506958,35],[14.548667,39],[14.590375,46],[14.632083,105],[14.673792,126],[14.7155,119],[14.757208,117],[15.216,117],[15.257708,116],[15.299417,115],[15.341125,113],[15.382833,111],[15.424542,109],[15.46625,107],[15.507958,104],[15.549667,101],[15.591375,56],[15.633083,39],[15.674792,30],[15.7165,33],[15.758208,35]];
+tl.set('#balloonShape',{attr:{ry:52.5}},0);
+for(let i=1;i<measured.length;i++){
+ const [t,h]=measured[i],prev=measured[i-1][0];
+ tl.to('#balloonShape',{attr:{ry:h*1.5,rx:160+Math.max(0,h-35)*.11},duration:t-prev,ease:'none'},prev);
+}
+tl.to('#title',{opacity:1,duration:.3},4)
+.to('#particles',{opacity:0,duration:.5},3)
+.to('#firstDevice',{attr:{transform:'translate(0 0)'},duration:5,ease:'none'},4)
+.set('#balloon',{opacity:1},9)
+.to('#balloon',{attr:{transform:'translate(960 540)'},duration:3,ease:'power1.out'},9)
+.to('#upperDeposit',{attr:{d:openUpper},duration:.167,ease:'none'},14.506958)
+.to('#lowerDeposit',{attr:{d:openLower},duration:.167,ease:'none'},14.506958)
+.to('#firstDevice',{attr:{transform:'translate(-1450 0)'},duration:1.6,ease:'power1.inOut'},16.4)
+.set('#implant',{opacity:1},19)
+.to('#implant',{attr:{transform:'translate(960 540) scale(1 .28)'},duration:2,ease:'power1.inOut'},19)
+.to('#secondDevice',{attr:{transform:'translate(0 0)'},duration:2,ease:'power1.inOut'},19)
+.to('#implant',{attr:{transform:'translate(960 540) scale(1 1)'},duration:1,ease:'sine.inOut'},21)
+.to('#secondBalloon',{attr:{ry:165},duration:1,ease:'sine.inOut'},21)
+.to('#secondBalloon',{attr:{ry:55},duration:.4,ease:'sine.inOut'},22)
+.to('#secondDevice',{attr:{transform:'translate(-1450 0)'},duration:1.6,ease:'power1.inOut'},22.4)
+.to('#particles',{opacity:1,duration:.5},23.8)
+.to({}, {duration:.1},29.9);
+window.__timelines={'blood-intervention-study':tl};
+</script></body></html>
